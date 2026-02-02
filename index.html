@@ -5,50 +5,176 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { font-family: sans-serif; padding: 20px; text-align: center; }
-        .btn { 
-            display: block; width: 100%; padding: 20px; margin-top: 20px; 
-            font-size: 18px; font-weight: bold; background: #007aff; color: white; 
-            border: none; border-radius: 10px; cursor: pointer;
-        }
-        .info { background: #eee; padding: 10px; border-radius: 10px; margin-top: 10px; word-break: break-all; }
+        body { font-family: -apple-system, sans-serif; background-color: #f2f2f7; padding: 15px; color: #1c1c1e; }
+        .hidden { display: none !important; }
+        .header { text-align: center; margin-bottom: 15px; color: #007aff; font-size: 20px; font-weight: 600; }
+        .card { background: white; border-radius: 15px; padding: 20px; text-align: center; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .main-btn { padding: 18px; border-radius: 12px; border: none; font-size: 16px; font-weight: 600; cursor: pointer; width: 100%; margin-bottom: 10px; }
+        .btn-yellow { background: #ffcc00; color: #000; }
+        .btn-white { background: #fff; border: 1px solid #ddd; text-align: left; margin: 8px 0; display: block; }
+        .back-btn { background: #ff3b30; color: white; margin-top: 15px; }
+        
+        /* Маркетплейс */
+        .offer-card { background: white; border-radius: 12px; padding: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .offer-info { text-align: left; }
+        .offer-price { font-size: 18px; font-weight: bold; color: #34c759; }
+        .offer-seller { font-size: 12px; color: #8e8e93; }
+        .btn-buy-small { background: #007aff; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+        .input-price { width: 90%; padding: 15px; font-size: 24px; border-radius: 10px; border: 2px solid #007aff; text-align: center; margin-bottom: 15px; }
     </style>
 </head>
 <body>
-    <h1>ТЕСТ СВЯЗИ</h1>
-    <p>Нажмите кнопку ниже. Приложение НЕ закроется, но данные должны улететь в бота.</p>
-    
-    <div class="info" id="debug-info">Ваш ID: Определяется...</div>
+    <div id="app">
+        <div id="screen-welcome" class="hidden">
+            <h2 class="header">Добро пожаловать</h2>
+            <div class="card">
+                <p>Выберите роль:</p>
+                <button class="main-btn btn-yellow" onclick="setRole('buyer')">🛒 Я Покупатель</button>
+                <button class="main-btn btn-white" style="text-align:center" onclick="setRole('seller')">📦 Я Продавец</button>
+            </div>
+        </div>
 
-    <button class="btn" onclick="sendTestSignal()">🚀 ОТПРАВИТЬ СИГНАЛ</button>
+        <div id="screen-lk" class="hidden">
+            <div class="card">
+                <div id="user-name">ЛК</div>
+            </div>
+            <button class="main-btn btn-yellow" id="btn-buy" onclick="startFlow('buy')">Купить</button>
+            <button class="main-btn btn-yellow" id="btn-price" onclick="startFlow('sell')">Мой Прайс</button>
+        </div>
+
+        <div id="screen-flow" class="hidden">
+            <h2 id="flow-title" class="header">Выбор</h2>
+            <div id="flow-content"></div>
+            <button class="main-btn back-btn" onclick="goBack()">⬅ Назад</button>
+        </div>
+
+        <div id="screen-offers" class="hidden">
+            <h2 class="header">Предложения</h2>
+            <div id="offers-list"></div>
+            <button class="main-btn back-btn" onclick="showScreen('screen-flow')">⬅ Назад</button>
+        </div>
+
+        <div id="screen-price" class="hidden">
+            <h2 class="header">Цена</h2>
+            <div class="card">
+                <p id="price-product-name"></p>
+                <input type="number" id="price-input" class="input-price" placeholder="100000">
+                <button class="main-btn btn-yellow" onclick="finishPrice()">Опубликовать</button>
+            </div>
+            <button class="main-btn back-btn" onclick="showScreen('screen-flow')">⬅ Назад</button>
+        </div>
+    </div>
 
     <script>
         let tg = window.Telegram.WebApp;
         tg.expand();
 
-        // --- ВАЖНО: ВПИШИТЕ СЮДА СВОЙ ID ---
-        const myIdForTest = 464896073; 
+        // !!! 1. ВПИШИТЕ СВОЙ ID СЮДА !!!
+        const sellers = [464896073]; 
+        const myId = tg.initDataUnsafe.user?.id;
 
-        // Показываем ID на экране для проверки
-        const userId = tg.initDataUnsafe.user?.id || "Неизвестно";
-        document.getElementById('debug-info').innerText = "Ваш ID в Телеграм: " + userId;
+        // !!! 2. ВПИШИТЕ СВОЙ ID В ПОЛЕ 'id' !!!
+        const mockOffers = [
+            { id: 464896073, username: 'My_Store', price: 105000 },
+            { id: 555555555, username: 'Rostov_Opt', price: 104000 }
+        ];
 
-        function sendTestSignal() {
-            // Формируем тестовый запрос
-            // REQ_BUY | ID_Продавца | Имя_Продавца | Товар | Цена
-            const data = `REQ_BUY|${myIdForTest}|Test_Seller|iPhone 16 Pro TEST|100`;
+        // КАТАЛОГ (Сокращенный для теста, но можно расширить)
+        const catalog = { 'iPhone': { 
+            'iPhone 16 Pro': { mem: ['128','256'], col: ['Black','Desert'], net: ['2 Sim'] },
+            'iPhone 15': { mem: ['128'], col: ['Blue'], net: ['1 Sim'] }
+        }};
 
-            // 1. Показываем, что отправляем
-            alert("Сейчас отправлю данные:\n" + data);
+        let sel = { mode: '', cat: '', mod: '', mem: '', col: '', net: '', productName: '' };
+        let history = [];
 
-            // 2. Отправляем в бота
-            tg.sendData(data);
-
-            // 3. НЕ ЗАКРЫВАЕМ ПРИЛОЖЕНИЕ (чтобы данные успели уйти)
-            // tg.close(); <--- Я закомментировал это специально!
-            
-            alert("Данные отправлены! Посмотрите в черное окно на компьютере.");
+        function init() {
+            const role = localStorage.getItem('user_role');
+            if(!role) showScreen('screen-welcome');
+            else { updateInterface(role); showScreen('screen-lk'); }
         }
+
+        function setRole(role) {
+            if(role === 'seller' && !sellers.includes(myId)) return alert("Нет доступа. Ваш ID: " + myId);
+            localStorage.setItem('user_role', role);
+            updateInterface(role);
+            showScreen('screen-lk');
+        }
+
+        function updateInterface(role) {
+            document.getElementById('user-name').innerText = "ЛК: " + (tg.initDataUnsafe.user?.first_name || "User");
+            document.getElementById('btn-buy').style.display = (role === 'buyer') ? 'block' : 'none';
+            document.getElementById('btn-price').style.display = (role === 'seller') ? 'block' : 'none';
+        }
+
+        function showScreen(id) {
+            ['screen-welcome', 'screen-lk', 'screen-flow', 'screen-offers', 'screen-price'].forEach(s => document.getElementById(s).classList.add('hidden'));
+            document.getElementById(id).classList.remove('hidden');
+        }
+
+        // Логика переходов
+        function startFlow(mode) { sel.mode = mode; history=['lk']; renderCats(); showScreen('screen-flow'); }
+        function goBack() { showScreen('screen-lk'); }
+
+        function renderCats() {
+            let h = ''; for(let c in catalog) h+=`<button class="main-btn btn-white" onclick="selCat('${c}')">${c}</button>`;
+            document.getElementById('flow-content').innerHTML = h;
+        }
+        function selCat(c) { sel.cat=c; renderMods(); }
+        function renderMods() {
+            let h = ''; for(let m in catalog[sel.cat]) h+=`<button class="main-btn btn-white" onclick="selMod('${m}')">${m}</button>`;
+            document.getElementById('flow-content').innerHTML = h;
+        }
+        function selMod(m) { sel.mod=m; renderMem(); }
+        function renderMem() {
+             let h = ''; catalog[sel.cat][sel.mod].mem.forEach(m => h+=`<button class="main-btn btn-white" onclick="selMem('${m}')">${m} Гб</button>`);
+             document.getElementById('flow-content').innerHTML = h;
+        }
+        function selMem(m) { sel.mem=m; renderCol(); }
+        function renderCol() {
+             let h = ''; catalog[sel.cat][sel.mod].col.forEach(c => h+=`<button class="main-btn btn-white" onclick="selCol('${c}')">${c}</button>`);
+             document.getElementById('flow-content').innerHTML = h;
+        }
+        function selCol(c) { sel.col=c; finishFlow(); }
+
+        function finishFlow() {
+            sel.productName = `${sel.mod} ${sel.mem}Gb ${sel.col}`;
+            if(sel.mode === 'buy') renderOffers();
+            else {
+                document.getElementById('price-product-name').innerText = sel.productName;
+                showScreen('screen-price');
+            }
+        }
+
+        function renderOffers() {
+            let h = '';
+            mockOffers.sort((a,b)=>a.price-b.price).forEach(o => {
+                h += `
+                <div class="offer-card">
+                    <div class="offer-info">
+                        <div class="offer-price">${o.price} ₽</div>
+                        <div class="offer-seller">@${o.username}</div>
+                    </div>
+                    <button class="btn-buy-small" onclick="requestBuy('${o.id}', '${o.username}', '${o.price}')">Купить</button>
+                </div>`;
+            });
+            document.getElementById('offers-list').innerHTML = h;
+            showScreen('screen-offers');
+        }
+
+        // --- ГЛАВНАЯ ФУНКЦИЯ ОТПРАВКИ ---
+        function requestBuy(sid, sname, price) {
+            const data = `REQ_BUY|${sid}|${sname}|${sel.productName}|${price}`;
+            tg.sendData(data); // Отправляем данные
+            // tg.close(); // Убрали close, чтобы наверняка ушло (Телеграм сам закроет или свернет, если нужно)
+        }
+
+        function finishPrice() {
+            const p = document.getElementById('price-input').value;
+            tg.sendData(`NEW_PRICE|${sel.productName}|${p}`);
+        }
+
+        init();
     </script>
 </body>
 </html>
