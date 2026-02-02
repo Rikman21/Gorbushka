@@ -3,16 +3,10 @@ import logging
 
 DB_NAME = "market.db"
 
-# --- ВАШ КАТАЛОГ (MASTER DATA) ---
-# ... (Список товаров тот же самый, я его сократил визуально для удобства, 
-# НО ВЫ ОСТАВЬТЕ ТОТ БОЛЬШОЙ СПИСОК, КОТОРЫЙ БЫЛ В ПРОШЛОМ РАЗЕ. 
-# Если потеряли - скажите, я скину снова. Здесь я пишу "...", чтобы не занимать место)
-
-# !!! ВСТАВЬТЕ СЮДА ВЕСЬ СПИСОК INITIAL_PRODUCTS ИЗ ПРОШЛОГО УРОКА !!!
-# Если вы просто замените файл на этот, убедитесь, что список товаров внутри полный.
-# Для надежности, я продублирую начало и конец, чтобы вы поняли структуру.
-
+# !!! ВАЖНО: ОСТАВЬТЕ ЗДЕСЬ ВАШ ПОЛНЫЙ СПИСОК INITIAL_PRODUCTS ИЗ 123 ТОВАРОВ !!!
+# Я сократил его для краткости, но вы должны оставить полный.
 INITIAL_PRODUCTS = [
+    INITIAL_PRODUCTS = [
     ('16E-DP-001', 'iPhone 16e', '128 GB', 'Black', 'Dual Physical SIM'),
     ('16E-DP-002', 'iPhone 16e', '256 GB', 'Black', 'Dual Physical SIM'),
     ('16E-DP-003', 'iPhone 16e', '512 GB', 'Black', 'Dual Physical SIM'),
@@ -143,7 +137,6 @@ INITIAL_PRODUCTS = [
     ('16PM-PE-011', 'iPhone 16 Pro Max', '512 GB', 'Desert Titanium', 'Physical + eSIM'),
     ('16PM-PE-012', 'iPhone 16 Pro Max', '1 TB', 'Desert Titanium', 'Physical + eSIM')
 ]
-# ^^^ ВАЖНО: Если у вас нет под рукой полного списка, напишите, я скину полный файл database.py еще раз.
 
 def init_db():
     conn = sqlite3.connect(DB_NAME)
@@ -172,11 +165,7 @@ def init_db():
 
     cursor.execute('SELECT count(*) FROM products')
     count = cursor.fetchone()[0]
-    # Если база пустая или товаров мало (на случай если мы обновили список), перезальем каталог
-    # Для простоты: если 0, заливаем.
     if count == 0:
-        logging.info("Загружаю каталог товаров...")
-        # Тут я использую try-except, чтобы не падало на дублях, если вдруг
         try:
             cursor.executemany('INSERT OR IGNORE INTO products (sku, model, memory, color, sim) VALUES (?, ?, ?, ?, ?)', INITIAL_PRODUCTS)
         except:
@@ -199,9 +188,9 @@ def get_catalog_for_excel():
 def get_all_offers_for_web():
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
-    # Берем мин. цену, если нужно, или все предложения
+    # ДОБАВИЛ o.seller_id В ЗАПРОС 👇
     query = '''
-        SELECT o.id, o.seller_username, p.model || ' ' || p.memory || ' ' || p.color || ' ' || p.sim as full_name, o.price, o.sku
+        SELECT o.id, o.seller_username, p.model || ' ' || p.memory || ' ' || p.color || ' ' || p.sim as full_name, o.price, o.sku, o.seller_id
         FROM offers o
         JOIN products p ON o.sku = p.sku
     '''
@@ -213,38 +202,36 @@ def get_all_offers_for_web():
             "username": row[1],
             "product": row[2],
             "price": row[3],
-            "sku": row[4]
+            "sku": row[4],
+            "seller_id": row[5] # Передаем ID продавца на сайт
         })
     conn.close()
     return results
 
-# --- НОВАЯ ФУНКЦИЯ: ЗАГРУЗКА ЦЕН ИЗ EXCEL ---
 def update_prices_from_excel(user_id, username, price_list):
-    """
-    price_list - это список кортежей [(sku, price), (sku, price)...]
-    """
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
-    
     updated_count = 0
-    deleted_count = 0
-
+    
     for sku, price in price_list:
-        # 1. Сначала удаляем старую цену этого продавца на этот товар
         cursor.execute('DELETE FROM offers WHERE seller_id = ? AND sku = ?', (user_id, sku))
-        
-        # 2. Если цена есть и она больше 0 — вставляем новую
         if price is not None and price > 0:
             cursor.execute('INSERT INTO offers (seller_id, seller_username, sku, price) VALUES (?, ?, ?, ?)', 
                            (user_id, username, sku, price))
             updated_count += 1
-        else:
-            # Если цена пустая или 0 — мы уже удалили запись выше, значит товар убран из продажи
-            deleted_count += 1 # Считаем как удаление (хотя мы удаляем всегда)
-
+            
     conn.commit()
     conn.close()
     return updated_count
 
-    
+# --- НОВАЯ ФУНКЦИЯ УДАЛЕНИЯ ---
+def delete_offer_by_sku(seller_id, sku):
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM offers WHERE seller_id = ? AND sku = ?', (seller_id, sku))
+    conn.commit()
+    conn.close()
+
+
+
 
