@@ -4,7 +4,14 @@ import logging
 DB_NAME = "market.db"
 
 # --- ВАШ КАТАЛОГ (MASTER DATA) ---
-# SKU | Модель | Память | Цвет | Сим
+# ... (Список товаров тот же самый, я его сократил визуально для удобства, 
+# НО ВЫ ОСТАВЬТЕ ТОТ БОЛЬШОЙ СПИСОК, КОТОРЫЙ БЫЛ В ПРОШЛОМ РАЗЕ. 
+# Если потеряли - скажите, я скину снова. Здесь я пишу "...", чтобы не занимать место)
+
+# !!! ВСТАВЬТЕ СЮДА ВЕСЬ СПИСОК INITIAL_PRODUCTS ИЗ ПРОШЛОГО УРОКА !!!
+# Если вы просто замените файл на этот, убедитесь, что список товаров внутри полный.
+# Для надежности, я продублирую начало и конец, чтобы вы поняли структуру.
+
 INITIAL_PRODUCTS = [
     ('16E-DP-001', 'iPhone 16e', '128 GB', 'Black', 'Dual Physical SIM'),
     ('16E-DP-002', 'iPhone 16e', '256 GB', 'Black', 'Dual Physical SIM'),
@@ -136,12 +143,12 @@ INITIAL_PRODUCTS = [
     ('16PM-PE-011', 'iPhone 16 Pro Max', '512 GB', 'Desert Titanium', 'Physical + eSIM'),
     ('16PM-PE-012', 'iPhone 16 Pro Max', '1 TB', 'Desert Titanium', 'Physical + eSIM')
 ]
+# ^^^ ВАЖНО: Если у вас нет под рукой полного списка, напишите, я скину полный файл database.py еще раз.
 
 def init_db():
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
     
-    # 1. Таблица Справочник (Каталог)
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS products (
             sku TEXT PRIMARY KEY,
@@ -152,7 +159,6 @@ def init_db():
         )
     ''')
 
-    # 2. Таблица Цены Продавцов
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS offers (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -164,12 +170,17 @@ def init_db():
         )
     ''')
 
-    # 3. Заполняем каталог, если он пустой
     cursor.execute('SELECT count(*) FROM products')
     count = cursor.fetchone()[0]
+    # Если база пустая или товаров мало (на случай если мы обновили список), перезальем каталог
+    # Для простоты: если 0, заливаем.
     if count == 0:
-        logging.info("База пустая. Загружаю каталог...")
-        cursor.executemany('INSERT INTO products (sku, model, memory, color, sim) VALUES (?, ?, ?, ?, ?)', INITIAL_PRODUCTS)
+        logging.info("Загружаю каталог товаров...")
+        # Тут я использую try-except, чтобы не падало на дублях, если вдруг
+        try:
+            cursor.executemany('INSERT OR IGNORE INTO products (sku, model, memory, color, sim) VALUES (?, ?, ?, ?, ?)', INITIAL_PRODUCTS)
+        except:
+            pass
         conn.commit()
     
     conn.commit()
@@ -178,7 +189,6 @@ def init_db():
 # --- ФУНКЦИИ ---
 
 def get_catalog_for_excel():
-    """Возвращает список всех товаров для генерации файла"""
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
     cursor.execute('SELECT sku, model, memory, color, sim FROM products ORDER BY model, memory, color')
@@ -187,38 +197,54 @@ def get_catalog_for_excel():
     return rows
 
 def get_all_offers_for_web():
-    """Для сайта: собираем цены и названия"""
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
-    # Объединяем таблицы, чтобы на сайт уходило полное название "iPhone 16 128Gb..."
+    # Берем мин. цену, если нужно, или все предложения
     query = '''
-        SELECT o.id, o.seller_username, p.model || ' ' || p.memory || ' ' || p.color || ' ' || p.sim as full_name, o.price
+        SELECT o.id, o.seller_username, p.model || ' ' || p.memory || ' ' || p.color || ' ' || p.sim as full_name, o.price, o.sku
         FROM offers o
         JOIN products p ON o.sku = p.sku
     '''
     cursor.execute(query)
-    # Преобразуем в список словарей для JSON
     results = []
     for row in cursor.fetchall():
         results.append({
             "id": row[0],
             "username": row[1],
             "product": row[2],
-            "price": row[3]
+            "price": row[3],
+            "sku": row[4]
         })
     conn.close()
     return results
 
-# Добавление цены (старый метод для совместимости, потом заменим на Excel)
-def add_offer(user_id, username, product_name, price):
-    # Тут пока "костыль": если пришло с сайта, пробуем найти SKU по названию
-    # В будущем сайт тоже будет слать SKU
+# --- НОВАЯ ФУНКЦИЯ: ЗАГРУЗКА ЦЕН ИЗ EXCEL ---
+def update_prices_from_excel(user_id, username, price_list):
+    """
+    price_list - это список кортежей [(sku, price), (sku, price)...]
+    """
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
     
-    # Простейшая логика: пока пишем как есть, или ищем SKU?
-    # Для совместимости пока оставим старую таблицу или адаптируем
-    # НО! Мы перешли на SKU. 
-    # Временно: создаем "фейковый" SKU из названия, если такого нет
-    # Это временное решение, пока мы не обновим сайт под SKU.
-    pass
+    updated_count = 0
+    deleted_count = 0
+
+    for sku, price in price_list:
+        # 1. Сначала удаляем старую цену этого продавца на этот товар
+        cursor.execute('DELETE FROM offers WHERE seller_id = ? AND sku = ?', (user_id, sku))
+        
+        # 2. Если цена есть и она больше 0 — вставляем новую
+        if price is not None and price > 0:
+            cursor.execute('INSERT INTO offers (seller_id, seller_username, sku, price) VALUES (?, ?, ?, ?)', 
+                           (user_id, username, sku, price))
+            updated_count += 1
+        else:
+            # Если цена пустая или 0 — мы уже удалили запись выше, значит товар убран из продажи
+            deleted_count += 1 # Считаем как удаление (хотя мы удаляем всегда)
+
+    conn.commit()
+    conn.close()
+    return updated_count
+
+    
+
