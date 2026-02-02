@@ -5,111 +5,65 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-               background-color: #f2f2f7; padding: 15px; color: #1c1c1e; }
-        .header { text-align: center; margin-bottom: 15px; color: #007aff; font-size: 20px; }
-        .btn { display: block; width: 100%; padding: 16px; margin: 8px 0; background: #ffffff; 
-               border: none; border-radius: 12px; font-size: 17px; font-weight: 500; 
-               cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: left; }
-        .btn:active { background: #d1d1d6; }
-        .back-btn { background: #ff3b30; color: white; text-align: center; font-weight: 600; margin-top: 20px; }
+        body { font-family: -apple-system, sans-serif; background-color: #f2f2f7; padding: 15px; }
+        .card { background: white; border-radius: 15px; padding: 20px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .balance { font-size: 32px; font-weight: bold; color: #1c1c1e; margin: 10px 0; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .main-btn { padding: 20px; border-radius: 12px; border: none; font-size: 18px; font-weight: 600; cursor: pointer; color: #333; }
+        .btn-buy { background: #ffcc00; } /* Желтая как в макете */
+        .btn-price { background: #ffcc00; }
+        .tabs { display: flex; justify-content: space-around; margin-top: 20px; background: white; border-radius: 10px; padding: 5px; }
+        .tab { font-size: 14px; padding: 10px; color: #8e8e93; cursor: pointer; }
+        .tab.active { color: #007aff; border-bottom: 2px solid #007aff; }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
-    <div id="app">
-        <h2 class="header">Каталог товаров</h2>
-        <div id="content"></div>
+    <div id="screen-lk">
+        <div class="card">
+            <div id="user-name" style="font-size: 18px; color: #8e8e93;">ЛК - Загрузка...</div>
+            <div class="balance">100 000р</div>
+        </div>
+        
+        <div class="grid">
+            <button class="main-btn btn-buy" onclick="openMarket()">Купить</button>
+            <button class="main-btn btn-price" onclick="alert('Раздел в разработке')">Мой Прайс</button>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active">сделки</div>
+            <div class="tab">активные</div>
+            <div class="tab">завершенные</div>
+            <div class="tab">аукцион</div>
+        </div>
+    </div>
+
+    <div id="screen-market" class="hidden">
+        <h2 style="text-align:center">Выбор товара</h2>
+        <div id="catalog-content"></div>
+        <button class="main-btn" style="background:#ff3b30; color:white; width:100%" onclick="openLK()">⬅ Назад в ЛК</button>
     </div>
 
     <script>
         let tg = window.Telegram.WebApp;
         tg.expand();
+        
+        // Устанавливаем имя пользователя 
+        document.getElementById('user-name').innerText = "ЛК - " + (tg.initDataUnsafe.user?.first_name || "Maxim");
 
-        const catalog = {
-            'iPhone': {
-                'iPhone 16 Pro Max': { mem: ['256','512','1TB'], col: ['Black','Silver','Desert'], net: ['Sim + eSim', '2 Sim', 'eSim Only'] },
-                'iPhone 16 Pro': { mem: ['128','256','512'], col: ['Black','Silver','Desert'], net: ['Sim + eSim', '2 Sim'] },
-                'iPhone 16': { mem: ['128','256','512'], col: ['Black','Blue','Pink'], net: ['Sim + eSim', '2 Sim'] },
-                'iPhone 15': { mem: ['128','256'], col: ['Black','Blue','Yellow'], net: ['Sim + eSim', '2 Sim'] },
-                'iPhone 11': { mem: ['64','128'], col: ['Black','Silver'], net: ['1 Sim'] }
-            },
-            'iPad': { 
-                'iPad Pro M4': { mem: ['256','512'], col: ['Space Gray','Silver'], net: ['Wi-Fi', 'Wi-Fi + Cellular'] },
-                'iPad Air': { mem: ['128','256'], col: ['Blue','Purple'], net: ['Wi-Fi', 'Wi-Fi + Cellular'] }
-            }
-        };
-
-        const countries = [
-            { name: 'США', flag: '🇺🇸' },
-            { name: 'ОАЭ', flag: '🇦🇪' },
-            { name: 'Китай', flag: '🇨🇳' },
-            { name: 'Япония', flag: '🇯🇵' },
-            { name: 'Европа / РСТ', flag: '🇪🇺' }
-        ];
-
-        let sel = { cat: '', mod: '', mem: '', col: '', net: '', ctry: '' };
-
-        function renderCats() {
-            let h = '';
-            for (let c in catalog) h += `<button class="btn" onclick="selCat('${c}')">${c}</button>`;
-            document.getElementById('content').innerHTML = h;
+        function openMarket() {
+            document.getElementById('screen-lk').classList.add('hidden');
+            document.getElementById('screen-market').classList.remove('hidden');
+            renderCats(); // Ваша функция отрисовки категорий
         }
 
-        function selCat(c) { sel.cat = c; renderMods(); }
-
-        function renderMods() {
-            let h = `<h3 class="header">${sel.cat}</h3>`;
-            for (let m in catalog[sel.cat]) h += `<button class="btn" onclick="selMod('${m}')">${m}</button>`;
-            h += `<button class="btn back-btn" onclick="renderCats()">⬅ Назад</button>`;
-            document.getElementById('content').innerHTML = h;
+        function openLK() {
+            document.getElementById('screen-market').classList.add('hidden');
+            document.getElementById('screen-lk').classList.remove('hidden');
         }
 
-        function selMod(m) { sel.mod = m; renderMem(); }
-
-        function renderMem() {
-            let h = `<h3 class="header">Память</h3>`;
-            catalog[sel.cat][sel.mod].mem.forEach(m => h += `<button class="btn" onclick="selMem('${m}')">${m} Гб</button>`);
-            h += `<button class="btn back-btn" onclick="renderMods()">⬅ Назад</button>`;
-            document.getElementById('content').innerHTML = h;
-        }
-
-        function selMem(m) { sel.mem = m; renderCol(); }
-
-        function renderCol() {
-            let h = `<h3 class="header">Цвет</h3>`;
-            catalog[sel.cat][sel.mod].col.forEach(c => h += `<button class="btn" onclick="selCol('${c}')">${c}</button>`);
-            h += `<button class="btn back-btn" onclick="renderMem()">⬅ Назад</button>`;
-            document.getElementById('content').innerHTML = h;
-        }
-
-        function selCol(c) { sel.col = c; renderNet(); }
-
-        function renderNet() {
-            let h = `<h3 class="header">Связь / SIM</h3>`;
-            catalog[sel.cat][sel.mod].net.forEach(n => h += `<button class="btn" onclick="selNet('${n}')">${n}</button>`);
-            h += `<button class="btn back-btn" onclick="renderCol()">⬅ Назад</button>`;
-            document.getElementById('content').innerHTML = h;
-        }
-
-        function selNet(n) { sel.net = n; renderCtry(); }
-
-        function renderCtry() {
-            let h = `<h3 class="header">Регион (Страна)</h3>`;
-            countries.forEach(c => {
-                h += `<button class="btn" onclick="done('${c.name} ${c.flag}')">${c.flag} ${c.name}</button>`;
-            });
-            h += `<button class="btn back-btn" onclick="renderNet()">⬅ Назад</button>`;
-            document.getElementById('content').innerHTML = h;
-        }
-
-        function done(ctry) {
-            sel.ctry = ctry;
-            const result = `${sel.mod} ${sel.mem}Gb ${sel.col} (${sel.net}) [${sel.ctry}]`;
-            tg.sendData(result);
-            tg.close();
-        }
-
-        renderCats();
+        // Тут остаются все ваши функции из прошлого шага (renderCats, selCat, done и т.д.)
+        // Только замените везде document.getElementById('content') на document.getElementById('catalog-content')
     </script>
 </body>
 </html>
