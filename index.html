@@ -32,7 +32,11 @@
         <div id="screen-welcome" class="hidden">
             <h2 class="header">Добро пожаловать</h2>
             <div class="card">
-                <p>Выберите режим:</p>
+                <p style="font-size: 12px; color: #ff3b30; background: #eee; padding: 5px;">
+                    Ваш ID: <span id="debug-id">...</span>
+                </p>
+
+                <p>Выберите роль:</p>
                 <button class="main-btn btn-yellow" onclick="setRole('buyer')">🛒 Я Покупатель</button>
                 <button class="main-btn btn-white" style="text-align:center" onclick="setRole('seller')">📦 Я Продавец</button>
             </div>
@@ -215,5 +219,6 @@
 
         init();
     </script>
+
 
 
