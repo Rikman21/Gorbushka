@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f9; padding: 15px; color: #333; }
+        h2 { text-align: center; color: #007aff; }
+        .category-btn { 
+            display: block; width: 100%; padding: 15px; margin: 10px 0;
+            background: #fff; border: 1px solid #ddd; border-radius: 12px;
+            font-size: 18px; font-weight: bold; cursor: pointer; text-align: center;
+        }
+        .item-card {
+            background: #fff; padding: 15px; border-radius: 12px; margin-bottom: 10px;
+            border-left: 5px solid #007aff; cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <h2>Выберите категорию</h2>
+        <div class="category-btn" onclick="showModels('iPhone')">📱 iPhone</div>
+        <div class="category-btn" onclick="showModels('iPad')">📑 iPad</div>
+        <div class="category-btn" onclick="showModels('Watch')">⌚ Watch</div>
+    </div>
+
+    <script>
+        let tg = window.Telegram.WebApp;
+        tg.expand(); // Развернуть окно на весь экран
+
+        function showModels(cat) {
+            let html = `<h2>${cat}</h2>`;
+            let models = [];
+            if(cat === 'iPhone') models = ['iPhone 16 Pro Max', 'iPhone 16 Pro', 'iPhone 16', 'iPhone 15'];
+            if(cat === 'iPad') models = ['iPad Pro M4', 'iPad Air M2'];
+
+            models.forEach(m => {
+                html += `<div class="item-card" onclick="sendToBot('${m}')">${m}</div>`;
+            });
+            html += `<button class="category-btn" onclick="location.reload()">⬅ Назад</button>`;
+            document.getElementById('app').innerHTML = html;
+        }
+
+        function sendToBot(model) {
+            // Отправляем данные боту и закрываем окно
+            tg.sendData("Выбран товар: " + model);
+            tg.close();
+        }
+    </script>
+</body>
+</html>
