@@ -5,49 +5,111 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; background-color: #f4f4f9; padding: 15px; color: #333; }
-        h2 { text-align: center; color: #007aff; }
-        .category-btn { 
-            display: block; width: 100%; padding: 15px; margin: 10px 0;
-            background: #fff; border: 1px solid #ddd; border-radius: 12px;
-            font-size: 18px; font-weight: bold; cursor: pointer; text-align: center;
-        }
-        .item-card {
-            background: #fff; padding: 15px; border-radius: 12px; margin-bottom: 10px;
-            border-left: 5px solid #007aff; cursor: pointer;
-        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+               background-color: #f2f2f7; padding: 15px; color: #1c1c1e; }
+        .header { text-align: center; margin-bottom: 15px; color: #007aff; font-size: 20px; }
+        .btn { display: block; width: 100%; padding: 16px; margin: 8px 0; background: #ffffff; 
+               border: none; border-radius: 12px; font-size: 17px; font-weight: 500; 
+               cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: left; }
+        .btn:active { background: #d1d1d6; }
+        .back-btn { background: #ff3b30; color: white; text-align: center; font-weight: 600; margin-top: 20px; }
     </style>
 </head>
 <body>
     <div id="app">
-        <h2>Выберите категорию</h2>
-        <div class="category-btn" onclick="showModels('iPhone')">📱 iPhone</div>
-        <div class="category-btn" onclick="showModels('iPad')">📑 iPad</div>
-        <div class="category-btn" onclick="showModels('Watch')">⌚ Watch</div>
+        <h2 class="header">Каталог товаров</h2>
+        <div id="content"></div>
     </div>
 
     <script>
         let tg = window.Telegram.WebApp;
-        tg.expand(); // Развернуть окно на весь экран
+        tg.expand();
 
-        function showModels(cat) {
-            let html = `<h2>${cat}</h2>`;
-            let models = [];
-            if(cat === 'iPhone') models = ['iPhone 16 Pro Max', 'iPhone 16 Pro', 'iPhone 16', 'iPhone 15'];
-            if(cat === 'iPad') models = ['iPad Pro M4', 'iPad Air M2'];
+        const catalog = {
+            'iPhone': {
+                'iPhone 16 Pro Max': { mem: ['256','512','1TB'], col: ['Black','Silver','Desert'], net: ['Sim + eSim', '2 Sim', 'eSim Only'] },
+                'iPhone 16 Pro': { mem: ['128','256','512'], col: ['Black','Silver','Desert'], net: ['Sim + eSim', '2 Sim'] },
+                'iPhone 16': { mem: ['128','256','512'], col: ['Black','Blue','Pink'], net: ['Sim + eSim', '2 Sim'] },
+                'iPhone 15': { mem: ['128','256'], col: ['Black','Blue','Yellow'], net: ['Sim + eSim', '2 Sim'] },
+                'iPhone 11': { mem: ['64','128'], col: ['Black','Silver'], net: ['1 Sim'] }
+            },
+            'iPad': { 
+                'iPad Pro M4': { mem: ['256','512'], col: ['Space Gray','Silver'], net: ['Wi-Fi', 'Wi-Fi + Cellular'] },
+                'iPad Air': { mem: ['128','256'], col: ['Blue','Purple'], net: ['Wi-Fi', 'Wi-Fi + Cellular'] }
+            }
+        };
 
-            models.forEach(m => {
-                html += `<div class="item-card" onclick="sendToBot('${m}')">${m}</div>`;
-            });
-            html += `<button class="category-btn" onclick="location.reload()">⬅ Назад</button>`;
-            document.getElementById('app').innerHTML = html;
+        const countries = [
+            { name: 'США', flag: '🇺🇸' },
+            { name: 'ОАЭ', flag: '🇦🇪' },
+            { name: 'Китай', flag: '🇨🇳' },
+            { name: 'Япония', flag: '🇯🇵' },
+            { name: 'Европа / РСТ', flag: '🇪🇺' }
+        ];
+
+        let sel = { cat: '', mod: '', mem: '', col: '', net: '', ctry: '' };
+
+        function renderCats() {
+            let h = '';
+            for (let c in catalog) h += `<button class="btn" onclick="selCat('${c}')">${c}</button>`;
+            document.getElementById('content').innerHTML = h;
         }
 
-        function sendToBot(model) {
-            // Отправляем данные боту и закрываем окно
-            tg.sendData("Выбран товар: " + model);
+        function selCat(c) { sel.cat = c; renderMods(); }
+
+        function renderMods() {
+            let h = `<h3 class="header">${sel.cat}</h3>`;
+            for (let m in catalog[sel.cat]) h += `<button class="btn" onclick="selMod('${m}')">${m}</button>`;
+            h += `<button class="btn back-btn" onclick="renderCats()">⬅ Назад</button>`;
+            document.getElementById('content').innerHTML = h;
+        }
+
+        function selMod(m) { sel.mod = m; renderMem(); }
+
+        function renderMem() {
+            let h = `<h3 class="header">Память</h3>`;
+            catalog[sel.cat][sel.mod].mem.forEach(m => h += `<button class="btn" onclick="selMem('${m}')">${m} Гб</button>`);
+            h += `<button class="btn back-btn" onclick="renderMods()">⬅ Назад</button>`;
+            document.getElementById('content').innerHTML = h;
+        }
+
+        function selMem(m) { sel.mem = m; renderCol(); }
+
+        function renderCol() {
+            let h = `<h3 class="header">Цвет</h3>`;
+            catalog[sel.cat][sel.mod].col.forEach(c => h += `<button class="btn" onclick="selCol('${c}')">${c}</button>`);
+            h += `<button class="btn back-btn" onclick="renderMem()">⬅ Назад</button>`;
+            document.getElementById('content').innerHTML = h;
+        }
+
+        function selCol(c) { sel.col = c; renderNet(); }
+
+        function renderNet() {
+            let h = `<h3 class="header">Связь / SIM</h3>`;
+            catalog[sel.cat][sel.mod].net.forEach(n => h += `<button class="btn" onclick="selNet('${n}')">${n}</button>`);
+            h += `<button class="btn back-btn" onclick="renderCol()">⬅ Назад</button>`;
+            document.getElementById('content').innerHTML = h;
+        }
+
+        function selNet(n) { sel.net = n; renderCtry(); }
+
+        function renderCtry() {
+            let h = `<h3 class="header">Регион (Страна)</h3>`;
+            countries.forEach(c => {
+                h += `<button class="btn" onclick="done('${c.name} ${c.flag}')">${c.flag} ${c.name}</button>`;
+            });
+            h += `<button class="btn back-btn" onclick="renderNet()">⬅ Назад</button>`;
+            document.getElementById('content').innerHTML = h;
+        }
+
+        function done(ctry) {
+            sel.ctry = ctry;
+            const result = `${sel.mod} ${sel.mem}Gb ${sel.col} (${sel.net}) [${sel.ctry}]`;
+            tg.sendData(result);
             tg.close();
         }
+
+        renderCats();
     </script>
 </body>
 </html>
