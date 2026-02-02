@@ -75,21 +75,34 @@
         let tg = window.Telegram.WebApp;
         tg.expand();
 
-        // --- ⚡️ СПИСОК БОГОВ (АДМИНЫ) ⚡️ ---
-        // Впишите сюда ID через запятую
+        // 1. АДМИНЫ И НАСТРОЙКИ
         const admins = [464896073, 210419]; 
-
-        // Обычные продавцы
-        const sellers = [123456789]; 
-        
+        const sellers = [464896073]; 
         const myId = tg.initDataUnsafe.user?.id;
 
-        // Демо-данные (пока не подключим чтение из базы)
-        const mockOffers = [
-            { id: 464896073, username: 'My_Store', price: 105000 },
-            { id: 555555555, username: 'Rostov_Opt', price: 104000 }
-        ];
+        // 2. ЗАГРУЗКА ДАННЫХ ИЗ ССЫЛКИ (ВОТ ОНО!)
+        let dbOffers = []; // Сюда положим реальные данные
 
+        try {
+            // Читаем хвост ссылки (?data=...)
+            const urlParams = new URLSearchParams(window.location.search);
+            const dataStr = urlParams.get('data');
+            
+            if (dataStr) {
+                // Раскодируем JSON
+                dbOffers = JSON.parse(decodeURIComponent(dataStr));
+                // alert("Загружено товаров из базы: " + dbOffers.length); // Раскомментируйте для теста
+            } else {
+                // Если база пустая или ошибка - используем демо-данные
+                dbOffers = [
+                    { id: 555555555, username: 'Demo_Store', price: 999999, product: 'Demo' }
+                ];
+            }
+        } catch (e) {
+            alert("Ошибка чтения базы: " + e);
+        }
+
+        // КАТАЛОГ (Можно дополнять)
         const catalog = { 'iPhone': { 
             'iPhone 16 Pro': { mem: ['128','256'], col: ['Black','Desert'], net: ['2 Sim'] },
             'iPhone 15': { mem: ['128'], col: ['Blue'], net: ['1 Sim'] }
@@ -105,33 +118,19 @@
         }
 
         function setRole(role) {
-            // ЛОГИКА ДОСТУПА:
-            // Пускаем если: Это покупатель ИЛИ (Это продавец И (ты в списке продавцов ИЛИ ты админ))
-            const isSellerAllowed = sellers.includes(myId) || admins.includes(myId);
-            
-            if(role === 'seller' && !isSellerAllowed) {
-                return alert("⛔️ Доступ запрещен. Ваш ID: " + myId + "\nОбратитесь к администратору.");
-            }
-            
+            const isAllowed = sellers.includes(myId) || admins.includes(myId);
+            if(role === 'seller' && !isAllowed) return alert("⛔️ Нет доступа");
             localStorage.setItem('user_role', role);
             updateInterface(role);
             showScreen('screen-lk');
         }
 
-        function resetRole() {
-            localStorage.removeItem('user_role');
-            location.reload();
-        }
+        function resetRole() { localStorage.removeItem('user_role'); location.reload(); }
 
         function updateInterface(role) {
-            const userName = tg.initDataUnsafe.user?.first_name || "User";
             const isAdmin = admins.includes(myId);
-            
-            // Если Админ - добавляем значок
             const badge = isAdmin ? ' <span class="admin-badge">ADMIN</span>' : '';
-            document.getElementById('user-name').innerHTML = "ЛК: " + userName + badge;
-
-            // Показываем кнопки
+            document.getElementById('user-name').innerHTML = "ЛК: " + (tg.initDataUnsafe.user?.first_name || "User") + badge;
             document.getElementById('btn-buy').style.display = (role === 'buyer') ? 'block' : 'none';
             document.getElementById('btn-price').style.display = (role === 'seller') ? 'block' : 'none';
         }
@@ -141,6 +140,7 @@
             document.getElementById(id).classList.remove('hidden');
         }
 
+        // Навигация
         function startFlow(mode) { sel.mode = mode; history=['lk']; renderCats(); showScreen('screen-flow'); }
         function goBack() { showScreen('screen-lk'); }
 
@@ -174,18 +174,31 @@
             }
         }
 
+        // --- ГЛАВНАЯ ФУНКЦИЯ ОТОБРАЖЕНИЯ (С ФИЛЬТРОМ!) ---
         function renderOffers() {
             let h = '';
-            mockOffers.sort((a,b)=>a.price-b.price).forEach(o => {
-                h += `
-                <div class="offer-card">
-                    <div class="offer-info">
-                        <div class="offer-price">${o.price} ₽</div>
-                        <div class="offer-seller">@${o.username}</div>
-                    </div>
-                    <button class="btn-buy-small" onclick="requestBuy('${o.id}', '${o.username}', '${o.price}')">Купить</button>
-                </div>`;
-            });
+            
+            // 1. Фильтруем: ищем в базе только те товары, имя которых совпадает с выбранным
+            const relevantOffers = dbOffers.filter(o => o.product === sel.productName);
+
+            // 2. Сортируем по цене
+            relevantOffers.sort((a,b)=>a.price-b.price);
+
+            if (relevantOffers.length === 0) {
+                h = '<div style="text-align:center; padding:20px; color:#8e8e93;">Предложений пока нет 😔<br>Будьте первым!</div>';
+            } else {
+                relevantOffers.forEach(o => {
+                    h += `
+                    <div class="offer-card">
+                        <div class="offer-info">
+                            <div class="offer-price">${o.price.toLocaleString()} ₽</div>
+                            <div class="offer-seller">@${o.username}</div>
+                        </div>
+                        <button class="btn-buy-small" onclick="requestBuy('${o.id}', '${o.username}', '${o.price}')">Купить</button>
+                    </div>`;
+                });
+            }
+
             document.getElementById('offers-list').innerHTML = h;
             showScreen('screen-offers');
         }
@@ -202,6 +215,5 @@
 
         init();
     </script>
-</body>
-</html>
+
 
