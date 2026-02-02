@@ -5,65 +5,152 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { font-family: -apple-system, sans-serif; background-color: #f2f2f7; padding: 15px; }
-        .card { background: white; border-radius: 15px; padding: 20px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        .balance { font-size: 32px; font-weight: bold; color: #1c1c1e; margin: 10px 0; }
+        body { font-family: -apple-system, sans-serif; background-color: #f2f2f7; padding: 15px; color: #1c1c1e; }
+        .header { text-align: center; margin-bottom: 15px; color: #007aff; font-size: 20px; }
+        .card { background: white; border-radius: 15px; padding: 20px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .balance { font-size: 32px; font-weight: bold; margin: 10px 0; }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .main-btn { padding: 20px; border-radius: 12px; border: none; font-size: 18px; font-weight: 600; cursor: pointer; color: #333; }
-        .btn-buy { background: #ffcc00; } /* Желтая как в макете */
-        .btn-price { background: #ffcc00; }
-        .tabs { display: flex; justify-content: space-around; margin-top: 20px; background: white; border-radius: 10px; padding: 5px; }
-        .tab { font-size: 14px; padding: 10px; color: #8e8e93; cursor: pointer; }
-        .tab.active { color: #007aff; border-bottom: 2px solid #007aff; }
+        .main-btn { padding: 18px; border-radius: 12px; border: none; font-size: 16px; font-weight: 600; cursor: pointer; }
+        .btn-yellow { background: #ffcc00; color: #000; }
+        .btn-white { background: #fff; border: 1px solid #ddd; text-align: left; margin: 8px 0; width: 100%; display: block; }
+        .back-btn { background: #ff3b30; color: white; width: 100%; margin-top: 15px; }
+        .input-price { width: 90%; padding: 15px; font-size: 24px; border-radius: 10px; border: 2px solid #007aff; text-align: center; margin-bottom: 15px; }
         .hidden { display: none; }
     </style>
 </head>
 <body>
-    <div id="screen-lk">
-        <div class="card">
-            <div id="user-name" style="font-size: 18px; color: #8e8e93;">ЛК - Загрузка...</div>
-            <div class="balance">100 000р</div>
-        </div>
-        
-        <div class="grid">
-            <button class="main-btn btn-buy" onclick="openMarket()">Купить</button>
-            <button class="main-btn btn-price" onclick="alert('Раздел в разработке')">Мой Прайс</button>
+    <div id="app">
+        <div id="screen-lk">
+            <div class="card">
+                <div id="user-name" style="color: #8e8e93;">ЛК - Maxim</div>
+                <div class="balance">100 000р</div>
+            </div>
+            <div class="grid">
+                <button id="btn-buy" class="main-btn btn-yellow" onclick="startFlow('buy')">Купить</button>
+                <button id="btn-price" class="main-btn btn-yellow" onclick="startFlow('sell')">Мой Прайс</button>
+            </div>
         </div>
 
-        <div class="tabs">
-            <div class="tab active">сделки</div>
-            <div class="tab">активные</div>
-            <div class="tab">завершенные</div>
-            <div class="tab">аукцион</div>
+        <div id="screen-flow" class="hidden">
+            <h2 id="flow-title" class="header">Выбор</h2>
+            <div id="flow-content"></div>
+            <button class="main-btn back-btn" onclick="goBack()">⬅ Назад</button>
         </div>
-    </div>
 
-    <div id="screen-market" class="hidden">
-        <h2 style="text-align:center">Выбор товара</h2>
-        <div id="catalog-content"></div>
-        <button class="main-btn" style="background:#ff3b30; color:white; width:100%" onclick="openLK()">⬅ Назад в ЛК</button>
+        <div id="screen-price" class="hidden">
+            <h2 class="header">Укажите цену</h2>
+            <div class="card">
+                <p id="final-product-name" style="font-weight:bold;"></p>
+                <input type="number" id="price-input" class="input-price" placeholder="0">
+                <p style="color: #8e8e93;">Введите стоимость в рублях</p>
+                <button class="main-btn btn-yellow" style="width:100%" onclick="finishPrice()">Опубликовать</button>
+            </div>
+            <button class="main-btn back-btn" onclick="showScreen('screen-flow')">⬅ Назад</button>
+        </div>
     </div>
 
     <script>
         let tg = window.Telegram.WebApp;
         tg.expand();
-        
-        // Устанавливаем имя пользователя 
+
+        // Данные из макета [cite: 74, 96-114]
+        const catalog = {
+            'iPhone': {
+                'iPhone 16 Pro': { mem: ['128','256','512'], col: ['Black','Silver'], net: ['2 Sim','Sim+eSim'] },
+                'iPhone 15': { mem: ['128','256'], col: ['Black','Blue'], net: ['2 Sim'] }
+            },
+            'iPad': { 'iPad Air': { mem: ['128','256'], col: ['Blue'], net: ['Wi-Fi','LTE'] } }
+        };
+
+        let sel = { mode: '', cat: '', mod: '', mem: '', col: '', net: '' };
+        let history = []; // Для работы кнопки "Назад"
+
         document.getElementById('user-name').innerText = "ЛК - " + (tg.initDataUnsafe.user?.first_name || "Maxim");
 
-        function openMarket() {
-            document.getElementById('screen-lk').classList.add('hidden');
-            document.getElementById('screen-market').classList.remove('hidden');
-            renderCats(); // Ваша функция отрисовки категорий
+        function showScreen(id) {
+            ['screen-lk', 'screen-flow', 'screen-price'].forEach(s => document.getElementById(s).classList.add('hidden'));
+            document.getElementById(id).classList.remove('hidden');
         }
 
-        function openLK() {
-            document.getElementById('screen-market').classList.add('hidden');
-            document.getElementById('screen-lk').classList.remove('hidden');
+        function startFlow(mode) {
+            sel.mode = mode;
+            history = ['lk'];
+            renderCats();
+            showScreen('screen-flow');
         }
 
-        // Тут остаются все ваши функции из прошлого шага (renderCats, selCat, done и т.д.)
-        // Только замените везде document.getElementById('content') на document.getElementById('catalog-content')
+        function renderCats() {
+            let h = '';
+            for (let c in catalog) h += `<button class="btn-white main-btn" onclick="selCat('${c}')">${c}</button>`;
+            document.getElementById('flow-content').innerHTML = h;
+            document.getElementById('flow-title').innerText = "Категория";
+        }
+
+        function selCat(c) { sel.cat = c; history.push('cat'); renderMods(); }
+
+        function renderMods() {
+            let h = '';
+            for (let m in catalog[sel.cat]) h += `<button class="btn-white main-btn" onclick="selMod('${m}')">${m}</button>`;
+            document.getElementById('flow-content').innerHTML = h;
+            document.getElementById('flow-title').innerText = "Модель";
+        }
+
+        function selMod(m) { sel.mod = m; history.push('mod'); renderMem(); }
+
+        function renderMem() {
+            let h = '';
+            catalog[sel.cat][sel.mod].mem.forEach(m => h += `<button class="btn-white main-btn" onclick="selMem('${m}')">${m} Гб</button>`);
+            document.getElementById('flow-content').innerHTML = h;
+            document.getElementById('flow-title').innerText = "Память";
+        }
+
+        function selMem(m) { sel.mem = m; history.push('mem'); renderCol(); }
+
+        function renderCol() {
+            let h = '';
+            catalog[sel.cat][sel.mod].col.forEach(c => h += `<button class="btn-white main-btn" onclick="selCol('${c}')">${c}</button>`);
+            document.getElementById('flow-content').innerHTML = h;
+            document.getElementById('flow-title').innerText = "Цвет";
+        }
+
+        function selCol(c) { sel.col = c; history.push('col'); renderNet(); }
+
+        function renderNet() {
+            let h = '';
+            catalog[sel.cat][sel.mod].net.forEach(n => h += `<button class="btn-white main-btn" onclick="finishFlow('${n}')">${n}</button>`);
+            document.getElementById('flow-content').innerHTML = h;
+            document.getElementById('flow-title').innerText = "Связь";
+        }
+
+        function finishFlow(n) {
+            sel.net = n;
+            const product = `${sel.mod} ${sel.mem}Gb ${sel.col} (${sel.net})`;
+            
+            if (sel.mode === 'buy') {
+                tg.sendData("ЗАКАЗ: " + product);
+                tg.close();
+            } else {
+                document.getElementById('final-product-name').innerText = product;
+                showScreen('screen-price');
+            }
+        }
+
+        function finishPrice() {
+            const price = document.getElementById('price-input').value;
+            if (!price) return alert("Введите цену");
+            const product = document.getElementById('final-product-name').innerText;
+            tg.sendData(`ПРАЙС: ${product} - Цена: ${price}р`);
+            tg.close();
+        }
+
+        function goBack() {
+            let last = history.pop();
+            if (last === 'lk') showScreen('screen-lk');
+            else if (last === 'cat') renderCats();
+            else if (last === 'mod') renderMods();
+            else if (last === 'mem') renderMem();
+            else if (last === 'col') renderCol();
+        }
     </script>
 </body>
 </html>
