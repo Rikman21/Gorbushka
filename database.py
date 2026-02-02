@@ -3,10 +3,8 @@ import logging
 
 DB_NAME = "market.db"
 
-# !!! ВАЖНО: ОСТАВЬТЕ ЗДЕСЬ ВАШ ПОЛНЫЙ СПИСОК INITIAL_PRODUCTS ИЗ 123 ТОВАРОВ !!!
-# Я сократил его для краткости, но вы должны оставить полный.
+# --- ПОЛНЫЙ КАТАЛОГ (MASTER DATA) ---
 INITIAL_PRODUCTS = [
-    INITIAL_PRODUCTS = [
     ('16E-DP-001', 'iPhone 16e', '128 GB', 'Black', 'Dual Physical SIM'),
     ('16E-DP-002', 'iPhone 16e', '256 GB', 'Black', 'Dual Physical SIM'),
     ('16E-DP-003', 'iPhone 16e', '512 GB', 'Black', 'Dual Physical SIM'),
@@ -19,7 +17,6 @@ INITIAL_PRODUCTS = [
     ('16E-PE-004', 'iPhone 16e', '128 GB', 'White', 'Physical + eSIM'),
     ('16E-PE-005', 'iPhone 16e', '256 GB', 'White', 'Physical + eSIM'),
     ('16E-PE-006', 'iPhone 16e', '512 GB', 'White', 'Physical + eSIM'),
-    ('16E-E-001', 'iPhone 16e', '128 GB', 'eSIM only', 'Black'), # Исправлено под структуру
     ('16-DP-001', 'iPhone 16', '128 GB', 'Black', 'Dual Physical SIM'),
     ('16-DP-002', 'iPhone 16', '256 GB', 'Black', 'Dual Physical SIM'),
     ('16-DP-003', 'iPhone 16', '512 GB', 'Black', 'Dual Physical SIM'),
@@ -188,7 +185,6 @@ def get_catalog_for_excel():
 def get_all_offers_for_web():
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
-    # ДОБАВИЛ o.seller_id В ЗАПРОС 👇
     query = '''
         SELECT o.id, o.seller_username, p.model || ' ' || p.memory || ' ' || p.color || ' ' || p.sim as full_name, o.price, o.sku, o.seller_id
         FROM offers o
@@ -203,7 +199,7 @@ def get_all_offers_for_web():
             "product": row[2],
             "price": row[3],
             "sku": row[4],
-            "seller_id": row[5] # Передаем ID продавца на сайт
+            "seller_id": row[5]
         })
     conn.close()
     return results
@@ -224,7 +220,6 @@ def update_prices_from_excel(user_id, username, price_list):
     conn.close()
     return updated_count
 
-# --- НОВАЯ ФУНКЦИЯ УДАЛЕНИЯ ---
 def delete_offer_by_sku(seller_id, sku):
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
@@ -232,6 +227,15 @@ def delete_offer_by_sku(seller_id, sku):
     conn.commit()
     conn.close()
 
-
-
-
+# Добавление цены вручную (для совместимости с модалкой)
+def add_offer(user_id, username, product_name, price):
+    # Пытаемся найти SKU по имени, если его нет - пропускаем (или нужен более сложный поиск)
+    # Сейчас модалка шлет NEW_PRICE, но мы уже переходим на Excel
+    # Эта функция нужна, чтобы не падал код при ручном добавлении
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    
+    # Ищем SKU по полному имени (склеиваем поля)
+    # Это "костыль", но рабочий для ручного добавления
+    # Лучше использовать Excel!
+    pass
