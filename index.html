@@ -6,7 +6,7 @@
     <title>Горбушка Онлайн</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        /* --- ДИЗАЙН V3.3 (ФИНАЛ: Список + Иконки) --- */
+        /* --- ДИЗАЙН V4.0 (АНИМАЦИИ + iOS Style) --- */
         :root {
             --bg-color: var(--tg-theme-bg-color, #f2f2f7);
             --text-color: var(--tg-theme-text-color, #000000);
@@ -22,12 +22,31 @@
             background-color: var(--bg-color); 
             color: var(--text-color); 
             margin: 0; 
-            padding: 16px 16px 110px 16px; /* Большой отступ снизу для панели */
+            padding: 16px 16px 110px 16px; 
             -webkit-tap-highlight-color: transparent;
+            overflow-x: hidden; /* Чтобы анимация не вызывала горизонтальный скролл */
         }
 
-        .screen { transition: opacity 0.2s ease; opacity: 1; }
-        .hidden { display: none !important; opacity: 0; }
+        /* --- 🔥 ГЛАВНАЯ МАГИЯ АНИМАЦИИ --- */
+        .screen { 
+            display: none; /* По умолчанию скрыты */
+            opacity: 0;
+            transform: translateY(15px) scale(0.98); /* Чуть ниже и чуть меньше */
+        }
+
+        /* Когда добавляем этот класс JS-ом, экран плавно появляется */
+        .screen.active {
+            display: block;
+            animation: iosFadeIn 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        }
+
+        @keyframes iosFadeIn {
+            to { 
+                opacity: 1; 
+                transform: translateY(0) scale(1); 
+            }
+        }
+        /* -------------------------------- */
 
         .header { 
             text-align: center; margin-bottom: 20px; 
@@ -43,26 +62,21 @@
             margin-bottom: 20px;
         }
 
-        /* КНОПКИ */
         .main-btn { 
             width: 100%; padding: 14px; 
             border-radius: 12px; border: none; 
             font-size: 16px; font-weight: 600; 
             cursor: pointer; display: flex; align-items: center; justify-content: center;
-            gap: 8px; /* Расстояние между иконкой и текстом */
-            margin-bottom: 10px; 
+            gap: 8px; margin-bottom: 10px; 
+            transition: transform 0.1s, background-color 0.2s;
         }
-        .main-btn:active { opacity: 0.7; transform: scale(0.98); }
+        .main-btn:active { opacity: 0.8; transform: scale(0.96); }
         
         .btn-primary { background: var(--accent); color: var(--accent-text); }
-        .btn-outline { 
-            background: var(--card-bg); 
-            color: var(--text-color); 
-            border: 1px solid var(--hint);
-        } 
+        .btn-outline { background: var(--card-bg); color: var(--text-color); border: 1px solid var(--hint); } 
         .btn-back { background: var(--bg-color); color: var(--text-color); width: 30%; font-size: 22px;} 
 
-        /* ВЕРТИКАЛЬНЫЙ СПИСОК ВЫБОРА */
+        /* СПИСОК ВАРИАНТОВ */
         .list-options {
             display: flex; flex-direction: column; gap: 10px; padding-bottom: 20px;
         }
@@ -73,15 +87,16 @@
         /* НИЖНЯЯ ПАНЕЛЬ */
         .bottom-bar {
             position: fixed; bottom: 0; left: 0; right: 0;
-            padding: 12px 16px 30px 16px; /* Больше отступ для iPhone X+ */
+            padding: 12px 16px 30px 16px;
             background: var(--card-bg);
             border-top: 0.5px solid var(--hint);
             display: flex; gap: 10px; z-index: 1000;
             box-shadow: 0 -4px 20px rgba(0,0,0,0.05);
+            /* Анимация появления панели */
+            animation: slideUpBar 0.4s ease-out;
         }
-        .bottom-bar .main-btn { margin-bottom: 0; } /* Убираем отступ кнопок внутри панели */
+        @keyframes slideUpBar { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
-        /* Карточка товара */
         .offer-card { 
             background: var(--card-bg); border-radius: 16px; padding: 16px; 
             margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;
@@ -108,7 +123,7 @@
 <body>
     <div id="app">
         
-        <div id="screen-welcome" class="screen hidden">
+        <div id="screen-welcome" class="screen">
             <h2 class="header">Горбушка Онлайн 📱</h2>
             <div class="card">
                 <p style="margin-bottom: 15px;">Выберите роль:</p>
@@ -118,7 +133,7 @@
             <div class="debug-box">ID: <span id="debug-id">...</span></div>
         </div>
 
-        <div id="screen-lk" class="screen hidden">
+        <div id="screen-lk" class="screen">
             <h2 class="header" id="user-name">Меню</h2>
             <div class="card">
                 <button class="main-btn btn-primary" id="btn-buy" onclick="startFlow()">🔍 Найти товар</button>
@@ -127,18 +142,16 @@
             <button style="margin-top: 20px; background: transparent; color: var(--danger); border:none; width:100%; font-size:14px; font-weight:600; display:flex; align-items:center; justify-content:center; gap:5px;" onclick="resetRole()">🚪 Выйти (Сменить роль)</button>
         </div>
 
-        <div id="screen-flow" class="screen hidden">
+        <div id="screen-flow" class="screen">
             <h2 id="flow-title" class="header">Выбор</h2>
-            
             <div id="flow-content" class="list-options"></div> 
-            
             <div class="bottom-bar">
                 <button class="main-btn btn-back" onclick="goBack()">⬅️</button>
                 <div style="width: 100%; display:flex; align-items:center; justify-content:center; color: var(--hint); font-size: 12px;">Выбор параметров</div>
             </div>
         </div>
 
-        <div id="screen-offers" class="screen hidden">
+        <div id="screen-offers" class="screen">
             <h2 class="header">Предложения 📋</h2>
             <div id="offers-list"></div>
             <div class="bottom-bar">
@@ -146,7 +159,7 @@
             </div>
         </div>
 
-        <div id="screen-price" class="screen hidden">
+        <div id="screen-price" class="screen">
             <h2 class="header">Ваша цена 🏷️</h2>
             <div class="card">
                 <p id="price-product-name" style="color:var(--hint)"></p>
@@ -302,7 +315,6 @@ iPhone 16 Pro Max, 1 TB, Desert Titanium, Physical + eSIM
         document.getElementById('debug-id').innerText = myId || "НЕ ОПРЕДЕЛЕН";
 
         const catalogData = csvData.trim().split('\n').map(row => row.split(',').map(s => s.trim()));
-        // ДОБАВИЛ ИКОНКИ К ЗАГОЛОВКАМ ШАГОВ
         const headers = ["📱 Модель", "💾 Память", "🎨 Цвет", "📲 Сим-карта"];
 
         let dbOffers = []; 
@@ -340,9 +352,16 @@ iPhone 16 Pro Max, 1 TB, Desert Titanium, Physical + eSIM
             document.getElementById('btn-price').style.display = (role === 'seller') ? 'block' : 'none';
         }
 
+        // --- НОВАЯ ФУНКЦИЯ ДЛЯ АНИМАЦИЙ ---
         function showScreen(id) {
-            document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-            document.getElementById(id).classList.remove('hidden');
+            // 1. Скрываем все экраны (убираем класс active)
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            
+            // 2. Скроллим наверх (чтобы не оставаться внизу страницы)
+            window.scrollTo(0,0);
+
+            // 3. Показываем нужный (добавляем класс active)
+            document.getElementById(id).classList.add('active');
         }
 
         function startFlow() {
