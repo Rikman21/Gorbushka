@@ -5,7 +5,7 @@ import urllib.parse
 import time
 import os
 from aiohttp import web
-from openpyxl import Workbook, load_workbook # <--- Добавили load_workbook
+from openpyxl import Workbook, load_workbook
 from io import BytesIO
 
 from aiogram import Bot, Dispatcher, types, F
@@ -14,7 +14,7 @@ from aiogram.types import WebAppInfo, ReplyKeyboardMarkup, KeyboardButton, Inlin
 
 import database 
 
-TOKEN = "8516086910:AAFugoM9-OjnOOJFT3flpcyUOhh4P9alxSY" # <--- НЕ ЗАБУДЬТЕ ВЕРНУТЬ ТОКЕН
+TOKEN = "8516086910:AAFugoM9-OjnOOJFT3flpcyUOhh4P9alxSY"
 WEB_APP_URL = "https://rikman21.github.io/Gorbushka/" 
 
 logging.basicConfig(level=logging.INFO)
@@ -32,13 +32,12 @@ async def start_dummy_server():
     site = web.TCPSite(runner, '0.0.0.0', port)
     await site.start()
 
-# --- ГЕНЕРАЦИЯ ШАБЛОНА ---
+# --- EXCEL ---
 def generate_excel_template():
     products = database.get_catalog_for_excel()
     wb = Workbook()
     ws = wb.active
     ws.title = "Прайс-лист"
-    # SKU в 1 колонке, Цена в 6 колонке (индексы A и F)
     headers = ["SKU (Не менять!)", "Модель", "Память", "Цвет", "Сим", "ВАША ЦЕНА (Рубли)"]
     ws.append(headers)
     for p in products:
@@ -49,68 +48,55 @@ def generate_excel_template():
     file_stream.seek(0)
     return file_stream.read()
 
-# --- ЛОГИКА ЗАГРУЗКИ ЦЕН ---
+# --- HANDLERS ---
 @dp.message(F.document)
 async def handle_document(message: types.Message):
-    # Проверка: это Excel?
     if not message.document.file_name.endswith('.xlsx'):
         return await message.answer("❌ Это не Excel. Пришлите файл .xlsx")
 
     user_id = message.from_user.id
     username = message.from_user.username or "Продавец"
-    
-    wait_msg = await message.answer("⏳ Скачиваю и обрабатываю прайс...")
+    wait_msg = await message.answer("⏳ Обрабатываю прайс...")
 
     try:
-        # 1. Скачиваем файл в память
         bot_file = await bot.get_file(message.document.file_id)
         file_data = await bot.download_file(bot_file.file_path)
-        
-        # 2. Открываем через openpyxl
         wb = load_workbook(file_data)
         ws = wb.active
-        
-        # 3. Читаем строки (пропускаем заголовок)
         prices_to_update = []
         
         for row in ws.iter_rows(min_row=2, values_only=True):
-            # row[0] = SKU (Колонка A)
-            # row[5] = ЦЕНА (Колонка F)
             sku = row[0]
             price_raw = row[5]
-            
-            # Чистим цену (если там пробелы или текст)
             price = None
             if price_raw:
                 try:
                     price = int(str(price_raw).replace(" ", "").replace("₽", ""))
                 except:
-                    price = None # Если написали бред, считаем что цены нет
-            
-            if sku: # Если SKU есть, добавляем в список на обработку
+                    price = None
+            if sku:
                 prices_to_update.append((sku, price))
         
-        # 4. Пишем в базу
         updated_count = database.update_prices_from_excel(user_id, username, prices_to_update)
-        
-        await wait_msg.edit_text(f"✅ **Прайс обновлен!**\n\nТоваров в продаже: {updated_count}\n\nТеперь они видны в поиске.")
+        await wait_msg.edit_text(f"✅ **Прайс обновлен!**\n\nТоваров в продаже: {updated_count}")
         
     except Exception as e:
         logging.error(e)
-        await wait_msg.edit_text("❌ Ошибка при чтении файла. Убедитесь, что вы не меняли колонку SKU.")
+        await wait_msg.edit_text("❌ Ошибка. Проверьте формат файла.")
 
-# --- СТАРТ И WEBAPP ---
 @dp.message(Command("start"))
 async def start(message: types.Message):
     user_id = message.from_user.id
     offers_list = database.get_all_offers_for_web()
+    
     offers_json = json.dumps(offers_list)
     offers_encoded = urllib.parse.quote(offers_json)
     timestamp = int(time.time())
+    
     full_url = f"{WEB_APP_URL}?data={offers_encoded}&ver={timestamp}&uid={user_id}"
 
     kb = [[KeyboardButton(text="📱 ОТКРЫТЬ МАРКЕТ", web_app=WebAppInfo(url=full_url))]]
-    await message.answer("👋 Горбушка Онлайн\n\nПродавцы: загружайте прайс Excel прямо сюда файлом.", reply_markup=ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True))
+    await message.answer("👋 Горбушка Онлайн", reply_markup=ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True))
 
 @dp.message(F.web_app_data)
 async def handle_webapp(message: types.Message):
@@ -121,7 +107,14 @@ async def handle_webapp(message: types.Message):
     if data == "REQ_TEMPLATE":
         file_bytes = generate_excel_template()
         document = BufferedInputFile(file_bytes, filename="Gorbushka_Price_Template.xlsx")
-        await message.answer_document(document, caption="📉 **Ваш шаблон**\n1. Заполните цены.\n2. Пришлите этот файл мне в чат.")
+        await message.answer_document(document, caption="📉 **Шаблон для цен**")
+        return
+
+    # --- НОВАЯ КОМАНДА: УДАЛЕНИЕ ---
+    if data.startswith("DELETE_OFFER"):
+        sku = data.split("|")[1]
+        database.delete_offer_by_sku(user_id, sku)
+        await message.answer("🗑 Товар удален с витрины.")
         return
 
     if data.startswith("REQ_BUY"):
@@ -140,9 +133,8 @@ async def handle_webapp(message: types.Message):
         except:
             await message.answer("Продавец не найден.")
 
-    # Старый метод (поштучно) можно оставить или убрать, он не мешает
     elif data.startswith("NEW_PRICE"):
-        await message.answer("⚠️ Лучше используйте загрузку через Excel для надежности.")
+         await message.answer("Используйте Excel для загрузки цен.")
 
 @dp.callback_query(F.data.startswith("confirm_"))
 async def confirm_order(callback: types.CallbackQuery):
