@@ -15,19 +15,13 @@
         .btn-white { background: #fff; border: 1px solid #ddd; text-align: left; margin: 8px 0; display: block; }
         .back-btn { background: #ff3b30; color: white; margin-top: 15px; }
         .btn-reset { background: transparent; color: #8e8e93; border: none; font-size: 14px; margin-top: 10px; cursor: pointer; text-decoration: underline; }
-
-        /* Маркетплейс */
         .offer-card { background: white; border-radius: 12px; padding: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
         .offer-info { text-align: left; }
         .offer-price { font-size: 18px; font-weight: bold; color: #34c759; }
         .offer-seller { font-size: 12px; color: #8e8e93; }
         .btn-buy-small { background: #007aff; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; }
         .input-price { width: 90%; padding: 15px; font-size: 24px; border-radius: 10px; border: 2px solid #007aff; text-align: center; margin-bottom: 15px; }
-        
-        /* Метка Админа */
         .admin-badge { background: #ff3b30; color: white; padding: 2px 8px; border-radius: 10px; font-size: 10px; vertical-align: middle; }
-        
-        /* ДИАГНОСТИКА */
         .debug-box { font-size: 12px; color: #ff3b30; background: #eee; padding: 10px; border-radius: 8px; margin-bottom: 10px; border: 1px dashed red;}
     </style>
 </head>
@@ -35,11 +29,7 @@
     <div id="app">
         <div id="screen-welcome" class="hidden">
             <h2 class="header">Добро пожаловать</h2>
-            
-            <div class="debug-box">
-                Ваш ID: <span id="debug-id">Загрузка...</span>
-            </div>
-
+            <div class="debug-box">Ваш ID: <span id="debug-id">...</span></div>
             <div class="card">
                 <p>Выберите режим:</p>
                 <button class="main-btn btn-yellow" onclick="setRole('buyer')">🛒 Я Покупатель</button>
@@ -52,7 +42,6 @@
                 <div id="user-name">ЛК</div>
                 <button class="btn-reset" onclick="resetRole()">🔄 Сменить роль (Выйти)</button>
             </div>
-            
             <button class="main-btn btn-yellow" id="btn-buy" onclick="startFlow('buy')">Купить</button>
             <button class="main-btn btn-yellow" id="btn-price" onclick="startFlow('sell')">Мой Прайс</button>
         </div>
@@ -84,32 +73,38 @@
         let tg = window.Telegram.WebApp;
         tg.expand();
 
-        // --- ВАШ ID УЖЕ ВПИСАН СЮДА ---
-        const admins = [464896073, 210419]; 
+        const admins = [464896073,  210419]; 
         const sellers = [464896073]; 
         
-        const myId = tg.initDataUnsafe.user?.id || "Не определен";
-        
-        // Показываем ID на экране для проверки
-        document.getElementById('debug-id').innerText = myId;
+        // --- !!! САМОЕ ВАЖНОЕ МЕСТО !!! ---
+        // 1. Сначала ищем ID в ссылке (которую дал Бот)
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlUid = urlParams.get('uid'); // Получаем &uid=...
 
-        // ЗАГРУЗКА ДАННЫХ ИЗ ССЫЛКИ
+        // 2. Если в ссылке есть ID - берем его. Если нет - пробуем взять у Телеграма.
+        let myId;
+        if (urlUid) {
+            myId = parseInt(urlUid);
+            console.log("ID взят из ссылки:", myId);
+        } else {
+            myId = tg.initDataUnsafe.user?.id;
+            console.log("ID взят из Телеграм:", myId);
+        }
+
+        // Показываем ID на экране
+        document.getElementById('debug-id').innerText = myId || "НЕ ОПРЕДЕЛЕН";
+        // ----------------------------------
+
         let dbOffers = []; 
         try {
-            const urlParams = new URLSearchParams(window.location.search);
             const dataStr = urlParams.get('data');
-            if (dataStr) {
-                dbOffers = JSON.parse(decodeURIComponent(dataStr));
-            }
-        } catch (e) {
-            console.error(e);
-        }
+            if (dataStr) dbOffers = JSON.parse(decodeURIComponent(dataStr));
+        } catch (e) { console.error(e); }
 
         const catalog = { 'iPhone': { 
             'iPhone 16 Pro': { mem: ['128','256'], col: ['Black','Desert'], net: ['2 Sim'] },
             'iPhone 15': { mem: ['128'], col: ['Blue'], net: ['1 Sim'] }
         }};
-
         let sel = { mode: '', cat: '', mod: '', mem: '', col: '', net: '', productName: '' };
 
         function init() {
@@ -120,41 +115,26 @@
 
         function setRole(role) {
             const isAllowed = sellers.includes(myId) || admins.includes(myId);
-            
-            // Если пытается стать продавцом, но его нет в списке
-            if(role === 'seller' && !isAllowed) {
-                return alert("⛔️ Доступ запрещен. Ваш ID: " + myId);
-            }
-            
+            if(role === 'seller' && !isAllowed) return alert("⛔️ Нет доступа. Ваш ID: " + myId);
             localStorage.setItem('user_role', role);
             updateInterface(role);
             showScreen('screen-lk');
         }
-
-        function resetRole() {
-            localStorage.removeItem('user_role');
-            location.reload();
-        }
-
+        function resetRole() { localStorage.removeItem('user_role'); location.reload(); }
         function updateInterface(role) {
-            const userName = tg.initDataUnsafe.user?.first_name || "User";
+            const userName = tg.initDataUnsafe.user?.first_name || "Пользователь";
             const isAdmin = admins.includes(myId);
             const badge = isAdmin ? ' <span class="admin-badge">ADMIN</span>' : '';
-            
             document.getElementById('user-name').innerHTML = "ЛК: " + userName + badge;
             document.getElementById('btn-buy').style.display = (role === 'buyer') ? 'block' : 'none';
             document.getElementById('btn-price').style.display = (role === 'seller') ? 'block' : 'none';
         }
-
         function showScreen(id) {
             ['screen-welcome', 'screen-lk', 'screen-flow', 'screen-offers', 'screen-price'].forEach(s => document.getElementById(s).classList.add('hidden'));
             document.getElementById(id).classList.remove('hidden');
         }
-
-        // Навигация
         function startFlow(mode) { sel.mode = mode; renderCats(); showScreen('screen-flow'); }
         function goBack() { showScreen('screen-lk'); }
-
         function renderCats() {
             let h = ''; for(let c in catalog) h+=`<button class="main-btn btn-white" onclick="selCat('${c}')">${c}</button>`;
             document.getElementById('flow-content').innerHTML = h;
@@ -175,48 +155,24 @@
              document.getElementById('flow-content').innerHTML = h;
         }
         function selCol(c) { sel.col=c; finishFlow(); }
-
         function finishFlow() {
             sel.productName = `${sel.mod} ${sel.mem}Gb ${sel.col}`;
             if(sel.mode === 'buy') renderOffers();
-            else {
-                document.getElementById('price-product-name').innerText = sel.productName;
-                showScreen('screen-price');
-            }
+            else { document.getElementById('price-product-name').innerText = sel.productName; showScreen('screen-price'); }
         }
-
         function renderOffers() {
             let h = '';
             const relevantOffers = dbOffers.filter(o => o.product === sel.productName);
             relevantOffers.sort((a,b)=>a.price-b.price);
-
-            if (relevantOffers.length === 0) {
-                h = '<div style="text-align:center; padding:20px; color:#8e8e93;">Пока нет предложений</div>';
-            } else {
-                relevantOffers.forEach(o => {
-                    h += `
-                    <div class="offer-card">
-                        <div class="offer-info">
-                            <div class="offer-price">${o.price} ₽</div>
-                            <div class="offer-seller">@${o.username}</div>
-                        </div>
-                        <button class="btn-buy-small" onclick="requestBuy('${o.id}', '${o.username}', '${o.price}')">Купить</button>
-                    </div>`;
-                });
-            }
+            if (relevantOffers.length === 0) h = '<div style="text-align:center; padding:20px; color:#8e8e93;">Пока нет предложений</div>';
+            else { relevantOffers.forEach(o => {
+                h += `<div class="offer-card"><div class="offer-info"><div class="offer-price">${o.price} ₽</div><div class="offer-seller">@${o.username}</div></div><button class="btn-buy-small" onclick="requestBuy('${o.id}', '${o.username}', '${o.price}')">Купить</button></div>`;
+            }); }
             document.getElementById('offers-list').innerHTML = h;
             showScreen('screen-offers');
         }
-
-        function requestBuy(sid, sname, price) {
-            const data = `REQ_BUY|${sid}|${sname}|${sel.productName}|${price}`;
-            tg.sendData(data);
-        }
-
-        function finishPrice() {
-            const p = document.getElementById('price-input').value;
-            tg.sendData(`NEW_PRICE|${sel.productName}|${p}`);
-        }
+        function requestBuy(sid, sname, price) { tg.sendData(`REQ_BUY|${sid}|${sname}|${sel.productName}|${price}`); }
+        function finishPrice() { const p = document.getElementById('price-input').value; tg.sendData(`NEW_PRICE|${sel.productName}|${p}`); }
 
         init();
     </script>
