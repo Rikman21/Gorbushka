@@ -5,183 +5,32 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { font-family: -apple-system, sans-serif; background-color: #f2f2f7; padding: 15px; color: #1c1c1e; }
-        .header { text-align: center; margin-bottom: 15px; color: #007aff; font-size: 20px; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+               background-color: #f2f2f7; padding: 15px; color: #1c1c1e; }
+        
+        /* Стили заголовков и карточек */
+        .header { text-align: center; margin-bottom: 15px; color: #007aff; font-size: 20px; font-weight: 600; }
         .card { background: white; border-radius: 15px; padding: 20px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 20px; }
-        .balance { font-size: 32px; font-weight: bold; margin: 10px 0; }
+        .balance { font-size: 32px; font-weight: bold; margin: 10px 0; color: #000; }
+        
+        /* Кнопки */
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .main-btn { padding: 18px; border-radius: 12px; border: none; font-size: 16px; font-weight: 600; cursor: pointer; }
+        .main-btn { padding: 18px; border-radius: 12px; border: none; font-size: 16px; font-weight: 600; cursor: pointer; transition: 0.2s; }
         .btn-yellow { background: #ffcc00; color: #000; }
-        .btn-white { background: #fff; border: 1px solid #ddd; text-align: left; margin: 8px 0; width: 100%; display: block; }
+        .btn-white { background: #fff; border: 1px solid #ddd; text-align: left; margin: 8px 0; width: 100%; display: block; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .btn-white:active { background: #e5e5ea; }
         .back-btn { background: #ff3b30; color: white; width: 100%; margin-top: 15px; }
         
-        /* Стили вкладок из макета  */
+        /* Вкладки (tabs) */
         .tabs { display: flex; overflow-x: auto; background: white; border-radius: 10px; padding: 5px; margin-top: 20px; gap: 5px; }
         .tab { font-size: 13px; padding: 10px 15px; color: #1c1c1e; cursor: pointer; border: 1px solid #ddd; border-radius: 5px; white-space: nowrap; flex: 1; text-align: center; }
-        .tab.active { background: #e5e5ea; font-weight: bold; border-color: #ff3b30; } /* Красная рамка как в макете [cite: 56] */
+        .tab.active { background: #e5e5ea; font-weight: bold; border-color: #ff3b30; }
 
-        /* Список сделок  */
+        /* Список сделок */
         .deal-item { background: #34c759; color: white; padding: 12px; border-radius: 8px; margin-top: 8px; font-size: 12px; text-align: left; }
-        .hidden { display: none; }
-    </style>
-</head>
-<body>
-    <div id="app">
-        <div id="screen-lk">
-            <div class="card">
-                <div id="user-name" style="color: #8e8e93;">ЛК - Maxim</div>
-                <div class="balance">100 000р</div>
-            </div>
-            <div class="grid">
-                <button id="btn-buy" class="main-btn btn-yellow" onclick="startFlow('buy')">Купить</button>
-                <button id="btn-price" class="main-btn btn-yellow" onclick="startFlow('sell')">Мой Прайс</button>
-            </div>
-
-            <div class="tabs">
-                <div class="tab active" onclick="switchTab(this, 'all')">сделки</div>
-                <div id="tab-active" class="tab" onclick="switchTab(this, 'active')">активные</div>
-                <div class="tab" onclick="switchTab(this, 'done')">завершенные</div>
-                <div class="tab" onclick="switchTab(this, 'auction')">аукцион</div>
-            </div>
-
-            <div id="deals-list">
-                <div class="deal-item">заявка на покупку iPhone 14 pro 128 Purple от @Maxim</div>
-                <div class="deal-item">завершенная сделка - продажа iPhone 14 pro 128 Purple</div>
-                <div class="deal-item">заявка на покупку iPhone 14 pro 256 Purple от @Maxim</div>
-            </div>
-        </div>
-
-        <div id="screen-flow" class="hidden">
-            <h2 id="flow-title" class="header">Выбор</h2>
-            <div id="flow-content"></div>
-            <button class="main-btn back-btn" onclick="goBack()">⬅ Назад</button>
-        </div>
-
-        <div id="screen-price" class="hidden">
-            <h2 class="header">Укажите цену</h2>
-            <div class="card">
-                <p id="final-product-name" style="font-weight:bold;"></p>
-                <input type="number" id="price-input" style="width:90%; padding:15px; font-size:24px; border-radius:10px; border:2px solid #007aff; text-align:center; margin-bottom:15px;" placeholder="0">
-                <button class="main-btn btn-yellow" style="width:100%" onclick="finishPrice()">Опубликовать</button>
-            </div>
-            <button class="main-btn back-btn" onclick="showScreen('screen-flow')">⬅ Назад</button>
-        </div>
-    </div>
-
-    <script>
-        let tg = window.Telegram.WebApp;
-        tg.expand();
-
-        // Данные каталога (сокращено для примера)
-        const catalog = {
-            'iPhone': { 'iPhone 16 Pro': { mem: ['128','256'], col: ['Black','Silver'], net: ['2 Sim','Sim+eSim'] } }
-        };
-
-        let sel = { mode: '', cat: '', mod: '', mem: '', col: '', net: '' };
-        let history = [];
-
-        document.getElementById('user-name').innerText = "ЛК - " + (tg.initDataUnsafe.user?.first_name || "Maxim");
-
-        function switchTab(el, type) {
-            // Убираем активный класс у всех
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            // Добавляем текущему
-            el.classList.add('active');
-            
-            // Логика смены списка (пока просто имитация)
-            const list = document.getElementById('deals-list');
-            if (type === 'done') {
-                list.innerHTML = '<div class="deal-item" style="background:#8e8e93">История пуста</div>';
-            } else {
-                list.innerHTML = '<div class="deal-item">заявка на покупку iPhone 14 pro 128 Purple от @Maxim</div>';
-            }
-        }
-
-        // --- Остальные функции (showScreen, startFlow, renderCats, finishPrice и т.д.) ---
-        // Используйте функции из предыдущего моего сообщения здесь...
         
-        function showScreen(id) {
-            ['screen-lk', 'screen-flow', 'screen-price'].forEach(s => document.getElementById(s).classList.add('hidden'));
-            document.getElementById(id).classList.remove('hidden');
-        }
+        /* Правила */
+        .rules-list { text-align: left; font-size: 13px; color: #333; line-height: 1.4; background: #fffbe6; padding: 15px; border-radius: 10px; border: 1px solid #ffe58f; margin-top: 10px; }
+        .rules-list li { margin-bottom: 8px; }
 
-        function startFlow(mode) {
-            sel.mode = mode;
-            history = ['lk'];
-            renderCats();
-            showScreen('screen-flow');
-        }
-
-        function renderCats() {
-            let h = '';
-            for (let c in catalog) h += `<button class="btn-white main-btn" onclick="selCat('${c}')">${c}</button>`;
-            document.getElementById('flow-content').innerHTML = h;
-            document.getElementById('flow-title').innerText = "Категория";
-        }
-
-        function selCat(c) { sel.cat = c; history.push('cat'); renderMods(); }
-
-        function renderMods() {
-            let h = '';
-            for (let m in catalog[sel.cat]) h += `<button class="btn-white main-btn" onclick="selMod('${m}')">${m}</button>`;
-            document.getElementById('flow-content').innerHTML = h;
-            document.getElementById('flow-title').innerText = "Модель";
-        }
-
-        function selMod(m) { sel.mod = m; history.push('mod'); renderMem(); }
-
-        function renderMem() {
-            let h = '';
-            catalog[sel.cat][sel.mod].mem.forEach(m => h += `<button class="btn-white main-btn" onclick="selMem('${m}')">${m} Гб</button>`);
-            document.getElementById('flow-content').innerHTML = h;
-            document.getElementById('flow-title').innerText = "Память";
-        }
-
-        function selMem(m) { sel.mem = m; history.push('mem'); renderCol(); }
-
-        function renderCol() {
-            let h = '';
-            catalog[sel.cat][sel.mod].col.forEach(c => h += `<button class="btn-white main-btn" onclick="selCol('${c}')">${c}</button>`);
-            document.getElementById('flow-content').innerHTML = h;
-            document.getElementById('flow-title').innerText = "Цвет";
-        }
-
-        function selCol(c) { sel.col = c; history.push('col'); renderNet(); }
-
-        function renderNet() {
-            let h = '';
-            catalog[sel.cat][sel.mod].net.forEach(n => h += `<button class="btn-white main-btn" onclick="finishFlow('${n}')">${n}</button>`);
-            document.getElementById('flow-content').innerHTML = h;
-            document.getElementById('flow-title').innerText = "Связь";
-        }
-
-        function finishFlow(n) {
-            sel.net = n;
-            const product = `${sel.mod} ${sel.mem}Gb ${sel.col} (${sel.net})`;
-            if (sel.mode === 'buy') {
-                tg.sendData("ЗАКАЗ: " + product);
-                tg.close();
-            } else {
-                document.getElementById('final-product-name').innerText = product;
-                showScreen('screen-price');
-            }
-        }
-
-        function finishPrice() {
-            const price = document.getElementById('price-input').value;
-            if (!price) return alert("Введите цену");
-            tg.sendData(`ПРАЙС: ${document.getElementById('final-product-name').innerText} - ${price}р`);
-            tg.close();
-        }
-
-        function goBack() {
-            let last = history.pop();
-            if (last === 'lk') showScreen('screen-lk');
-            else if (last === 'cat') renderCats();
-            else if (last === 'mod') renderMods();
-            else if (last === 'mem') renderMem();
-            else if (last === 'col') renderCol();
-        }
-    </script>
-</body>
-</html>
+        /* Поле
