@@ -1,326 +1,114 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-               background-color: #f2f2f7; padding: 15px; color: #1c1c1e; }
-        
-        /* Стили заголовков и карточек */
-        .header { text-align: center; margin-bottom: 15px; color: #007aff; font-size: 20px; font-weight: 600; }
-        .card { background: white; border-radius: 15px; padding: 20px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 20px; }
-        .balance { font-size: 32px; font-weight: bold; margin: 10px 0; color: #000; }
-        
-        /* Кнопки */
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .main-btn { padding: 18px; border-radius: 12px; border: none; font-size: 16px; font-weight: 600; cursor: pointer; transition: 0.2s; }
-        .btn-yellow { background: #ffcc00; color: #000; }
-        .btn-white { background: #fff; border: 1px solid #ddd; text-align: left; margin: 8px 0; width: 100%; display: block; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-        .btn-white:active { background: #e5e5ea; }
-        .back-btn { background: #ff3b30; color: white; width: 100%; margin-top: 15px; }
-        
-        /* Вкладки (tabs) */
-        .tabs { display: flex; overflow-x: auto; background: white; border-radius: 10px; padding: 5px; margin-top: 20px; gap: 5px; }
-        .tab { font-size: 13px; padding: 10px 15px; color: #1c1c1e; cursor: pointer; border: 1px solid #ddd; border-radius: 5px; white-space: nowrap; flex: 1; text-align: center; }
-        .tab.active { background: #e5e5ea; font-weight: bold; border-color: #ff3b30; }
-
-        /* Список сделок */
-        .deal-item { background: #34c759; color: white; padding: 12px; border-radius: 8px; margin-top: 8px; font-size: 12px; text-align: left; }
-        
-        /* Правила */
-        .rules-list { text-align: left; font-size: 13px; color: #333; line-height: 1.4; background: #fffbe6; padding: 15px; border-radius: 10px; border: 1px solid #ffe58f; margin-top: 10px; }
-        .rules-list li { margin-bottom: 8px; }
-
-        /* Поле ввода цены */
-        .input-price { width: 90%; padding: 15px; font-size: 24px; border-radius: 10px; border: 2px solid #007aff; text-align: center; margin-bottom: 15px; outline: none; }
-
-        .hidden { display: none !important; }
-    </style>
-</head>
-<body>
-    <div id="app">
-        <div id="screen-welcome" class="hidden">
-            <h2 class="header">Добро пожаловать</h2>
-            <div class="card">
-                <p style="color: #8e8e93; margin-bottom: 20px;">Выберите ваш статус в системе:</p>
-                <button class="main-btn btn-yellow" style="width:100%; margin-bottom:10px;" onclick="setRole('buyer')">🛒 Я Покупатель</button>
-                <button class="main-btn btn-white" style="width:100%; text-align:center;" onclick="setRole('seller')">📦 Я Продавец</button>
-            </div>
-        </div>
-
-        <div id="screen-lk" class="hidden">
-            <div class="card">
-                <div id="user-name" style="color: #8e8e93; font-size: 14px;">ЛК - Загрузка...</div>
-                <div class="balance">100 000р</div>
-            </div>
-            <div class="grid">
-                <button id="btn-buy" class="main-btn btn-yellow" onclick="startFlow('buy')">Купить</button>
-                <button id="btn-price" class="main-btn btn-yellow" onclick="startFlow('sell')">Мой Прайс</button>
-            </div>
-            
-            <div class="tabs">
-                <div class="tab active" onclick="switchTab(this)">сделки</div>
-                <div class="tab" onclick="switchTab(this)">активные</div>
-                <div class="tab" onclick="switchTab(this)">завершенные</div>
-                <div class="tab" onclick="switchTab(this)">аукцион</div>
-            </div>
-            <div id="deals-list">
-                <div class="deal-item">История сделок пуста</div>
-            </div>
-        </div>
-
-        <div id="screen-flow" class="hidden">
-            <h2 id="flow-title" class="header">Выбор</h2>
-            <div id="flow-content"></div>
-            <button class="main-btn back-btn" onclick="goBack()">⬅ Назад</button>
-        </div>
-
-        <div id="screen-confirm" class="hidden">
-            <h2 class="header">Подтверждение</h2>
-            <div class="card">
-                <p id="summary-text" style="font-weight:bold; font-size:16px; color:#007aff; margin-bottom:15px;"></p>
-                
-                <div class="rules-list">
-                    <p style="font-weight:bold; margin-top:0;">⚠️ Правила сделки:</p>
-                    <ul style="padding-left: 20px; margin:0;">
-                        <li>Не спамить (1 запрос в 5 мин).</li>
-                        <li>Соблюдать договоренности.</li>
-                        <li>Запрещены запросы без цели купить.</li>
-                        <li>Бан на 1 день за нарушения.</li>
-                    </ul>
-                </div>
-                
-                <button class="main-btn btn-yellow" style="width:100%; margin-top:15px;" onclick="finalSubmit()">Согласен и заказать</button>
-            </div>
-            <button class="main-btn back-btn" onclick="showScreen('screen-flow')">⬅ Назад</button>
-        </div>
-
-        <div id="screen-price" class="hidden">
-            <h2 class="header">Укажите цену</h2>
-            <div class="card">
-                <p id="price-product-name" style="font-weight:bold; font-size:14px; margin-bottom:10px;"></p>
-                <input type="number" id="price-input" class="input-price" placeholder="100000">
-                <p style="color: #8e8e93; font-size:12px;">Введите цену в рублях</p>
-                <button class="main-btn btn-yellow" style="width:100%" onclick="finishPrice()">Опубликовать</button>
-            </div>
-            <button class="main-btn back-btn" onclick="showScreen('screen-flow')">⬅ Назад</button>
-        </div>
-    </div>
-
-    <script>
+<script>
         let tg = window.Telegram.WebApp;
         tg.expand();
 
-        // -------------------------------------------------------------
-        // 1. НАСТРОЙКИ (Впишите свой ID ниже вместо 123456789)
-        // -------------------------------------------------------------
         const sellers = [123456789]; 
-        
-        // Полный каталог товаров
-        const catalog = {
-            'iPhone': {
-                'iPhone 16 Pro Max': { mem: ['256','512','1TB'], col: ['Black','Silver','Desert'], net: ['Sim + eSim', '2 Sim', 'eSim Only'] },
-                'iPhone 16 Pro': { mem: ['128','256','512'], col: ['Black','Silver','Desert'], net: ['Sim + eSim', '2 Sim'] },
-                'iPhone 16 Plus': { mem: ['128','256'], col: ['Black','Blue','Pink'], net: ['Sim + eSim', '2 Sim'] },
-                'iPhone 16': { mem: ['128','256','512'], col: ['Black','Blue','Pink'], net: ['Sim + eSim', '2 Sim'] },
-                'iPhone 15': { mem: ['128','256'], col: ['Black','Blue','Yellow'], net: ['Sim + eSim', '2 Sim'] },
-                'iPhone 14': { mem: ['128','256'], col: ['Black','Purple','Blue'], net: ['Sim + eSim', '2 Sim'] },
-                'iPhone 13': { mem: ['128','256'], col: ['Midnight','Starlight','Blue'], net: ['1 Sim'] },
-                'iPhone 12 / 12 mini': { mem: ['64','128','256'], col: ['Black','White','Blue'], net: ['1 Sim'] },
-                'iPhone 11': { mem: ['64','128'], col: ['Black','Silver'], net: ['1 Sim'] },
-                'iPhone SE': { mem: ['64','128'], col: ['Midnight','Red'], net: ['1 Sim'] }
-            },
-            'iPad': { 
-                'iPad Pro M4': { mem: ['256','512'], col: ['Space Gray','Silver'], net: ['Wi-Fi', 'Wi-Fi + Cellular'] },
-                'iPad Air': { mem: ['128','256'], col: ['Blue','Purple'], net: ['Wi-Fi', 'Wi-Fi + Cellular'] }
-            },
-            'Mac': { 
-                'MacBook Pro': { mem: ['512','1TB'], col: ['Space Black','Silver'], net: ['Стандарт'] },
-                'MacBook Air': { mem: ['256','512'], col: ['Starlight','Midnight'], net: ['Стандарт'] }
-            },
-            'Watch': { 
-                'Series 10': { mem: ['42mm','46mm'], col: ['Black','Silver'], net: ['GPS','Cellular'] },
-                'Ultra 2': { mem: ['49mm'], col: ['Titanium'], net: ['Cellular'] }
-            }
-        };
-
-        const countries = [
-            { name: 'США', flag: '🇺🇸' }, { name: 'ОАЭ', flag: '🇦🇪' },
-            { name: 'Китай', flag: '🇨🇳' }, { name: 'Япония', flag: '🇯🇵' },
-            { name: 'Европа / РСТ', flag: '🇪🇺' }
-        ];
-
-        // -------------------------------------------------------------
-        // 2. СИСТЕМНЫЕ ПЕРЕМЕННЫЕ
-        // -------------------------------------------------------------
-        let sel = { mode: '', cat: '', mod: '', mem: '', col: '', net: '', ctry: '', final_text: '' };
-        let history = [];
         const userId = tg.initDataUnsafe.user?.id;
+
+        // ВАЖНО: Впишите сюда СВОЙ ID в поле 'id', чтобы протестировать уведомление продавцу!
+        const mockOffers = [
+            { id: @GaFoks, username: 'Dmitry_Store', price: 105000, rating: '⭐️ 4.9' },
+            { id: 987654321, username: 'Apple_Rostov', price: 106500, rating: '⭐️ 5.0' },
+            { id: 555555555, username: 'Ivan_Gadget', price: 104000, rating: '⭐️ 4.8' }
+        ];
         
-        // -------------------------------------------------------------
-        // 3. ЗАПУСК И ПРОВЕРКА РОЛИ
-        // -------------------------------------------------------------
+        // ... (Каталог catalog и страны countries оставляем те же, скопируйте их из прошлого кода) ...
+        // Для краткости я их тут свернул, но в файл вставьте полные версии!
+        const catalog = {
+            'iPhone': { 'iPhone 16 Pro': { mem: ['128','256'], col: ['Black'], net: ['2 Sim'] } } // Верните полный список!
+        };
+        const countries = [{ name: 'РСТ', flag: '🇷🇺' }]; // Верните полный список!
+
+        let sel = { mode: '', cat: '', mod: '', mem: '', col: '', net: '', ctry: '' };
+        let history = [];
+
         function init() {
             const savedRole = localStorage.getItem('user_role');
-            if (!savedRole) {
-                showScreen('screen-welcome');
-            } else {
-                updateInterface(savedRole);
-                showScreen('screen-lk');
-            }
+            if (!savedRole) showScreen('screen-welcome');
+            else { updateInterface(savedRole); showScreen('screen-lk'); }
         }
 
         function setRole(role) {
-            if (role === 'seller' && !sellers.includes(userId)) {
-                return alert("Ошибка доступа: Ваш ID не найден в списке продавцов.");
-            }
+            if (role === 'seller' && !sellers.includes(userId)) return alert("Нет доступа");
             localStorage.setItem('user_role', role);
             updateInterface(role);
             showScreen('screen-lk');
         }
 
         function updateInterface(role) {
-            document.getElementById('user-name').innerText = "ЛК - " + (tg.initDataUnsafe.user?.first_name || "Maxim");
+            document.getElementById('user-name').innerText = "ЛК - " + (tg.initDataUnsafe.user?.first_name || "Пользователь");
             document.getElementById('btn-buy').style.display = (role === 'buyer') ? 'block' : 'none';
             document.getElementById('btn-price').style.display = (role === 'seller') ? 'block' : 'none';
         }
 
-        // -------------------------------------------------------------
-        // 4. НАВИГАЦИЯ ПО ЭКРАНАМ
-        // -------------------------------------------------------------
         function showScreen(id) {
-            ['screen-welcome', 'screen-lk', 'screen-flow', 'screen-confirm', 'screen-price'].forEach(s => {
-                document.getElementById(s).classList.add('hidden');
-            });
+            ['screen-welcome', 'screen-lk', 'screen-flow', 'screen-offers', 'screen-price'].forEach(s => document.getElementById(s).classList.add('hidden'));
             document.getElementById(id).classList.remove('hidden');
         }
 
-        function switchTab(el) {
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            el.classList.add('active');
-        }
+        // ... (Функции навигации goBack, renderCats и т.д. остаются без изменений) ...
+        // Скопируйте их из прошлого файла
 
-        function goBack() {
-            let last = history.pop();
-            if (last === 'lk') showScreen('screen-lk');
-            else if (last === 'cat') renderCats();
-            else if (last === 'mod') renderMods();
-            else if (last === 'mem') renderMem();
-            else if (last === 'col') renderCol();
-            else if (last === 'net') renderNet();
-        }
-
-        // -------------------------------------------------------------
-        // 5. ЛОГИКА ВЫБОРА ТОВАРА
-        // -------------------------------------------------------------
         function startFlow(mode) {
             sel.mode = mode;
             history = ['lk'];
-            renderCats();
-            showScreen('screen-flow');
+            // Тут вызовите renderCats(), как было раньше
+            // (для краткости примера я пропускаю повторяющийся код рендера)
         }
 
-        function renderCats() {
-            let h = '';
-            for (let c in catalog) h += `<button class="main-btn btn-white" onclick="selCat('${c}')">${c}</button>`;
-            document.getElementById('flow-content').innerHTML = h;
-            document.getElementById('flow-title').innerText = "Категория";
-        }
+        // --- ГЛАВНОЕ ИЗМЕНЕНИЕ ЗДЕСЬ ---
 
-        function selCat(c) { sel.cat = c; history.push('cat'); renderMods(); }
-
-        function renderMods() {
-            let h = '';
-            for (let m in catalog[sel.cat]) h += `<button class="main-btn btn-white" onclick="selMod('${m}')">${m}</button>`;
-            document.getElementById('flow-content').innerHTML = h;
-            document.getElementById('flow-title').innerText = "Модель";
-        }
-
-        function selMod(m) { sel.mod = m; history.push('mod'); renderMem(); }
-
-        function renderMem() {
-            let h = '';
-            catalog[sel.cat][sel.mod].mem.forEach(m => h += `<button class="main-btn btn-white" onclick="selMem('${m}')">${m} Гб</button>`);
-            document.getElementById('flow-content').innerHTML = h;
-            document.getElementById('flow-title').innerText = "Память";
-        }
-
-        function selMem(m) { sel.mem = m; history.push('mem'); renderCol(); }
-
-        function renderCol() {
-            let h = '';
-            catalog[sel.cat][sel.mod].col.forEach(c => h += `<button class="main-btn btn-white" onclick="selCol('${c}')">${c}</button>`);
-            document.getElementById('flow-content').innerHTML = h;
-            document.getElementById('flow-title').innerText = "Цвет";
-        }
-
-        function selCol(c) { sel.col = c; history.push('col'); renderNet(); }
-
-        function renderNet() {
-            let h = '';
-            let nets = catalog[sel.cat][sel.mod].net || ['Стандарт'];
-            nets.forEach(n => h += `<button class="main-btn btn-white" onclick="selNet('${n}')">${n}</button>`);
-            document.getElementById('flow-content').innerHTML = h;
-            document.getElementById('flow-title').innerText = "Связь";
-        }
-
-        function selNet(n) { sel.net = n; history.push('net'); renderCtry(); }
-
-        function renderCtry() {
-            let h = '';
-            countries.forEach(c => {
-                h += `<button class="main-btn btn-white" onclick="finishFlow('${c.name} ${c.flag}')">${c.flag} ${c.name}</button>`;
-            });
-            document.getElementById('flow-content').innerHTML = h;
-            document.getElementById('flow-title').innerText = "Регион";
-        }
-
-        // -------------------------------------------------------------
-        // 6. ЗАВЕРШЕНИЕ: ПОКУПКА ИЛИ ПРОДАЖА
-        // -------------------------------------------------------------
         function finishFlow(ctry) {
             sel.ctry = ctry;
+            // Собираем полное название товара
             const product = `${sel.mod} ${sel.mem}Gb ${sel.col} (${sel.net}) [${sel.ctry}]`;
+            sel.productName = product; // Запоминаем
 
             if (sel.mode === 'buy') {
-                // ЛОГИКА ПОКУПАТЕЛЯ: Проверка "Первый раз?"
-                sel.final_text = "ЗАКАЗ: " + product;
-                const hasAgreed = localStorage.getItem('rules_agreed');
-                
-                if (hasAgreed) {
-                    finalSubmit(); // Если уже соглашался - отправляем сразу
-                } else {
-                    document.getElementById('summary-text').innerText = sel.final_text;
-                    showScreen('screen-confirm'); // Если нет - показываем правила
-                }
-
+                renderOffers(product);
             } else {
-                // ЛОГИКА ПРОДАВЦА: Идем вводить цену
                 document.getElementById('price-product-name').innerText = product;
                 showScreen('screen-price');
             }
         }
 
-        function finalSubmit() {
-            localStorage.setItem('rules_agreed', 'true'); // Запоминаем согласие
-            tg.sendData(sel.final_text);
+        function renderOffers(productName) {
+            document.getElementById('offers-subtitle').innerText = productName;
+            let h = '';
+            // Сортируем (имитация)
+            mockOffers.sort((a, b) => a.price - b.price);
+
+            mockOffers.forEach(offer => {
+                // Кнопка теперь вызывает requestBuy, передавая ID продавца и цену
+                h += `
+                <div class="offer-card">
+                    <div class="offer-info">
+                        <div class="offer-price">${offer.price.toLocaleString()} ₽</div>
+                        <div class="offer-seller">👤 @${offer.username}</div>
+                        <div style="font-size:12px; color:#ffcc00">${offer.rating}</div>
+                    </div>
+                    <button class="btn-buy-small" onclick="requestBuy(${offer.id}, '${offer.username}', ${offer.price})">Купить</button>
+                </div>`;
+            });
+            document.getElementById('offers-list').innerHTML = h;
+            showScreen('screen-offers');
+        }
+
+        function requestBuy(sellerId, sellerUsername, price) {
+            // Отправляем боту специальную команду
+            // Формат: REQ_BUY | ID_Продавца | Ник_Продавца | Товар | Цена
+            const data = `REQ_BUY|${sellerId}|${sellerUsername}|${sel.productName}|${price}`;
+            tg.sendData(data);
             tg.close();
         }
 
         function finishPrice() {
             const price = document.getElementById('price-input').value;
-            if (!price) return alert("Введите цену!");
-            
-            const product = document.getElementById('price-product-name').innerText;
-            const result = `ПРАЙС: ${product} - Цена: ${price}р`;
-            tg.sendData(result);
+            if (!price) return alert("Введите цену");
+            tg.sendData(`NEW_PRICE|${document.getElementById('price-product-name').innerText}|${price}`);
             tg.close();
         }
-
-        // Запуск
-        init();
+        
+        // ... (остальной код) ...
+        // Не забудьте вставить функции рендера (renderCats, selCat и т.д.)
     </script>
-</body>
-</html>
