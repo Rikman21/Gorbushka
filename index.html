@@ -6,7 +6,7 @@
     <title>Горбушка Онлайн</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        /* --- ДИЗАЙН V5.0 (FIXED LAYOUT + BUTTON ANIMATIONS) --- */
+        /* --- ДИЗАЙН V5.1 (Кнопка шаблона) --- */
         :root {
             --bg-color: var(--tg-theme-bg-color, #f2f2f7);
             --text-color: var(--tg-theme-text-color, #000000);
@@ -15,6 +15,7 @@
             --accent-text: var(--tg-theme-button-text-color, #ffffff);
             --hint: var(--tg-theme-hint-color, #8e8e93);
             --danger: #ff3b30;
+            --success: #34c759;
         }
 
         body { 
@@ -22,12 +23,10 @@
             background-color: var(--bg-color); 
             color: var(--text-color); 
             margin: 0; 
-            /* Важный отступ снизу, чтобы контент не перекрывался панелью */
             padding: 16px 16px 120px 16px; 
             -webkit-tap-highlight-color: transparent;
         }
 
-        /* Экраны */
         .screen { display: none; opacity: 0; transition: opacity 0.3s ease; }
         .screen.active { display: block; opacity: 1; }
         .hidden { display: none !important; }
@@ -46,20 +45,16 @@
             margin-bottom: 20px;
         }
 
-        /* --- КНОПКИ С АНИМАЦИЕЙ --- */
         .main-btn { 
             width: 100%; padding: 14px; 
             border-radius: 12px; border: none; 
             font-size: 16px; font-weight: 600; 
             cursor: pointer; display: flex; align-items: center; justify-content: center;
             gap: 8px; margin-bottom: 10px; 
-            
-            /* Магия анимации появления кнопок */
             opacity: 0; 
             animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
         }
         
-        /* Ключевые кадры для вылета кнопок */
         @keyframes popIn {
             0% { opacity: 0; transform: translateY(20px) scale(0.95); }
             100% { opacity: 1; transform: translateY(0) scale(1); }
@@ -69,30 +64,27 @@
         
         .btn-primary { background: var(--accent); color: var(--accent-text); }
         .btn-outline { background: var(--card-bg); color: var(--text-color); border: 1px solid var(--hint); } 
+        /* Зеленая кнопка для Excel */
+        .btn-excel { background: var(--success); color: white; border: none; } 
         .btn-back { background: var(--bg-color); color: var(--text-color); width: 30%; font-size: 22px; margin-bottom: 0;} 
 
-        /* Списки */
         .list-options { display: flex; flex-direction: column; gap: 10px; padding-bottom: 20px; }
         .list-options .main-btn { width: 100%; text-align: center; margin: 0; min-height: 50px; }
 
-        /* --- НИЖНЯЯ ПАНЕЛЬ (ТЕПЕРЬ ТОЧНО ФИКСИРОВАНА) --- */
         .bottom-bar {
-            position: fixed; 
-            bottom: 0; left: 0; right: 0;
-            padding: 12px 16px 30px 16px; /* Отступ для iPhone */
+            position: fixed; bottom: 0; left: 0; right: 0;
+            padding: 12px 16px 30px 16px; 
             background: var(--card-bg);
             border-top: 0.5px solid rgba(0,0,0,0.1);
             display: flex; gap: 10px; z-index: 9999;
             box-shadow: 0 -5px 15px rgba(0,0,0,0.05);
-            /* Убеждаемся, что она непрозрачная */
             backdrop-filter: blur(10px); 
         }
 
         .offer-card { 
             background: var(--card-bg); border-radius: 16px; padding: 16px; 
             margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;
-            opacity: 0; 
-            animation: popIn 0.4s ease forwards; /* Анимация для карточек тоже */
+            opacity: 0; animation: popIn 0.4s ease forwards;
         }
         
         .offer-price { font-size: 18px; font-weight: 700; }
@@ -131,16 +123,17 @@
             <h2 class="header" id="user-name">Меню</h2>
             <div class="card">
                 <button class="main-btn btn-primary" id="btn-buy" onclick="startFlow()">🔍 Найти товар</button>
-                <button class="main-btn btn-primary" id="btn-price" onclick="startFlow()">💰 Добавить цену</button>
+                
+                <button class="main-btn btn-primary" id="btn-price" onclick="startFlow()">💰 Добавить цену (поштучно)</button>
+                
+                <button class="main-btn btn-excel" id="btn-template" onclick="requestTemplate()">📥 Скачать шаблон (Excel)</button>
             </div>
             <button style="margin-top: 20px; background: transparent; color: var(--danger); border:none; width:100%; font-size:14px; font-weight:600; display:flex; align-items:center; justify-content:center; gap:5px;" onclick="resetRole()">🚪 Выйти (Сменить роль)</button>
         </div>
 
         <div id="screen-flow" class="screen">
             <h2 id="flow-title" class="header">Выбор</h2>
-            
             <div id="flow-content" class="list-options"></div> 
-            
             <div class="bottom-bar">
                 <button class="main-btn btn-back" onclick="goBack()">⬅️</button>
                 <div style="width: 100%; display:flex; align-items:center; justify-content:center; color: var(--hint); font-size: 12px;">Шаг назад</div>
@@ -345,13 +338,26 @@ iPhone 16 Pro Max, 1 TB, Desert Titanium, Physical + eSIM
             const badge = isAdmin ? ' <span class="admin-badge">ADMIN</span>' : '';
             document.getElementById('user-name').innerHTML = userName + badge;
             document.getElementById('btn-buy').style.display = (role === 'buyer') ? 'block' : 'none';
-            document.getElementById('btn-price').style.display = (role === 'seller') ? 'block' : 'none';
+            
+            // --- ЛОГИКА ОТОБРАЖЕНИЯ ДЛЯ ПРОДАВЦА ---
+            if (role === 'seller') {
+                document.getElementById('btn-price').style.display = 'block';
+                document.getElementById('btn-template').style.display = 'block';
+            } else {
+                document.getElementById('btn-price').style.display = 'none';
+                document.getElementById('btn-template').style.display = 'none';
+            }
         }
 
         function showScreen(id) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             window.scrollTo(0,0);
             document.getElementById(id).classList.add('active');
+        }
+
+        function requestTemplate() {
+            // ЭТА ФУНКЦИЯ ШЛЕТ СИГНАЛ БОТУ
+            tg.sendData("REQ_TEMPLATE");
         }
 
         function startFlow() {
@@ -388,7 +394,6 @@ iPhone 16 Pro Max, 1 TB, Desert Titanium, Physical + eSIM
 
             let h = '';
             Array.from(availableOptions).sort().forEach((opt, index) => {
-                // Добавляем задержку анимации для каждого элемента (эффект лесенки)
                 const delay = index * 0.05; 
                 h += `<button class="main-btn btn-outline" style="animation-delay: ${delay}s" onclick="makeSelection('${opt}')">${opt}</button>`;
             });
@@ -446,4 +451,3 @@ iPhone 16 Pro Max, 1 TB, Desert Titanium, Physical + eSIM
     </script>
 </body>
 </html>
-
