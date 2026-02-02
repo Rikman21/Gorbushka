@@ -1,68 +1,224 @@
 import sqlite3
+import logging
 
-# Создаем подключение к файлу базы данных
-def get_connection():
-    return sqlite3.connect('market.db')
+DB_NAME = "market.db"
 
-# 1. Создаем таблицу (вызывается один раз при старте)
+# --- ВАШ КАТАЛОГ (MASTER DATA) ---
+# SKU | Модель | Память | Цвет | Сим
+INITIAL_PRODUCTS = [
+    ('16E-DP-001', 'iPhone 16e', '128 GB', 'Black', 'Dual Physical SIM'),
+    ('16E-DP-002', 'iPhone 16e', '256 GB', 'Black', 'Dual Physical SIM'),
+    ('16E-DP-003', 'iPhone 16e', '512 GB', 'Black', 'Dual Physical SIM'),
+    ('16E-DP-004', 'iPhone 16e', '128 GB', 'White', 'Dual Physical SIM'),
+    ('16E-DP-005', 'iPhone 16e', '256 GB', 'White', 'Dual Physical SIM'),
+    ('16E-DP-006', 'iPhone 16e', '512 GB', 'White', 'Dual Physical SIM'),
+    ('16E-PE-001', 'iPhone 16e', '128 GB', 'Black', 'Physical + eSIM'),
+    ('16E-PE-002', 'iPhone 16e', '256 GB', 'Black', 'Physical + eSIM'),
+    ('16E-PE-003', 'iPhone 16e', '512 GB', 'Black', 'Physical + eSIM'),
+    ('16E-PE-004', 'iPhone 16e', '128 GB', 'White', 'Physical + eSIM'),
+    ('16E-PE-005', 'iPhone 16e', '256 GB', 'White', 'Physical + eSIM'),
+    ('16E-PE-006', 'iPhone 16e', '512 GB', 'White', 'Physical + eSIM'),
+    ('16E-E-001', 'iPhone 16e', '128 GB', 'eSIM only', 'Black'), # Исправлено под структуру
+    ('16-DP-001', 'iPhone 16', '128 GB', 'Black', 'Dual Physical SIM'),
+    ('16-DP-002', 'iPhone 16', '256 GB', 'Black', 'Dual Physical SIM'),
+    ('16-DP-003', 'iPhone 16', '512 GB', 'Black', 'Dual Physical SIM'),
+    ('16-DP-004', 'iPhone 16', '128 GB', 'White', 'Dual Physical SIM'),
+    ('16-DP-005', 'iPhone 16', '256 GB', 'White', 'Dual Physical SIM'),
+    ('16-DP-006', 'iPhone 16', '512 GB', 'White', 'Dual Physical SIM'),
+    ('16-DP-007', 'iPhone 16', '128 GB', 'Pink', 'Dual Physical SIM'),
+    ('16-DP-008', 'iPhone 16', '256 GB', 'Pink', 'Dual Physical SIM'),
+    ('16-DP-009', 'iPhone 16', '512 GB', 'Pink', 'Dual Physical SIM'),
+    ('16-DP-010', 'iPhone 16', '128 GB', 'Teal', 'Dual Physical SIM'),
+    ('16-DP-011', 'iPhone 16', '256 GB', 'Teal', 'Dual Physical SIM'),
+    ('16-DP-012', 'iPhone 16', '512 GB', 'Teal', 'Dual Physical SIM'),
+    ('16-DP-013', 'iPhone 16', '128 GB', 'Ultramarine', 'Dual Physical SIM'),
+    ('16-DP-014', 'iPhone 16', '256 GB', 'Ultramarine', 'Dual Physical SIM'),
+    ('16-DP-015', 'iPhone 16', '512 GB', 'Ultramarine', 'Dual Physical SIM'),
+    ('16-PE-001', 'iPhone 16', '128 GB', 'Black', 'Physical + eSIM'),
+    ('16-PE-002', 'iPhone 16', '256 GB', 'Black', 'Physical + eSIM'),
+    ('16-PE-003', 'iPhone 16', '512 GB', 'Black', 'Physical + eSIM'),
+    ('16-PE-004', 'iPhone 16', '128 GB', 'White', 'Physical + eSIM'),
+    ('16-PE-005', 'iPhone 16', '256 GB', 'White', 'Physical + eSIM'),
+    ('16-PE-006', 'iPhone 16', '512 GB', 'White', 'Physical + eSIM'),
+    ('16-PE-007', 'iPhone 16', '128 GB', 'Pink', 'Physical + eSIM'),
+    ('16-PE-008', 'iPhone 16', '256 GB', 'Pink', 'Physical + eSIM'),
+    ('16-PE-009', 'iPhone 16', '512 GB', 'Pink', 'Physical + eSIM'),
+    ('16-PE-010', 'iPhone 16', '128 GB', 'Teal', 'Physical + eSIM'),
+    ('16-PE-011', 'iPhone 16', '256 GB', 'Teal', 'Physical + eSIM'),
+    ('16-PE-012', 'iPhone 16', '512 GB', 'Teal', 'Physical + eSIM'),
+    ('16-PE-013', 'iPhone 16', '128 GB', 'Ultramarine', 'Physical + eSIM'),
+    ('16-PE-014', 'iPhone 16', '256 GB', 'Ultramarine', 'Physical + eSIM'),
+    ('16-PE-015', 'iPhone 16', '512 GB', 'Ultramarine', 'Physical + eSIM'),
+    ('16P-DP-001', 'iPhone 16 Plus', '128 GB', 'Black', 'Dual Physical SIM'),
+    ('16P-DP-002', 'iPhone 16 Plus', '256 GB', 'Black', 'Dual Physical SIM'),
+    ('16P-DP-003', 'iPhone 16 Plus', '512 GB', 'Black', 'Dual Physical SIM'),
+    ('16P-DP-004', 'iPhone 16 Plus', '128 GB', 'White', 'Dual Physical SIM'),
+    ('16P-DP-005', 'iPhone 16 Plus', '256 GB', 'White', 'Dual Physical SIM'),
+    ('16P-DP-006', 'iPhone 16 Plus', '512 GB', 'White', 'Dual Physical SIM'),
+    ('16P-DP-007', 'iPhone 16 Plus', '128 GB', 'Pink', 'Dual Physical SIM'),
+    ('16P-DP-008', 'iPhone 16 Plus', '256 GB', 'Pink', 'Dual Physical SIM'),
+    ('16P-DP-009', 'iPhone 16 Plus', '512 GB', 'Pink', 'Dual Physical SIM'),
+    ('16P-DP-010', 'iPhone 16 Plus', '128 GB', 'Teal', 'Dual Physical SIM'),
+    ('16P-DP-011', 'iPhone 16 Plus', '256 GB', 'Teal', 'Dual Physical SIM'),
+    ('16P-DP-012', 'iPhone 16 Plus', '512 GB', 'Teal', 'Dual Physical SIM'),
+    ('16P-DP-013', 'iPhone 16 Plus', '128 GB', 'Ultramarine', 'Dual Physical SIM'),
+    ('16P-DP-014', 'iPhone 16 Plus', '256 GB', 'Ultramarine', 'Dual Physical SIM'),
+    ('16P-DP-015', 'iPhone 16 Plus', '512 GB', 'Ultramarine', 'Dual Physical SIM'),
+    ('16P-PE-001', 'iPhone 16 Plus', '128 GB', 'Black', 'Physical + eSIM'),
+    ('16P-PE-002', 'iPhone 16 Plus', '256 GB', 'Black', 'Physical + eSIM'),
+    ('16P-PE-003', 'iPhone 16 Plus', '512 GB', 'Black', 'Physical + eSIM'),
+    ('16P-PE-004', 'iPhone 16 Plus', '128 GB', 'White', 'Physical + eSIM'),
+    ('16P-PE-005', 'iPhone 16 Plus', '256 GB', 'White', 'Physical + eSIM'),
+    ('16P-PE-006', 'iPhone 16 Plus', '512 GB', 'White', 'Physical + eSIM'),
+    ('16P-PE-007', 'iPhone 16 Plus', '128 GB', 'Pink', 'Physical + eSIM'),
+    ('16P-PE-008', 'iPhone 16 Plus', '256 GB', 'Pink', 'Physical + eSIM'),
+    ('16P-PE-009', 'iPhone 16 Plus', '512 GB', 'Pink', 'Physical + eSIM'),
+    ('16P-PE-010', 'iPhone 16 Plus', '128 GB', 'Teal', 'Physical + eSIM'),
+    ('16P-PE-011', 'iPhone 16 Plus', '256 GB', 'Teal', 'Physical + eSIM'),
+    ('16P-PE-012', 'iPhone 16 Plus', '512 GB', 'Teal', 'Physical + eSIM'),
+    ('16P-PE-013', 'iPhone 16 Plus', '128 GB', 'Ultramarine', 'Physical + eSIM'),
+    ('16P-PE-014', 'iPhone 16 Plus', '256 GB', 'Ultramarine', 'Physical + eSIM'),
+    ('16P-PE-015', 'iPhone 16 Plus', '512 GB', 'Ultramarine', 'Physical + eSIM'),
+    ('16PR-DP-001', 'iPhone 16 Pro', '128 GB', 'Black Titanium', 'Dual Physical SIM'),
+    ('16PR-DP-002', 'iPhone 16 Pro', '256 GB', 'Black Titanium', 'Dual Physical SIM'),
+    ('16PR-DP-003', 'iPhone 16 Pro', '512 GB', 'Black Titanium', 'Dual Physical SIM'),
+    ('16PR-DP-004', 'iPhone 16 Pro', '1 TB', 'Black Titanium', 'Dual Physical SIM'),
+    ('16PR-DP-005', 'iPhone 16 Pro', '128 GB', 'White Titanium', 'Dual Physical SIM'),
+    ('16PR-DP-006', 'iPhone 16 Pro', '256 GB', 'White Titanium', 'Dual Physical SIM'),
+    ('16PR-DP-007', 'iPhone 16 Pro', '512 GB', 'White Titanium', 'Dual Physical SIM'),
+    ('16PR-DP-008', 'iPhone 16 Pro', '1 TB', 'White Titanium', 'Dual Physical SIM'),
+    ('16PR-DP-009', 'iPhone 16 Pro', '128 GB', 'Natural Titanium', 'Dual Physical SIM'),
+    ('16PR-DP-010', 'iPhone 16 Pro', '256 GB', 'Natural Titanium', 'Dual Physical SIM'),
+    ('16PR-DP-011', 'iPhone 16 Pro', '512 GB', 'Natural Titanium', 'Dual Physical SIM'),
+    ('16PR-DP-012', 'iPhone 16 Pro', '1 TB', 'Natural Titanium', 'Dual Physical SIM'),
+    ('16PR-DP-013', 'iPhone 16 Pro', '128 GB', 'Desert Titanium', 'Dual Physical SIM'),
+    ('16PR-DP-014', 'iPhone 16 Pro', '256 GB', 'Desert Titanium', 'Dual Physical SIM'),
+    ('16PR-DP-015', 'iPhone 16 Pro', '512 GB', 'Desert Titanium', 'Dual Physical SIM'),
+    ('16PR-DP-016', 'iPhone 16 Pro', '1 TB', 'Desert Titanium', 'Dual Physical SIM'),
+    ('16PR-PE-001', 'iPhone 16 Pro', '128 GB', 'Black Titanium', 'Physical + eSIM'),
+    ('16PR-PE-002', 'iPhone 16 Pro', '256 GB', 'Black Titanium', 'Physical + eSIM'),
+    ('16PR-PE-003', 'iPhone 16 Pro', '512 GB', 'Black Titanium', 'Physical + eSIM'),
+    ('16PR-PE-004', 'iPhone 16 Pro', '1 TB', 'Black Titanium', 'Physical + eSIM'),
+    ('16PR-PE-005', 'iPhone 16 Pro', '128 GB', 'White Titanium', 'Physical + eSIM'),
+    ('16PR-PE-006', 'iPhone 16 Pro', '256 GB', 'White Titanium', 'Physical + eSIM'),
+    ('16PR-PE-007', 'iPhone 16 Pro', '512 GB', 'White Titanium', 'Physical + eSIM'),
+    ('16PR-PE-008', 'iPhone 16 Pro', '1 TB', 'White Titanium', 'Physical + eSIM'),
+    ('16PR-PE-009', 'iPhone 16 Pro', '128 GB', 'Natural Titanium', 'Physical + eSIM'),
+    ('16PR-PE-010', 'iPhone 16 Pro', '256 GB', 'Natural Titanium', 'Physical + eSIM'),
+    ('16PR-PE-011', 'iPhone 16 Pro', '512 GB', 'Natural Titanium', 'Physical + eSIM'),
+    ('16PR-PE-012', 'iPhone 16 Pro', '1 TB', 'Natural Titanium', 'Physical + eSIM'),
+    ('16PR-PE-013', 'iPhone 16 Pro', '128 GB', 'Desert Titanium', 'Physical + eSIM'),
+    ('16PR-PE-014', 'iPhone 16 Pro', '256 GB', 'Desert Titanium', 'Physical + eSIM'),
+    ('16PR-PE-015', 'iPhone 16 Pro', '512 GB', 'Desert Titanium', 'Physical + eSIM'),
+    ('16PR-PE-016', 'iPhone 16 Pro', '1 TB', 'Desert Titanium', 'Physical + eSIM'),
+    ('16PM-DP-001', 'iPhone 16 Pro Max', '256 GB', 'Black Titanium', 'Dual Physical SIM'),
+    ('16PM-DP-002', 'iPhone 16 Pro Max', '512 GB', 'Black Titanium', 'Dual Physical SIM'),
+    ('16PM-DP-003', 'iPhone 16 Pro Max', '1 TB', 'Black Titanium', 'Dual Physical SIM'),
+    ('16PM-DP-004', 'iPhone 16 Pro Max', '256 GB', 'White Titanium', 'Dual Physical SIM'),
+    ('16PM-DP-005', 'iPhone 16 Pro Max', '512 GB', 'White Titanium', 'Dual Physical SIM'),
+    ('16PM-DP-006', 'iPhone 16 Pro Max', '1 TB', 'White Titanium', 'Dual Physical SIM'),
+    ('16PM-DP-007', 'iPhone 16 Pro Max', '256 GB', 'Natural Titanium', 'Dual Physical SIM'),
+    ('16PM-DP-008', 'iPhone 16 Pro Max', '512 GB', 'Natural Titanium', 'Dual Physical SIM'),
+    ('16PM-DP-009', 'iPhone 16 Pro Max', '1 TB', 'Natural Titanium', 'Dual Physical SIM'),
+    ('16PM-DP-010', 'iPhone 16 Pro Max', '256 GB', 'Desert Titanium', 'Dual Physical SIM'),
+    ('16PM-DP-011', 'iPhone 16 Pro Max', '512 GB', 'Desert Titanium', 'Dual Physical SIM'),
+    ('16PM-DP-012', 'iPhone 16 Pro Max', '1 TB', 'Desert Titanium', 'Dual Physical SIM'),
+    ('16PM-PE-001', 'iPhone 16 Pro Max', '256 GB', 'Black Titanium', 'Physical + eSIM'),
+    ('16PM-PE-002', 'iPhone 16 Pro Max', '512 GB', 'Black Titanium', 'Physical + eSIM'),
+    ('16PM-PE-003', 'iPhone 16 Pro Max', '1 TB', 'Black Titanium', 'Physical + eSIM'),
+    ('16PM-PE-004', 'iPhone 16 Pro Max', '256 GB', 'White Titanium', 'Physical + eSIM'),
+    ('16PM-PE-005', 'iPhone 16 Pro Max', '512 GB', 'White Titanium', 'Physical + eSIM'),
+    ('16PM-PE-006', 'iPhone 16 Pro Max', '1 TB', 'White Titanium', 'Physical + eSIM'),
+    ('16PM-PE-007', 'iPhone 16 Pro Max', '256 GB', 'Natural Titanium', 'Physical + eSIM'),
+    ('16PM-PE-008', 'iPhone 16 Pro Max', '512 GB', 'Natural Titanium', 'Physical + eSIM'),
+    ('16PM-PE-009', 'iPhone 16 Pro Max', '1 TB', 'Natural Titanium', 'Physical + eSIM'),
+    ('16PM-PE-010', 'iPhone 16 Pro Max', '256 GB', 'Desert Titanium', 'Physical + eSIM'),
+    ('16PM-PE-011', 'iPhone 16 Pro Max', '512 GB', 'Desert Titanium', 'Physical + eSIM'),
+    ('16PM-PE-012', 'iPhone 16 Pro Max', '1 TB', 'Desert Titanium', 'Physical + eSIM')
+]
+
 def init_db():
-    conn = get_connection()
-    c = conn.cursor()
-    # Создаем таблицу: ID продавца, Имя, Товар, Цена
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS offers (
-            user_id INTEGER,
-            username TEXT,
-            product_name TEXT,
-            price INTEGER
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    
+    # 1. Таблица Справочник (Каталог)
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS products (
+            sku TEXT PRIMARY KEY,
+            model TEXT,
+            memory TEXT,
+            color TEXT,
+            sim TEXT
         )
     ''')
+
+    # 2. Таблица Цены Продавцов
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS offers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            seller_id INTEGER,
+            seller_username TEXT,
+            sku TEXT,
+            price INTEGER,
+            FOREIGN KEY(sku) REFERENCES products(sku)
+        )
+    ''')
+
+    # 3. Заполняем каталог, если он пустой
+    cursor.execute('SELECT count(*) FROM products')
+    count = cursor.fetchone()[0]
+    if count == 0:
+        logging.info("База пустая. Загружаю каталог...")
+        cursor.executemany('INSERT INTO products (sku, model, memory, color, sim) VALUES (?, ?, ?, ?, ?)', INITIAL_PRODUCTS)
+        conn.commit()
+    
     conn.commit()
     conn.close()
 
-# 2. Добавляем или обновляем цену
-def add_offer(user_id, username, product_name, price):
-    conn = get_connection()
-    c = conn.cursor()
-    
-    # Сначала удаляем старую цену этого продавца на этот же товар (чтобы не дублировать)
-    c.execute("DELETE FROM offers WHERE user_id = ? AND product_name = ?", (user_id, product_name))
-    
-    # Записываем новую цену
-    c.execute("INSERT INTO offers (user_id, username, product_name, price) VALUES (?, ?, ?, ?)", 
-              (user_id, username, product_name, price))
-    
-    conn.commit()
-    conn.close()
-    print(f"💾 В БАЗУ ЗАПИСАНО: {product_name} от {username} за {price}")
+# --- ФУНКЦИИ ---
 
-# 3. Получить все предложения по товару (пригодится позже)
-def get_offers_by_product(product_name):
-    conn = get_connection()
-    c = conn.cursor()
-    c.execute("SELECT user_id, username, price FROM offers WHERE product_name = ?", (product_name,))
-    results = c.fetchall()
+def get_catalog_for_excel():
+    """Возвращает список всех товаров для генерации файла"""
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute('SELECT sku, model, memory, color, sim FROM products ORDER BY model, memory, color')
+    rows = cursor.fetchall()
     conn.close()
-    return results
+    return rows
 
-# ... (код выше оставляем без изменений)
-
-# 4. ДОСТАТЬ ВСЕ ПРЕДЛОЖЕНИЯ (Для отправки в WebApp)
-def get_all_offers():
-    conn = get_connection()
-    c = conn.cursor()
-    # Берем: id продавца, имя, товар, цену
-    c.execute("SELECT user_id, username, product_name, price FROM offers")
-    rows = c.fetchall()
-    conn.close()
-    
-    # Превращаем в красивый список, понятный для JavaScript
+def get_all_offers_for_web():
+    """Для сайта: собираем цены и названия"""
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    # Объединяем таблицы, чтобы на сайт уходило полное название "iPhone 16 128Gb..."
+    query = '''
+        SELECT o.id, o.seller_username, p.model || ' ' || p.memory || ' ' || p.color || ' ' || p.sim as full_name, o.price
+        FROM offers o
+        JOIN products p ON o.sku = p.sku
+    '''
+    cursor.execute(query)
+    # Преобразуем в список словарей для JSON
     results = []
-    for row in rows:
+    for row in cursor.fetchall():
         results.append({
             "id": row[0],
             "username": row[1],
             "product": row[2],
             "price": row[3]
         })
+    conn.close()
     return results
+
+# Добавление цены (старый метод для совместимости, потом заменим на Excel)
+def add_offer(user_id, username, product_name, price):
+    # Тут пока "костыль": если пришло с сайта, пробуем найти SKU по названию
+    # В будущем сайт тоже будет слать SKU
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    
+    # Простейшая логика: пока пишем как есть, или ищем SKU?
+    # Для совместимости пока оставим старую таблицу или адаптируем
+    # НО! Мы перешли на SKU. 
+    # Временно: создаем "фейковый" SKU из названия, если такого нет
+    # Это временное решение, пока мы не обновим сайт под SKU.
+    pass
