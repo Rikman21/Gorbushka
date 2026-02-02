@@ -6,7 +6,7 @@
     <title>Горбушка Онлайн</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        /* --- ДИЗАЙН V3.0 (Fixed Bottom Buttons) --- */
+        /* --- ДИЗАЙН V3.3 (ФИНАЛ: Список + Иконки) --- */
         :root {
             --bg-color: var(--tg-theme-bg-color, #f2f2f7);
             --text-color: var(--tg-theme-text-color, #000000);
@@ -22,18 +22,16 @@
             background-color: var(--bg-color); 
             color: var(--text-color); 
             margin: 0; 
-            /* ВАЖНО: Делаем отступ снизу, чтобы контент не прятался за кнопками */
-            padding: 16px 16px 100px 16px; 
+            padding: 16px 16px 110px 16px; /* Большой отступ снизу для панели */
             -webkit-tap-highlight-color: transparent;
         }
 
-        /* Анимации */
         .screen { transition: opacity 0.2s ease; opacity: 1; }
         .hidden { display: none !important; opacity: 0; }
 
         .header { 
             text-align: center; margin-bottom: 20px; 
-            font-size: 22px; font-weight: 700; letter-spacing: -0.5px;
+            font-size: 22px; font-weight: 700;
         }
 
         .card { 
@@ -45,56 +43,59 @@
             margin-bottom: 20px;
         }
 
-        /* --- НИЖНЯЯ ЗАКРЕПЛЕННАЯ ПАНЕЛЬ --- */
-        .bottom-bar {
-            position: fixed;
-            bottom: 0; left: 0; right: 0;
-            padding: 12px 16px 20px 16px; /* Чуть больше отступ снизу для iPhone */
-            background: var(--card-bg);
-            border-top: 0.5px solid var(--hint);
-            display: flex;
-            gap: 10px;
-            z-index: 1000;
-            box-shadow: 0 -4px 20px rgba(0,0,0,0.05);
-        }
-
-        /* Кнопки */
+        /* КНОПКИ */
         .main-btn { 
             width: 100%; padding: 14px; 
             border-radius: 12px; border: none; 
             font-size: 16px; font-weight: 600; 
             cursor: pointer; display: flex; align-items: center; justify-content: center;
+            gap: 8px; /* Расстояние между иконкой и текстом */
+            margin-bottom: 10px; 
         }
         .main-btn:active { opacity: 0.7; transform: scale(0.98); }
         
         .btn-primary { background: var(--accent); color: var(--accent-text); }
-        .btn-outline { background: transparent; color: var(--text-color); border: 1px solid var(--hint); }
-        .btn-back { background: var(--bg-color); color: var(--text-color); width: 30%; font-size: 20px;} 
-
-        /* Сетка выбора */
-        .grid-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .grid-options .main-btn { margin-bottom: 0; height: 100%; text-align: center; font-size: 15px; border: 1px solid var(--hint); background: var(--card-bg); color: var(--text-color);}
-        .full-width-opt { grid-column: span 2; }
-
-        /* Карточки предложений */
-        .offer-card { 
+        .btn-outline { 
             background: var(--card-bg); 
-            border-radius: 16px; padding: 16px; 
-            margin-bottom: 12px; 
-            display: flex; justify-content: space-between; align-items: center;
+            color: var(--text-color); 
+            border: 1px solid var(--hint);
+        } 
+        .btn-back { background: var(--bg-color); color: var(--text-color); width: 30%; font-size: 22px;} 
+
+        /* ВЕРТИКАЛЬНЫЙ СПИСОК ВЫБОРА */
+        .list-options {
+            display: flex; flex-direction: column; gap: 10px; padding-bottom: 20px;
+        }
+        .list-options .main-btn {
+            width: 100%; text-align: center; margin: 0; min-height: 50px;
+        }
+
+        /* НИЖНЯЯ ПАНЕЛЬ */
+        .bottom-bar {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            padding: 12px 16px 30px 16px; /* Больше отступ для iPhone X+ */
+            background: var(--card-bg);
+            border-top: 0.5px solid var(--hint);
+            display: flex; gap: 10px; z-index: 1000;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.05);
+        }
+        .bottom-bar .main-btn { margin-bottom: 0; } /* Убираем отступ кнопок внутри панели */
+
+        /* Карточка товара */
+        .offer-card { 
+            background: var(--card-bg); border-radius: 16px; padding: 16px; 
+            margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;
         }
         .offer-price { font-size: 18px; font-weight: 700; }
         .offer-seller { font-size: 12px; color: var(--hint); }
         .btn-buy-small { 
-            background: var(--accent); color: white; 
-            border: none; padding: 8px 16px; 
+            background: var(--accent); color: white; border: none; padding: 8px 16px; 
             border-radius: 8px; font-weight: 600; font-size: 14px;
+            display: flex; align-items: center; gap: 5px;
         }
 
-        /* Ввод цены */
         .input-price { 
-            width: 100%; padding: 10px; 
-            font-size: 24px; font-weight: bold; 
+            width: 100%; padding: 10px; font-size: 24px; font-weight: bold; 
             border: none; border-bottom: 2px solid var(--accent); 
             background: transparent; color: var(--text-color); 
             text-align: center; outline: none; margin: 20px 0;
@@ -108,10 +109,10 @@
     <div id="app">
         
         <div id="screen-welcome" class="screen hidden">
-            <h2 class="header">Горбушка Онлайн</h2>
+            <h2 class="header">Горбушка Онлайн 📱</h2>
             <div class="card">
-                <p>Выберите роль:</p>
-                <button class="main-btn btn-primary" style="margin-bottom:10px" onclick="setRole('buyer')">🛒 Я Покупатель</button>
+                <p style="margin-bottom: 15px;">Выберите роль:</p>
+                <button class="main-btn btn-primary" onclick="setRole('buyer')">🛒 Я Покупатель</button>
                 <button class="main-btn btn-outline" onclick="setRole('seller')">📦 Я Продавец</button>
             </div>
             <div class="debug-box">ID: <span id="debug-id">...</span></div>
@@ -120,41 +121,40 @@
         <div id="screen-lk" class="screen hidden">
             <h2 class="header" id="user-name">Меню</h2>
             <div class="card">
-                <button class="main-btn btn-primary" style="margin-bottom:10px" id="btn-buy" onclick="startFlow()">🔍 Найти товар</button>
+                <button class="main-btn btn-primary" id="btn-buy" onclick="startFlow()">🔍 Найти товар</button>
                 <button class="main-btn btn-primary" id="btn-price" onclick="startFlow()">💰 Добавить цену</button>
             </div>
-            <button style="margin-top: 20px; background: transparent; color: var(--hint); border:none; width:100%" onclick="resetRole()">Выйти</button>
+            <button style="margin-top: 20px; background: transparent; color: var(--danger); border:none; width:100%; font-size:14px; font-weight:600; display:flex; align-items:center; justify-content:center; gap:5px;" onclick="resetRole()">🚪 Выйти (Сменить роль)</button>
         </div>
 
         <div id="screen-flow" class="screen hidden">
             <h2 id="flow-title" class="header">Выбор</h2>
-            <div id="flow-content" class="grid-options"></div>
-
+            
+            <div id="flow-content" class="list-options"></div> 
+            
             <div class="bottom-bar">
-                <button class="main-btn btn-back" onclick="goBack()">⬅</button>
-                <div style="width: 100%; display:flex; align-items:center; justify-content:center; color: var(--hint); font-size: 12px;">Выберите параметры</div>
+                <button class="main-btn btn-back" onclick="goBack()">⬅️</button>
+                <div style="width: 100%; display:flex; align-items:center; justify-content:center; color: var(--hint); font-size: 12px;">Выбор параметров</div>
             </div>
         </div>
 
         <div id="screen-offers" class="screen hidden">
-            <h2 class="header">Предложения</h2>
+            <h2 class="header">Предложения 📋</h2>
             <div id="offers-list"></div>
-
             <div class="bottom-bar">
-                <button class="main-btn btn-back" style="width: 100%" onclick="showScreen('screen-flow')">⬅ Назад к выбору</button>
+                <button class="main-btn btn-back" style="width: 100%" onclick="showScreen('screen-flow')">⬅️ Назад к параметрам</button>
             </div>
         </div>
 
         <div id="screen-price" class="screen hidden">
-            <h2 class="header">Ваша цена</h2>
+            <h2 class="header">Ваша цена 🏷️</h2>
             <div class="card">
                 <p id="price-product-name" style="color:var(--hint)"></p>
                 <input type="number" id="price-input" class="input-price" placeholder="₽">
             </div>
-
             <div class="bottom-bar">
-                <button class="main-btn btn-back" onclick="showScreen('screen-flow')">⬅</button>
-                <button class="main-btn btn-primary" onclick="finishPrice()">Опубликовать</button>
+                <button class="main-btn btn-back" onclick="showScreen('screen-flow')">⬅️</button>
+                <button class="main-btn btn-primary" onclick="finishPrice()">✅ Опубликовать</button>
             </div>
         </div>
     </div>
@@ -163,7 +163,6 @@
         let tg = window.Telegram.WebApp;
         tg.expand();
 
-        // 📊 КАТАЛОГ (CSV)
         const csvData = `
 iPhone 16e, 128 GB, Black, Dual Physical SIM
 iPhone 16e, 256 GB, Black, Dual Physical SIM
@@ -303,7 +302,8 @@ iPhone 16 Pro Max, 1 TB, Desert Titanium, Physical + eSIM
         document.getElementById('debug-id').innerText = myId || "НЕ ОПРЕДЕЛЕН";
 
         const catalogData = csvData.trim().split('\n').map(row => row.split(',').map(s => s.trim()));
-        const headers = ["Модель", "Память", "Цвет", "Сим-карта"];
+        // ДОБАВИЛ ИКОНКИ К ЗАГОЛОВКАМ ШАГОВ
+        const headers = ["📱 Модель", "💾 Память", "🎨 Цвет", "📲 Сим-карта"];
 
         let dbOffers = []; 
         try {
@@ -379,8 +379,7 @@ iPhone 16 Pro Max, 1 TB, Desert Titanium, Physical + eSIM
 
             let h = '';
             Array.from(availableOptions).sort().forEach(opt => {
-                const extraClass = opt.length > 15 ? 'full-width-opt' : '';
-                h += `<button class="main-btn ${extraClass}" onclick="makeSelection('${opt}')">${opt}</button>`;
+                h += `<button class="main-btn btn-outline" onclick="makeSelection('${opt}')">${opt}</button>`;
             });
             document.getElementById('flow-content').innerHTML = h;
         }
@@ -412,7 +411,7 @@ iPhone 16 Pro Max, 1 TB, Desert Titanium, Physical + eSIM
                             <div class="offer-price">${o.price.toLocaleString()} ₽</div>
                             <div class="offer-seller">@${o.username}</div>
                         </div>
-                        <button class="btn-buy-small" onclick="requestBuy('${o.id}', '${o.username}', '${o.price}', '${productName}')">Купить</button>
+                        <button class="btn-buy-small" onclick="requestBuy('${o.id}', '${o.username}', '${o.price}', '${productName}')">🛍️ Купить</button>
                     </div>`;
                 });
             }
