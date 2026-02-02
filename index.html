@@ -6,7 +6,7 @@
     <title>Горбушка Онлайн</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        /* --- ДИЗАЙН V4.0 (АНИМАЦИИ + iOS Style) --- */
+        /* --- ДИЗАЙН V5.0 (FIXED LAYOUT + BUTTON ANIMATIONS) --- */
         :root {
             --bg-color: var(--tg-theme-bg-color, #f2f2f7);
             --text-color: var(--tg-theme-text-color, #000000);
@@ -22,31 +22,15 @@
             background-color: var(--bg-color); 
             color: var(--text-color); 
             margin: 0; 
-            padding: 16px 16px 110px 16px; 
+            /* Важный отступ снизу, чтобы контент не перекрывался панелью */
+            padding: 16px 16px 120px 16px; 
             -webkit-tap-highlight-color: transparent;
-            overflow-x: hidden; /* Чтобы анимация не вызывала горизонтальный скролл */
         }
 
-        /* --- 🔥 ГЛАВНАЯ МАГИЯ АНИМАЦИИ --- */
-        .screen { 
-            display: none; /* По умолчанию скрыты */
-            opacity: 0;
-            transform: translateY(15px) scale(0.98); /* Чуть ниже и чуть меньше */
-        }
-
-        /* Когда добавляем этот класс JS-ом, экран плавно появляется */
-        .screen.active {
-            display: block;
-            animation: iosFadeIn 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-        }
-
-        @keyframes iosFadeIn {
-            to { 
-                opacity: 1; 
-                transform: translateY(0) scale(1); 
-            }
-        }
-        /* -------------------------------- */
+        /* Экраны */
+        .screen { display: none; opacity: 0; transition: opacity 0.3s ease; }
+        .screen.active { display: block; opacity: 1; }
+        .hidden { display: none !important; }
 
         .header { 
             text-align: center; margin-bottom: 20px; 
@@ -62,45 +46,55 @@
             margin-bottom: 20px;
         }
 
+        /* --- КНОПКИ С АНИМАЦИЕЙ --- */
         .main-btn { 
             width: 100%; padding: 14px; 
             border-radius: 12px; border: none; 
             font-size: 16px; font-weight: 600; 
             cursor: pointer; display: flex; align-items: center; justify-content: center;
             gap: 8px; margin-bottom: 10px; 
-            transition: transform 0.1s, background-color 0.2s;
+            
+            /* Магия анимации появления кнопок */
+            opacity: 0; 
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
         }
-        .main-btn:active { opacity: 0.8; transform: scale(0.96); }
+        
+        /* Ключевые кадры для вылета кнопок */
+        @keyframes popIn {
+            0% { opacity: 0; transform: translateY(20px) scale(0.95); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .main-btn:active { transform: scale(0.98); opacity: 0.8; }
         
         .btn-primary { background: var(--accent); color: var(--accent-text); }
         .btn-outline { background: var(--card-bg); color: var(--text-color); border: 1px solid var(--hint); } 
-        .btn-back { background: var(--bg-color); color: var(--text-color); width: 30%; font-size: 22px;} 
+        .btn-back { background: var(--bg-color); color: var(--text-color); width: 30%; font-size: 22px; margin-bottom: 0;} 
 
-        /* СПИСОК ВАРИАНТОВ */
-        .list-options {
-            display: flex; flex-direction: column; gap: 10px; padding-bottom: 20px;
-        }
-        .list-options .main-btn {
-            width: 100%; text-align: center; margin: 0; min-height: 50px;
-        }
+        /* Списки */
+        .list-options { display: flex; flex-direction: column; gap: 10px; padding-bottom: 20px; }
+        .list-options .main-btn { width: 100%; text-align: center; margin: 0; min-height: 50px; }
 
-        /* НИЖНЯЯ ПАНЕЛЬ */
+        /* --- НИЖНЯЯ ПАНЕЛЬ (ТЕПЕРЬ ТОЧНО ФИКСИРОВАНА) --- */
         .bottom-bar {
-            position: fixed; bottom: 0; left: 0; right: 0;
-            padding: 12px 16px 30px 16px;
+            position: fixed; 
+            bottom: 0; left: 0; right: 0;
+            padding: 12px 16px 30px 16px; /* Отступ для iPhone */
             background: var(--card-bg);
-            border-top: 0.5px solid var(--hint);
-            display: flex; gap: 10px; z-index: 1000;
-            box-shadow: 0 -4px 20px rgba(0,0,0,0.05);
-            /* Анимация появления панели */
-            animation: slideUpBar 0.4s ease-out;
+            border-top: 0.5px solid rgba(0,0,0,0.1);
+            display: flex; gap: 10px; z-index: 9999;
+            box-shadow: 0 -5px 15px rgba(0,0,0,0.05);
+            /* Убеждаемся, что она непрозрачная */
+            backdrop-filter: blur(10px); 
         }
-        @keyframes slideUpBar { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
         .offer-card { 
             background: var(--card-bg); border-radius: 16px; padding: 16px; 
             margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;
+            opacity: 0; 
+            animation: popIn 0.4s ease forwards; /* Анимация для карточек тоже */
         }
+        
         .offer-price { font-size: 18px; font-weight: 700; }
         .offer-seller { font-size: 12px; color: var(--hint); }
         .btn-buy-small { 
@@ -123,7 +117,7 @@
 <body>
     <div id="app">
         
-        <div id="screen-welcome" class="screen">
+        <div id="screen-welcome" class="screen active">
             <h2 class="header">Горбушка Онлайн 📱</h2>
             <div class="card">
                 <p style="margin-bottom: 15px;">Выберите роль:</p>
@@ -144,10 +138,12 @@
 
         <div id="screen-flow" class="screen">
             <h2 id="flow-title" class="header">Выбор</h2>
+            
             <div id="flow-content" class="list-options"></div> 
+            
             <div class="bottom-bar">
                 <button class="main-btn btn-back" onclick="goBack()">⬅️</button>
-                <div style="width: 100%; display:flex; align-items:center; justify-content:center; color: var(--hint); font-size: 12px;">Выбор параметров</div>
+                <div style="width: 100%; display:flex; align-items:center; justify-content:center; color: var(--hint); font-size: 12px;">Шаг назад</div>
             </div>
         </div>
 
@@ -167,7 +163,7 @@
             </div>
             <div class="bottom-bar">
                 <button class="main-btn btn-back" onclick="showScreen('screen-flow')">⬅️</button>
-                <button class="main-btn btn-primary" onclick="finishPrice()">✅ Опубликовать</button>
+                <button class="main-btn btn-primary" style="margin-bottom: 0;" onclick="finishPrice()">✅ Опубликовать</button>
             </div>
         </div>
     </div>
@@ -307,7 +303,7 @@ iPhone 16 Pro Max, 512 GB, Desert Titanium, Physical + eSIM
 iPhone 16 Pro Max, 1 TB, Desert Titanium, Physical + eSIM
         `;
 
-        const admins = [464896073, 210419]; 
+        const admins = [464896073]; 
         const sellers = [464896073]; 
         
         const urlParams = new URLSearchParams(window.location.search);
@@ -352,15 +348,9 @@ iPhone 16 Pro Max, 1 TB, Desert Titanium, Physical + eSIM
             document.getElementById('btn-price').style.display = (role === 'seller') ? 'block' : 'none';
         }
 
-        // --- НОВАЯ ФУНКЦИЯ ДЛЯ АНИМАЦИЙ ---
         function showScreen(id) {
-            // 1. Скрываем все экраны (убираем класс active)
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            
-            // 2. Скроллим наверх (чтобы не оставаться внизу страницы)
             window.scrollTo(0,0);
-
-            // 3. Показываем нужный (добавляем класс active)
             document.getElementById(id).classList.add('active');
         }
 
@@ -397,8 +387,10 @@ iPhone 16 Pro Max, 1 TB, Desert Titanium, Physical + eSIM
             });
 
             let h = '';
-            Array.from(availableOptions).sort().forEach(opt => {
-                h += `<button class="main-btn btn-outline" onclick="makeSelection('${opt}')">${opt}</button>`;
+            Array.from(availableOptions).sort().forEach((opt, index) => {
+                // Добавляем задержку анимации для каждого элемента (эффект лесенки)
+                const delay = index * 0.05; 
+                h += `<button class="main-btn btn-outline" style="animation-delay: ${delay}s" onclick="makeSelection('${opt}')">${opt}</button>`;
             });
             document.getElementById('flow-content').innerHTML = h;
         }
@@ -423,9 +415,10 @@ iPhone 16 Pro Max, 1 TB, Desert Titanium, Physical + eSIM
             if (relevantOffers.length === 0) {
                 h = '<div style="text-align:center; padding:40px; color:var(--hint);">Предложений пока нет 😔</div>';
             } else {
-                relevantOffers.forEach(o => {
+                relevantOffers.forEach((o, index) => {
+                    const delay = index * 0.1;
                     h += `
-                    <div class="offer-card">
+                    <div class="offer-card" style="animation-delay: ${delay}s">
                         <div class="offer-info">
                             <div class="offer-price">${o.price.toLocaleString()} ₽</div>
                             <div class="offer-seller">@${o.username}</div>
