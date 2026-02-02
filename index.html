@@ -42,8 +42,8 @@
                 <div id="user-name">ЛК</div>
                 <button class="btn-reset" onclick="resetRole()">🔄 Сменить роль (Выйти)</button>
             </div>
-            <button class="main-btn btn-yellow" id="btn-buy" onclick="startFlow('buy')">Купить</button>
-            <button class="main-btn btn-yellow" id="btn-price" onclick="startFlow('sell')">Мой Прайс</button>
+            <button class="main-btn btn-yellow" id="btn-buy" onclick="startFlow()">Купить</button>
+            <button class="main-btn btn-yellow" id="btn-price" onclick="startFlow()">Мой Прайс</button>
         </div>
 
         <div id="screen-flow" class="hidden">
@@ -62,7 +62,7 @@
             <h2 class="header">Цена</h2>
             <div class="card">
                 <p id="price-product-name"></p>
-                <input type="number" id="price-input" class="input-price" placeholder="100000">
+                <input type="number" id="price-input" class="input-price" placeholder="Цена в рублях">
                 <button class="main-btn btn-yellow" onclick="finishPrice()">Опубликовать</button>
             </div>
             <button class="main-btn back-btn" onclick="showScreen('screen-flow')">⬅ Назад</button>
@@ -73,54 +73,182 @@
         let tg = window.Telegram.WebApp;
         tg.expand();
 
-        const admins = [464896073,  210419]; 
+        // ==========================================
+        // 📊 ВАШ КАТАЛОГ (АВТОМАТИЧЕСКИ ИЗ ФАЙЛА)
+        // ==========================================
+        const csvData = `
+iPhone 16e, 128 GB, Black, Dual Physical SIM
+iPhone 16e, 256 GB, Black, Dual Physical SIM
+iPhone 16e, 512 GB, Black, Dual Physical SIM
+iPhone 16e, 128 GB, White, Dual Physical SIM
+iPhone 16e, 256 GB, White, Dual Physical SIM
+iPhone 16e, 512 GB, White, Dual Physical SIM
+iPhone 16e, 128 GB, Black, Physical + eSIM
+iPhone 16e, 256 GB, Black, Physical + eSIM
+iPhone 16e, 512 GB, Black, Physical + eSIM
+iPhone 16e, 128 GB, White, Physical + eSIM
+iPhone 16e, 256 GB, White, Physical + eSIM
+iPhone 16e, 512 GB, White, Physical + eSIM
+iPhone 16, 128 GB, Black, Dual Physical SIM
+iPhone 16, 256 GB, Black, Dual Physical SIM
+iPhone 16, 512 GB, Black, Dual Physical SIM
+iPhone 16, 128 GB, White, Dual Physical SIM
+iPhone 16, 256 GB, White, Dual Physical SIM
+iPhone 16, 512 GB, White, Dual Physical SIM
+iPhone 16, 128 GB, Pink, Dual Physical SIM
+iPhone 16, 256 GB, Pink, Dual Physical SIM
+iPhone 16, 512 GB, Pink, Dual Physical SIM
+iPhone 16, 128 GB, Teal, Dual Physical SIM
+iPhone 16, 256 GB, Teal, Dual Physical SIM
+iPhone 16, 512 GB, Teal, Dual Physical SIM
+iPhone 16, 128 GB, Ultramarine, Dual Physical SIM
+iPhone 16, 256 GB, Ultramarine, Dual Physical SIM
+iPhone 16, 512 GB, Ultramarine, Dual Physical SIM
+iPhone 16, 128 GB, Black, Physical + eSIM
+iPhone 16, 256 GB, Black, Physical + eSIM
+iPhone 16, 512 GB, Black, Physical + eSIM
+iPhone 16, 128 GB, White, Physical + eSIM
+iPhone 16, 256 GB, White, Physical + eSIM
+iPhone 16, 512 GB, White, Physical + eSIM
+iPhone 16, 128 GB, Pink, Physical + eSIM
+iPhone 16, 256 GB, Pink, Physical + eSIM
+iPhone 16, 512 GB, Pink, Physical + eSIM
+iPhone 16, 128 GB, Teal, Physical + eSIM
+iPhone 16, 256 GB, Teal, Physical + eSIM
+iPhone 16, 512 GB, Teal, Physical + eSIM
+iPhone 16, 128 GB, Ultramarine, Physical + eSIM
+iPhone 16, 256 GB, Ultramarine, Physical + eSIM
+iPhone 16, 512 GB, Ultramarine, Physical + eSIM
+iPhone 16 Plus, 128 GB, Black, Dual Physical SIM
+iPhone 16 Plus, 256 GB, Black, Dual Physical SIM
+iPhone 16 Plus, 512 GB, Black, Dual Physical SIM
+iPhone 16 Plus, 128 GB, White, Dual Physical SIM
+iPhone 16 Plus, 256 GB, White, Dual Physical SIM
+iPhone 16 Plus, 512 GB, White, Dual Physical SIM
+iPhone 16 Plus, 128 GB, Pink, Dual Physical SIM
+iPhone 16 Plus, 256 GB, Pink, Dual Physical SIM
+iPhone 16 Plus, 512 GB, Pink, Dual Physical SIM
+iPhone 16 Plus, 128 GB, Teal, Dual Physical SIM
+iPhone 16 Plus, 256 GB, Teal, Dual Physical SIM
+iPhone 16 Plus, 512 GB, Teal, Dual Physical SIM
+iPhone 16 Plus, 128 GB, Ultramarine, Dual Physical SIM
+iPhone 16 Plus, 256 GB, Ultramarine, Dual Physical SIM
+iPhone 16 Plus, 512 GB, Ultramarine, Dual Physical SIM
+iPhone 16 Plus, 128 GB, Black, Physical + eSIM
+iPhone 16 Plus, 256 GB, Black, Physical + eSIM
+iPhone 16 Plus, 512 GB, Black, Physical + eSIM
+iPhone 16 Plus, 128 GB, White, Physical + eSIM
+iPhone 16 Plus, 256 GB, White, Physical + eSIM
+iPhone 16 Plus, 512 GB, White, Physical + eSIM
+iPhone 16 Plus, 128 GB, Pink, Physical + eSIM
+iPhone 16 Plus, 256 GB, Pink, Physical + eSIM
+iPhone 16 Plus, 512 GB, Pink, Physical + eSIM
+iPhone 16 Plus, 128 GB, Teal, Physical + eSIM
+iPhone 16 Plus, 256 GB, Teal, Physical + eSIM
+iPhone 16 Plus, 512 GB, Teal, Physical + eSIM
+iPhone 16 Plus, 128 GB, Ultramarine, Physical + eSIM
+iPhone 16 Plus, 256 GB, Ultramarine, Physical + eSIM
+iPhone 16 Plus, 512 GB, Ultramarine, Physical + eSIM
+iPhone 16 Pro, 128 GB, Black Titanium, Dual Physical SIM
+iPhone 16 Pro, 256 GB, Black Titanium, Dual Physical SIM
+iPhone 16 Pro, 512 GB, Black Titanium, Dual Physical SIM
+iPhone 16 Pro, 1 TB, Black Titanium, Dual Physical SIM
+iPhone 16 Pro, 128 GB, White Titanium, Dual Physical SIM
+iPhone 16 Pro, 256 GB, White Titanium, Dual Physical SIM
+iPhone 16 Pro, 512 GB, White Titanium, Dual Physical SIM
+iPhone 16 Pro, 1 TB, White Titanium, Dual Physical SIM
+iPhone 16 Pro, 128 GB, Natural Titanium, Dual Physical SIM
+iPhone 16 Pro, 256 GB, Natural Titanium, Dual Physical SIM
+iPhone 16 Pro, 512 GB, Natural Titanium, Dual Physical SIM
+iPhone 16 Pro, 1 TB, Natural Titanium, Dual Physical SIM
+iPhone 16 Pro, 128 GB, Desert Titanium, Dual Physical SIM
+iPhone 16 Pro, 256 GB, Desert Titanium, Dual Physical SIM
+iPhone 16 Pro, 512 GB, Desert Titanium, Dual Physical SIM
+iPhone 16 Pro, 1 TB, Desert Titanium, Dual Physical SIM
+iPhone 16 Pro, 128 GB, Black Titanium, Physical + eSIM
+iPhone 16 Pro, 256 GB, Black Titanium, Physical + eSIM
+iPhone 16 Pro, 512 GB, Black Titanium, Physical + eSIM
+iPhone 16 Pro, 1 TB, Black Titanium, Physical + eSIM
+iPhone 16 Pro, 128 GB, White Titanium, Physical + eSIM
+iPhone 16 Pro, 256 GB, White Titanium, Physical + eSIM
+iPhone 16 Pro, 512 GB, White Titanium, Physical + eSIM
+iPhone 16 Pro, 1 TB, White Titanium, Physical + eSIM
+iPhone 16 Pro, 128 GB, Natural Titanium, Physical + eSIM
+iPhone 16 Pro, 256 GB, Natural Titanium, Physical + eSIM
+iPhone 16 Pro, 512 GB, Natural Titanium, Physical + eSIM
+iPhone 16 Pro, 1 TB, Natural Titanium, Physical + eSIM
+iPhone 16 Pro, 128 GB, Desert Titanium, Physical + eSIM
+iPhone 16 Pro, 256 GB, Desert Titanium, Physical + eSIM
+iPhone 16 Pro, 512 GB, Desert Titanium, Physical + eSIM
+iPhone 16 Pro, 1 TB, Desert Titanium, Physical + eSIM
+iPhone 16 Pro Max, 256 GB, Black Titanium, Dual Physical SIM
+iPhone 16 Pro Max, 512 GB, Black Titanium, Dual Physical SIM
+iPhone 16 Pro Max, 1 TB, Black Titanium, Dual Physical SIM
+iPhone 16 Pro Max, 256 GB, White Titanium, Dual Physical SIM
+iPhone 16 Pro Max, 512 GB, White Titanium, Dual Physical SIM
+iPhone 16 Pro Max, 1 TB, White Titanium, Dual Physical SIM
+iPhone 16 Pro Max, 256 GB, Natural Titanium, Dual Physical SIM
+iPhone 16 Pro Max, 512 GB, Natural Titanium, Dual Physical SIM
+iPhone 16 Pro Max, 1 TB, Natural Titanium, Dual Physical SIM
+iPhone 16 Pro Max, 256 GB, Desert Titanium, Dual Physical SIM
+iPhone 16 Pro Max, 512 GB, Desert Titanium, Dual Physical SIM
+iPhone 16 Pro Max, 1 TB, Desert Titanium, Dual Physical SIM
+iPhone 16 Pro Max, 256 GB, Black Titanium, Physical + eSIM
+iPhone 16 Pro Max, 512 GB, Black Titanium, Physical + eSIM
+iPhone 16 Pro Max, 1 TB, Black Titanium, Physical + eSIM
+iPhone 16 Pro Max, 256 GB, White Titanium, Physical + eSIM
+iPhone 16 Pro Max, 512 GB, White Titanium, Physical + eSIM
+iPhone 16 Pro Max, 1 TB, White Titanium, Physical + eSIM
+iPhone 16 Pro Max, 256 GB, Natural Titanium, Physical + eSIM
+iPhone 16 Pro Max, 512 GB, Natural Titanium, Physical + eSIM
+iPhone 16 Pro Max, 1 TB, Natural Titanium, Physical + eSIM
+iPhone 16 Pro Max, 256 GB, Desert Titanium, Physical + eSIM
+iPhone 16 Pro Max, 512 GB, Desert Titanium, Physical + eSIM
+iPhone 16 Pro Max, 1 TB, Desert Titanium, Physical + eSIM
+        `;
+        // ==========================================
+
+        const admins = [464896073, 210419]; 
         const sellers = [464896073]; 
         
-        // --- !!! САМОЕ ВАЖНОЕ МЕСТО !!! ---
-        // 1. Сначала ищем ID в ссылке (которую дал Бот)
+        // --- Логика ID ---
         const urlParams = new URLSearchParams(window.location.search);
-        const urlUid = urlParams.get('uid'); // Получаем &uid=...
-
-        // 2. Если в ссылке есть ID - берем его. Если нет - пробуем взять у Телеграма.
-        let myId;
-        if (urlUid) {
-            myId = parseInt(urlUid);
-            console.log("ID взят из ссылки:", myId);
-        } else {
-            myId = tg.initDataUnsafe.user?.id;
-            console.log("ID взят из Телеграм:", myId);
-        }
-
-        // Показываем ID на экране
+        let myId = urlParams.get('uid') ? parseInt(urlParams.get('uid')) : tg.initDataUnsafe.user?.id;
         document.getElementById('debug-id').innerText = myId || "НЕ ОПРЕДЕЛЕН";
-        // ----------------------------------
 
+        // --- Парсинг CSV ---
+        const catalogData = csvData.trim().split('\n').map(row => row.split(',').map(s => s.trim()));
+        
+        // --- ЗАГОЛОВКИ ШАГОВ (Настроены под ваш файл) ---
+        const headers = ["Модель", "Память", "Цвет", "Сим-карта"];
+
+        // --- Загрузка базы цен ---
         let dbOffers = []; 
         try {
             const dataStr = urlParams.get('data');
             if (dataStr) dbOffers = JSON.parse(decodeURIComponent(dataStr));
         } catch (e) { console.error(e); }
 
-        const catalog = { 'iPhone': { 
-            'iPhone 16 Pro': { mem: ['128','256'], col: ['Black','Desert'], net: ['2 Sim'] },
-            'iPhone 15': { mem: ['128'], col: ['Blue'], net: ['1 Sim'] }
-        }};
-        let sel = { mode: '', cat: '', mod: '', mem: '', col: '', net: '', productName: '' };
+        let currentSelection = [];
+        let userRole = '';
 
         function init() {
             const role = localStorage.getItem('user_role');
             if(!role) showScreen('screen-welcome');
-            else { updateInterface(role); showScreen('screen-lk'); }
+            else { userRole = role; updateInterface(role); showScreen('screen-lk'); }
         }
 
         function setRole(role) {
             const isAllowed = sellers.includes(myId) || admins.includes(myId);
             if(role === 'seller' && !isAllowed) return alert("⛔️ Нет доступа. Ваш ID: " + myId);
             localStorage.setItem('user_role', role);
+            userRole = role;
             updateInterface(role);
             showScreen('screen-lk');
         }
+
         function resetRole() { localStorage.removeItem('user_role'); location.reload(); }
+
         function updateInterface(role) {
             const userName = tg.initDataUnsafe.user?.first_name || "Пользователь";
             const isAdmin = admins.includes(myId);
@@ -129,50 +257,99 @@
             document.getElementById('btn-buy').style.display = (role === 'buyer') ? 'block' : 'none';
             document.getElementById('btn-price').style.display = (role === 'seller') ? 'block' : 'none';
         }
+
         function showScreen(id) {
             ['screen-welcome', 'screen-lk', 'screen-flow', 'screen-offers', 'screen-price'].forEach(s => document.getElementById(s).classList.add('hidden'));
             document.getElementById(id).classList.remove('hidden');
         }
-        function startFlow(mode) { sel.mode = mode; renderCats(); showScreen('screen-flow'); }
-        function goBack() { showScreen('screen-lk'); }
-        function renderCats() {
-            let h = ''; for(let c in catalog) h+=`<button class="main-btn btn-white" onclick="selCat('${c}')">${c}</button>`;
-            document.getElementById('flow-content').innerHTML = h;
+
+        // --- ЛОГИКА ВЫБОРА ---
+        function startFlow() {
+            currentSelection = [];
+            renderStep(0);
+            showScreen('screen-flow');
         }
-        function selCat(c) { sel.cat=c; renderMods(); }
-        function renderMods() {
-            let h = ''; for(let m in catalog[sel.cat]) h+=`<button class="main-btn btn-white" onclick="selMod('${m}')">${m}</button>`;
-            document.getElementById('flow-content').innerHTML = h;
+
+        function goBack() {
+            if (currentSelection.length > 0) {
+                currentSelection.pop();
+                renderStep(currentSelection.length);
+            } else {
+                showScreen('screen-lk');
+            }
         }
-        function selMod(m) { sel.mod=m; renderMem(); }
-        function renderMem() {
-             let h = ''; catalog[sel.cat][sel.mod].mem.forEach(m => h+=`<button class="main-btn btn-white" onclick="selMem('${m}')">${m} Гб</button>`);
-             document.getElementById('flow-content').innerHTML = h;
-        }
-        function selMem(m) { sel.mem=m; renderCol(); }
-        function renderCol() {
-             let h = ''; catalog[sel.cat][sel.mod].col.forEach(c => h+=`<button class="main-btn btn-white" onclick="selCol('${c}')">${c}</button>`);
-             document.getElementById('flow-content').innerHTML = h;
-        }
-        function selCol(c) { sel.col=c; finishFlow(); }
-        function finishFlow() {
-            sel.productName = `${sel.mod} ${sel.mem}Gb ${sel.col}`;
-            if(sel.mode === 'buy') renderOffers();
-            else { document.getElementById('price-product-name').innerText = sel.productName; showScreen('screen-price'); }
-        }
-        function renderOffers() {
+
+        function renderStep(stepIndex) {
+            if (stepIndex >= headers.length) {
+                finishFlow();
+                return;
+            }
+
+            document.getElementById('flow-title').innerText = "Выберите: " + headers[stepIndex];
+            
+            const availableOptions = new Set();
+            catalogData.forEach(row => {
+                let match = true;
+                for(let i=0; i < stepIndex; i++) {
+                    if (row[i] !== currentSelection[i]) match = false;
+                }
+                if (match) availableOptions.add(row[stepIndex]);
+            });
+
             let h = '';
-            const relevantOffers = dbOffers.filter(o => o.product === sel.productName);
+            // Сортируем опции, чтобы было красиво (по алфавиту или размеру)
+            Array.from(availableOptions).sort().forEach(opt => {
+                h += `<button class="main-btn btn-white" onclick="makeSelection('${opt}')">${opt}</button>`;
+            });
+            document.getElementById('flow-content').innerHTML = h;
+        }
+
+        function makeSelection(value) {
+            currentSelection.push(value);
+            renderStep(currentSelection.length);
+        }
+
+        function finishFlow() {
+            const productName = currentSelection.join(' '); 
+            document.getElementById('price-product-name').innerText = productName;
+            if (userRole === 'buyer') renderOffers(productName);
+            else showScreen('screen-price');
+        }
+
+        // --- ОТОБРАЖЕНИЕ ЦЕН ---
+        function renderOffers(productName) {
+            let h = '';
+            const relevantOffers = dbOffers.filter(o => o.product === productName);
             relevantOffers.sort((a,b)=>a.price-b.price);
-            if (relevantOffers.length === 0) h = '<div style="text-align:center; padding:20px; color:#8e8e93;">Пока нет предложений</div>';
-            else { relevantOffers.forEach(o => {
-                h += `<div class="offer-card"><div class="offer-info"><div class="offer-price">${o.price} ₽</div><div class="offer-seller">@${o.username}</div></div><button class="btn-buy-small" onclick="requestBuy('${o.id}', '${o.username}', '${o.price}')">Купить</button></div>`;
-            }); }
+
+            if (relevantOffers.length === 0) {
+                h = '<div style="text-align:center; padding:20px; color:#8e8e93;">Пока нет предложений на эту модель 🤷‍♂️</div>';
+            } else {
+                relevantOffers.forEach(o => {
+                    h += `
+                    <div class="offer-card">
+                        <div class="offer-info">
+                            <div class="offer-price">${o.price.toLocaleString()} ₽</div>
+                            <div class="offer-seller">@${o.username}</div>
+                        </div>
+                        <button class="btn-buy-small" onclick="requestBuy('${o.id}', '${o.username}', '${o.price}', '${productName}')">Купить</button>
+                    </div>`;
+                });
+            }
             document.getElementById('offers-list').innerHTML = h;
             showScreen('screen-offers');
         }
-        function requestBuy(sid, sname, price) { tg.sendData(`REQ_BUY|${sid}|${sname}|${sel.productName}|${price}`); }
-        function finishPrice() { const p = document.getElementById('price-input').value; tg.sendData(`NEW_PRICE|${sel.productName}|${p}`); }
+
+        function requestBuy(sid, sname, price, pname) {
+            tg.sendData(`REQ_BUY|${sid}|${sname}|${pname}|${price}`);
+        }
+
+        function finishPrice() {
+            const p = document.getElementById('price-input').value;
+            const pname = document.getElementById('price-product-name').innerText;
+            if(!p) return alert("Введите цену");
+            tg.sendData(`NEW_PRICE|${pname}|${p}`);
+        }
 
         init();
     </script>
