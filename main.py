@@ -32,41 +32,29 @@ async def start_dummy_server():
     site = web.TCPSite(runner, '0.0.0.0', port)
     await site.start()
 
-# --- ЛОГИКА EXCEL ---
-@dp.message(Command("template"))
-async def send_template(message: types.Message):
-    # 1. Берем товары из базы
+# --- ФУНКЦИЯ ГЕНЕРАЦИИ EXCEL ---
+def generate_excel_template():
     products = database.get_catalog_for_excel()
-    
-    # 2. Создаем Excel
     wb = Workbook()
     ws = wb.active
     ws.title = "Прайс-лист"
     
-    # Заголовки
     headers = ["SKU (Не менять!)", "Модель", "Память", "Цвет", "Сим", "ВАША ЦЕНА (Рубли)"]
     ws.append(headers)
     
-    # Данные
     for p in products:
-        # p = (sku, model, mem, col, sim)
-        row = list(p) + [""] # Добавляем пустую колонку для цены
+        row = list(p) + [""] 
         ws.append(row)
         
-    # 3. Сохраняем в память (не на диск)
     file_stream = BytesIO()
     wb.save(file_stream)
     file_stream.seek(0)
-    
-    # 4. Отправляем
-    document = BufferedInputFile(file_stream.read(), filename="Gorbushka_Price_Template.xlsx")
-    await message.answer_document(document, caption="📉 **Ваш шаблон для цен**\n\n1. Скачайте файл.\n2. Проставьте цены в последнем столбце.\n3. Отправьте файл мне обратно (Скоро заработает).")
+    return file_stream.read()
 
 # --- СТАРТ ---
 @dp.message(Command("start"))
 async def start(message: types.Message):
     user_id = message.from_user.id
-    # Берем цены из базы (уже по новой схеме)
     offers_list = database.get_all_offers_for_web()
     
     offers_json = json.dumps(offers_list)
@@ -81,13 +69,66 @@ async def start(message: types.Message):
     markup = ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
     
     await message.answer(
-        "👋 Привет! \n\n🛒 **Покупатель:** Жми кнопку внизу.\n📦 **Продавец:** Скачай шаблон цен командой /template", 
+        "👋 Привет! \n\n🛒 Жми кнопку внизу, чтобы открыть магазин.", 
         reply_markup=markup
     )
 
-# ... (Остальной код заказов REQ_BUY оставляем пока старый, он работает) ...
-# ВАЖНО: Код handle_webapp я пока сократил, так как мы меняем базу.
-# Сейчас главное - проверить скачивание файла.
+# --- ОБРАБОТКА WEBAPP (ЗАКАЗЫ + ШАБЛОН) ---
+@dp.message(F.web_app_data)
+async def handle_webapp(message: types.Message):
+    data = message.web_app_data.data
+    user_id = message.chat.id
+    username = message.from_user.username or "Клиент"
+
+    # 1. Если нажали кнопку "Скачать шаблон"
+    if data == "REQ_TEMPLATE":
+        file_bytes = generate_excel_template()
+        document = BufferedInputFile(file_bytes, filename="Gorbushka_Price_Template.xlsx")
+        await message.answer_document(
+            document, 
+            caption="📉 **Ваш шаблон для цен**\n\n1. Скачайте файл.\n2. Проставьте цены.\n3. Отправьте файл мне обратно (Скоро заработает)."
+        )
+        return # Выходим, чтобы не идти дальше
+
+    # 2. Если пришел заказ
+    if data.startswith("REQ_BUY"):
+        parts = data.split("|")
+        seller_id = int(parts[1])
+        product_name = parts[3]
+        price = parts[4]
+
+        await message.answer(f"⏳ Запрос отправлен продавцу...")
+        kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="✅ В наличии", callback_data=f"confirm_{user_id}")],
+            [InlineKeyboardButton(text="❌ Нет", callback_data=f"reject_{seller_id}")]
+        ])
+        try:
+            await bot.send_message(seller_id, f"🔔 <b>ЗАКАЗ!</b>\n\n📦 {product_name}\n💰 {price}р\n👤 @{username}\n\nВ наличии?", reply_markup=kb, parse_mode="HTML")
+        except:
+            await message.answer("Ошибка: Продавец не найден.")
+
+    # 3. Если добавили цену вручную (оставляем для совместимости)
+    elif data.startswith("NEW_PRICE"):
+        parts = data.split("|")
+        product_name = parts[1]
+        price_str = parts[2]
+        try:
+            price = int(price_str)
+            database.add_offer(user_id, username, product_name, price)
+            await message.answer(f"💾 Цена сохранена в базу!\n{product_name} — {price}р")
+        except ValueError:
+            await message.answer("Ошибка цены!")
+
+@dp.callback_query(F.data.startswith("confirm_"))
+async def confirm_order(callback: types.CallbackQuery):
+    buyer_id = int(callback.data.split("_")[1])
+    seller_username = callback.from_user.username
+    await callback.message.edit_text(f"✅ Подтверждено!", reply_markup=None)
+    await bot.send_message(buyer_id, f"🎉 Продавец подтвердил!\nКонтакт: @{seller_username}")
+
+@dp.callback_query(F.data.startswith("reject_"))
+async def reject_order(callback: types.CallbackQuery):
+    await callback.message.edit_text(f"🚫 Отказ.", reply_markup=None)
 
 async def main():
     database.init_db()
