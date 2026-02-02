@@ -14,7 +14,7 @@ from aiogram.types import WebAppInfo, ReplyKeyboardMarkup, KeyboardButton, Inlin
 
 import database 
 
-TOKEN = "8516086910:AAFugoM9-OjnOOJFT3flpcyUOhh4P9alxSY"
+TOKEN = "8516086910:AAH0Lg9RUbN22dBl5MmqYBRq_VXEV-Euzn4"
 WEB_APP_URL = "https://rikman21.github.io/Gorbushka/" 
 
 logging.basicConfig(level=logging.INFO)
@@ -154,3 +154,4 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
