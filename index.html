@@ -2,70 +2,160 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Горбушка Онлайн</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { font-family: -apple-system, sans-serif; background-color: #f2f2f7; padding: 15px; color: #1c1c1e; }
-        .hidden { display: none !important; }
-        .header { text-align: center; margin-bottom: 15px; color: #007aff; font-size: 20px; font-weight: 600; }
-        .card { background: white; border-radius: 15px; padding: 20px; text-align: center; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-        .main-btn { padding: 18px; border-radius: 12px; border: none; font-size: 16px; font-weight: 600; cursor: pointer; width: 100%; margin-bottom: 10px; }
-        .btn-yellow { background: #ffcc00; color: #000; }
-        .btn-white { background: #fff; border: 1px solid #ddd; text-align: left; margin: 8px 0; display: block; }
-        .back-btn { background: #ff3b30; color: white; margin-top: 15px; }
-        .btn-reset { background: transparent; color: #8e8e93; border: none; font-size: 14px; margin-top: 10px; cursor: pointer; text-decoration: underline; }
-        .offer-card { background: white; border-radius: 12px; padding: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
-        .offer-info { text-align: left; }
-        .offer-price { font-size: 18px; font-weight: bold; color: #34c759; }
-        .offer-seller { font-size: 12px; color: #8e8e93; }
-        .btn-buy-small { background: #007aff; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; }
-        .input-price { width: 90%; padding: 15px; font-size: 24px; border-radius: 10px; border: 2px solid #007aff; text-align: center; margin-bottom: 15px; }
-        .admin-badge { background: #ff3b30; color: white; padding: 2px 8px; border-radius: 10px; font-size: 10px; vertical-align: middle; }
-        .debug-box { font-size: 12px; color: #ff3b30; background: #eee; padding: 10px; border-radius: 8px; margin-bottom: 10px; border: 1px dashed red;}
+        /* --- ДИЗАЙН V3.0 (Fixed Bottom Buttons) --- */
+        :root {
+            --bg-color: var(--tg-theme-bg-color, #f2f2f7);
+            --text-color: var(--tg-theme-text-color, #000000);
+            --card-bg: var(--tg-theme-secondary-bg-color, #ffffff);
+            --accent: var(--tg-theme-button-color, #007aff);
+            --accent-text: var(--tg-theme-button-text-color, #ffffff);
+            --hint: var(--tg-theme-hint-color, #8e8e93);
+            --danger: #ff3b30;
+        }
+
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            background-color: var(--bg-color); 
+            color: var(--text-color); 
+            margin: 0; 
+            /* ВАЖНО: Делаем отступ снизу, чтобы контент не прятался за кнопками */
+            padding: 16px 16px 100px 16px; 
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Анимации */
+        .screen { transition: opacity 0.2s ease; opacity: 1; }
+        .hidden { display: none !important; opacity: 0; }
+
+        .header { 
+            text-align: center; margin-bottom: 20px; 
+            font-size: 22px; font-weight: 700; letter-spacing: -0.5px;
+        }
+
+        .card { 
+            background: var(--card-bg); 
+            border-radius: 16px; 
+            padding: 20px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05); 
+            text-align: center; 
+            margin-bottom: 20px;
+        }
+
+        /* --- НИЖНЯЯ ЗАКРЕПЛЕННАЯ ПАНЕЛЬ --- */
+        .bottom-bar {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            padding: 12px 16px 20px 16px; /* Чуть больше отступ снизу для iPhone */
+            background: var(--card-bg);
+            border-top: 0.5px solid var(--hint);
+            display: flex;
+            gap: 10px;
+            z-index: 1000;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.05);
+        }
+
+        /* Кнопки */
+        .main-btn { 
+            width: 100%; padding: 14px; 
+            border-radius: 12px; border: none; 
+            font-size: 16px; font-weight: 600; 
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+        .main-btn:active { opacity: 0.7; transform: scale(0.98); }
+        
+        .btn-primary { background: var(--accent); color: var(--accent-text); }
+        .btn-outline { background: transparent; color: var(--text-color); border: 1px solid var(--hint); }
+        .btn-back { background: var(--bg-color); color: var(--text-color); width: 30%; font-size: 20px;} 
+
+        /* Сетка выбора */
+        .grid-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .grid-options .main-btn { margin-bottom: 0; height: 100%; text-align: center; font-size: 15px; border: 1px solid var(--hint); background: var(--card-bg); color: var(--text-color);}
+        .full-width-opt { grid-column: span 2; }
+
+        /* Карточки предложений */
+        .offer-card { 
+            background: var(--card-bg); 
+            border-radius: 16px; padding: 16px; 
+            margin-bottom: 12px; 
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .offer-price { font-size: 18px; font-weight: 700; }
+        .offer-seller { font-size: 12px; color: var(--hint); }
+        .btn-buy-small { 
+            background: var(--accent); color: white; 
+            border: none; padding: 8px 16px; 
+            border-radius: 8px; font-weight: 600; font-size: 14px;
+        }
+
+        /* Ввод цены */
+        .input-price { 
+            width: 100%; padding: 10px; 
+            font-size: 24px; font-weight: bold; 
+            border: none; border-bottom: 2px solid var(--accent); 
+            background: transparent; color: var(--text-color); 
+            text-align: center; outline: none; margin: 20px 0;
+        }
+
+        .debug-box { font-size: 10px; color: var(--hint); text-align: center; margin-top: 10px; opacity: 0.5; }
+        .admin-badge { background: var(--danger); color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 5px;}
     </style>
 </head>
 <body>
     <div id="app">
-        <div id="screen-welcome" class="hidden">
-            <h2 class="header">Добро пожаловать</h2>
-            <div class="debug-box">Ваш ID: <span id="debug-id">...</span></div>
+        
+        <div id="screen-welcome" class="screen hidden">
+            <h2 class="header">Горбушка Онлайн</h2>
             <div class="card">
-                <p>Выберите режим:</p>
-                <button class="main-btn btn-yellow" onclick="setRole('buyer')">🛒 Я Покупатель</button>
-                <button class="main-btn btn-white" style="text-align:center" onclick="setRole('seller')">📦 Я Продавец</button>
+                <p>Выберите роль:</p>
+                <button class="main-btn btn-primary" style="margin-bottom:10px" onclick="setRole('buyer')">🛒 Я Покупатель</button>
+                <button class="main-btn btn-outline" onclick="setRole('seller')">📦 Я Продавец</button>
             </div>
+            <div class="debug-box">ID: <span id="debug-id">...</span></div>
         </div>
 
-        <div id="screen-lk" class="hidden">
+        <div id="screen-lk" class="screen hidden">
+            <h2 class="header" id="user-name">Меню</h2>
             <div class="card">
-                <div id="user-name">ЛК</div>
-                <button class="btn-reset" onclick="resetRole()">🔄 Сменить роль (Выйти)</button>
+                <button class="main-btn btn-primary" style="margin-bottom:10px" id="btn-buy" onclick="startFlow()">🔍 Найти товар</button>
+                <button class="main-btn btn-primary" id="btn-price" onclick="startFlow()">💰 Добавить цену</button>
             </div>
-            <button class="main-btn btn-yellow" id="btn-buy" onclick="startFlow()">Купить</button>
-            <button class="main-btn btn-yellow" id="btn-price" onclick="startFlow()">Мой Прайс</button>
+            <button style="margin-top: 20px; background: transparent; color: var(--hint); border:none; width:100%" onclick="resetRole()">Выйти</button>
         </div>
 
-        <div id="screen-flow" class="hidden">
+        <div id="screen-flow" class="screen hidden">
             <h2 id="flow-title" class="header">Выбор</h2>
-            <div id="flow-content"></div>
-            <button class="main-btn back-btn" onclick="goBack()">⬅ Назад</button>
+            <div id="flow-content" class="grid-options"></div>
+
+            <div class="bottom-bar">
+                <button class="main-btn btn-back" onclick="goBack()">⬅</button>
+                <div style="width: 100%; display:flex; align-items:center; justify-content:center; color: var(--hint); font-size: 12px;">Выберите параметры</div>
+            </div>
         </div>
 
-        <div id="screen-offers" class="hidden">
+        <div id="screen-offers" class="screen hidden">
             <h2 class="header">Предложения</h2>
             <div id="offers-list"></div>
-            <button class="main-btn back-btn" onclick="showScreen('screen-flow')">⬅ Назад</button>
+
+            <div class="bottom-bar">
+                <button class="main-btn btn-back" style="width: 100%" onclick="showScreen('screen-flow')">⬅ Назад к выбору</button>
+            </div>
         </div>
 
-        <div id="screen-price" class="hidden">
-            <h2 class="header">Цена</h2>
+        <div id="screen-price" class="screen hidden">
+            <h2 class="header">Ваша цена</h2>
             <div class="card">
-                <p id="price-product-name"></p>
-                <input type="number" id="price-input" class="input-price" placeholder="Цена в рублях">
-                <button class="main-btn btn-yellow" onclick="finishPrice()">Опубликовать</button>
+                <p id="price-product-name" style="color:var(--hint)"></p>
+                <input type="number" id="price-input" class="input-price" placeholder="₽">
             </div>
-            <button class="main-btn back-btn" onclick="showScreen('screen-flow')">⬅ Назад</button>
+
+            <div class="bottom-bar">
+                <button class="main-btn btn-back" onclick="showScreen('screen-flow')">⬅</button>
+                <button class="main-btn btn-primary" onclick="finishPrice()">Опубликовать</button>
+            </div>
         </div>
     </div>
 
@@ -73,9 +163,7 @@
         let tg = window.Telegram.WebApp;
         tg.expand();
 
-        // ==========================================
-        // 📊 ВАШ КАТАЛОГ (АВТОМАТИЧЕСКИ ИЗ ФАЙЛА)
-        // ==========================================
+        // 📊 КАТАЛОГ (CSV)
         const csvData = `
 iPhone 16e, 128 GB, Black, Dual Physical SIM
 iPhone 16e, 256 GB, Black, Dual Physical SIM
@@ -206,23 +294,17 @@ iPhone 16 Pro Max, 256 GB, Desert Titanium, Physical + eSIM
 iPhone 16 Pro Max, 512 GB, Desert Titanium, Physical + eSIM
 iPhone 16 Pro Max, 1 TB, Desert Titanium, Physical + eSIM
         `;
-        // ==========================================
 
         const admins = [464896073, 210419]; 
         const sellers = [464896073]; 
         
-        // --- Логика ID ---
         const urlParams = new URLSearchParams(window.location.search);
         let myId = urlParams.get('uid') ? parseInt(urlParams.get('uid')) : tg.initDataUnsafe.user?.id;
         document.getElementById('debug-id').innerText = myId || "НЕ ОПРЕДЕЛЕН";
 
-        // --- Парсинг CSV ---
         const catalogData = csvData.trim().split('\n').map(row => row.split(',').map(s => s.trim()));
-        
-        // --- ЗАГОЛОВКИ ШАГОВ (Настроены под ваш файл) ---
         const headers = ["Модель", "Память", "Цвет", "Сим-карта"];
 
-        // --- Загрузка базы цен ---
         let dbOffers = []; 
         try {
             const dataStr = urlParams.get('data');
@@ -253,17 +335,16 @@ iPhone 16 Pro Max, 1 TB, Desert Titanium, Physical + eSIM
             const userName = tg.initDataUnsafe.user?.first_name || "Пользователь";
             const isAdmin = admins.includes(myId);
             const badge = isAdmin ? ' <span class="admin-badge">ADMIN</span>' : '';
-            document.getElementById('user-name').innerHTML = "ЛК: " + userName + badge;
+            document.getElementById('user-name').innerHTML = userName + badge;
             document.getElementById('btn-buy').style.display = (role === 'buyer') ? 'block' : 'none';
             document.getElementById('btn-price').style.display = (role === 'seller') ? 'block' : 'none';
         }
 
         function showScreen(id) {
-            ['screen-welcome', 'screen-lk', 'screen-flow', 'screen-offers', 'screen-price'].forEach(s => document.getElementById(s).classList.add('hidden'));
+            document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
             document.getElementById(id).classList.remove('hidden');
         }
 
-        // --- ЛОГИКА ВЫБОРА ---
         function startFlow() {
             currentSelection = [];
             renderStep(0);
@@ -285,7 +366,7 @@ iPhone 16 Pro Max, 1 TB, Desert Titanium, Physical + eSIM
                 return;
             }
 
-            document.getElementById('flow-title').innerText = "Выберите: " + headers[stepIndex];
+            document.getElementById('flow-title').innerText = headers[stepIndex];
             
             const availableOptions = new Set();
             catalogData.forEach(row => {
@@ -297,9 +378,9 @@ iPhone 16 Pro Max, 1 TB, Desert Titanium, Physical + eSIM
             });
 
             let h = '';
-            // Сортируем опции, чтобы было красиво (по алфавиту или размеру)
             Array.from(availableOptions).sort().forEach(opt => {
-                h += `<button class="main-btn btn-white" onclick="makeSelection('${opt}')">${opt}</button>`;
+                const extraClass = opt.length > 15 ? 'full-width-opt' : '';
+                h += `<button class="main-btn ${extraClass}" onclick="makeSelection('${opt}')">${opt}</button>`;
             });
             document.getElementById('flow-content').innerHTML = h;
         }
@@ -316,14 +397,13 @@ iPhone 16 Pro Max, 1 TB, Desert Titanium, Physical + eSIM
             else showScreen('screen-price');
         }
 
-        // --- ОТОБРАЖЕНИЕ ЦЕН ---
         function renderOffers(productName) {
             let h = '';
             const relevantOffers = dbOffers.filter(o => o.product === productName);
             relevantOffers.sort((a,b)=>a.price-b.price);
 
             if (relevantOffers.length === 0) {
-                h = '<div style="text-align:center; padding:20px; color:#8e8e93;">Пока нет предложений на эту модель 🤷‍♂️</div>';
+                h = '<div style="text-align:center; padding:40px; color:var(--hint);">Предложений пока нет 😔</div>';
             } else {
                 relevantOffers.forEach(o => {
                     h += `
