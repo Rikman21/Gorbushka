@@ -15,18 +15,33 @@ from aiogram.types import WebAppInfo, ReplyKeyboardMarkup, KeyboardButton, Inlin
 import database 
 
 TOKEN = "8516086910:AAH0Lg9RUbN22dBl5MmqYBRq_VXEV-Euzn4"
+# Ссылка на сайт остается прежней
 WEB_APP_URL = "https://rikman21.github.io/Gorbushka/" 
 
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
-# --- ФЕЙКОВЫЙ СЕРВЕР ---
-async def health_check(request): return web.Response(text="Alive")
-async def start_dummy_server():
+# --- API СЕРВЕР (ТЕПЕРЬ УМНЫЙ) ---
+async def health_check(request):
+    return web.Response(text="Alive")
+
+async def get_offers_api(request):
+    # Эта функция отправляет цены сайту, когда он просит
+    offers = database.get_all_offers_for_web()
+    return web.json_response(offers, headers={
+        "Access-Control-Allow-Origin": "*",  # Разрешаем доступ с GitHub Pages
+        "Access-Control-Allow-Methods": "GET, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type"
+    })
+
+async def start_server():
     port = int(os.environ.get("PORT", 8080))
     app = web.Application()
+    # Два маршрута: проверка жизни и выдача товаров
     app.router.add_get('/', health_check)
+    app.router.add_get('/api/offers', get_offers_api)
+    
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, '0.0.0.0', port)
@@ -78,7 +93,7 @@ async def handle_document(message: types.Message):
                 prices_to_update.append((sku, price))
         
         updated_count = database.update_prices_from_excel(user_id, username, prices_to_update)
-        await wait_msg.edit_text(f"✅ **Прайс обновлен!**\n\nТоваров в продаже: {updated_count}")
+        await wait_msg.edit_text(f"✅ **Прайс обновлен!**\n\nТоваров в продаже: {updated_count}\n\nТеперь просто откройте WebApp, ссылка обновлять не нужно.")
         
     except Exception as e:
         logging.error(e)
@@ -87,16 +102,13 @@ async def handle_document(message: types.Message):
 @dp.message(Command("start"))
 async def start(message: types.Message):
     user_id = message.from_user.id
-    offers_list = database.get_all_offers_for_web()
     
-    offers_json = json.dumps(offers_list)
-    offers_encoded = urllib.parse.quote(offers_json)
-    timestamp = int(time.time())
-    
-    full_url = f"{WEB_APP_URL}?data={offers_encoded}&ver={timestamp}&uid={user_id}"
+    # БОЛЬШЕ НЕ ПЕРЕДАЕМ ДАННЫЕ В ССЫЛКЕ
+    # Ссылка теперь короткая и вечная
+    full_url = f"{WEB_APP_URL}?uid={user_id}"
 
     kb = [[KeyboardButton(text="📱 ОТКРЫТЬ МАРКЕТ", web_app=WebAppInfo(url=full_url))]]
-    await message.answer("👋 Горбушка Онлайн", reply_markup=ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True))
+    await message.answer("👋 Горбушка Онлайн v2.0 (Live)", reply_markup=ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True))
 
 @dp.message(F.web_app_data)
 async def handle_webapp(message: types.Message):
@@ -110,11 +122,10 @@ async def handle_webapp(message: types.Message):
         await message.answer_document(document, caption="📉 **Шаблон для цен**")
         return
 
-    # --- НОВАЯ КОМАНДА: УДАЛЕНИЕ ---
     if data.startswith("DELETE_OFFER"):
         sku = data.split("|")[1]
         database.delete_offer_by_sku(user_id, sku)
-        await message.answer("🗑 Товар удален с витрины.")
+        # Просто подтверждаем, обновлять ссылку не надо
         return
 
     if data.startswith("REQ_BUY"):
@@ -148,10 +159,9 @@ async def reject_order(callback: types.CallbackQuery):
 
 async def main():
     database.init_db()
-    await start_dummy_server()
+    await start_server()
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
     asyncio.run(main())
-
