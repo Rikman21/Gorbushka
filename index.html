@@ -473,7 +473,34 @@ iPhone 16 Pro Max, 1 TB, Desert Titanium, Physical + eSIM
                         <button class="btn-buy-small" onclick="requestBuy('${o.id}', '${o.username}', '${o.price}', '${productName}')">🛍️ Купить</button>
                     </div>`;
                 });
-            }
+            // Вставьте это вместо старой функции renderOffers
+function renderOffers(productName) {
+    let h = '';
+    // Ищем товары, сравнивая и поле product, и поле sku (на всякий случай)
+    const relevantOffers = dbOffers.filter(o => 
+        o.product === productName || o.sku === productName
+    );
+    
+    relevantOffers.sort((a,b) => a.price - b.price);
+    
+    if (relevantOffers.length === 0) {
+        h = '<div style="text-align:center; padding:40px; color:var(--hint);">Предложений пока нет 😔</div>';
+    } else {
+        relevantOffers.forEach((o, index) => {
+            const delay = index * 0.1;
+            h += `
+            <div class="offer-card" style="animation-delay: ${delay}s">
+                <div class="offer-info">
+                    <div class="offer-price">${o.price.toLocaleString()} ₽</div>
+                    <div class="offer-seller">@${o.username}</div>
+                </div>
+                <button class="btn-buy-small" onclick="requestBuy('${o.seller_id}', '${o.username}', '${o.price}', '${productName}')">🛍️ Купить</button>
+            </div>`;
+        });
+    }
+    document.getElementById('offers-list').innerHTML = h;
+    showScreen('screen-offers');
+}
             document.getElementById('offers-list').innerHTML = h;
             showScreen('screen-offers');
         }
