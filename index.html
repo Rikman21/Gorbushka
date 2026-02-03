@@ -6,7 +6,7 @@
     <title>Горбушка Онлайн</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        /* --- СТИЛИ (Дизайн V6.0) --- */
+        /* --- СТИЛИ (Дизайн V7.0 - Live Data) --- */
         :root {
             --bg-color: var(--tg-theme-bg-color, #f2f2f7);
             --text-color: var(--tg-theme-text-color, #000000);
@@ -30,7 +30,20 @@
 
         .screen { display: none; opacity: 0; transition: opacity 0.3s ease; }
         .screen.active { display: block; opacity: 1; }
-        .hidden { display: none !important; }
+        
+        /* Лоадер */
+        #loader {
+            position: fixed; top:0; left:0; right:0; bottom:0;
+            background: var(--bg-color); z-index: 9999;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+        }
+        .spinner {
+            width: 40px; height: 40px; border: 4px solid var(--hint);
+            border-top: 4px solid var(--accent); border-radius: 50%;
+            animation: spin 1s linear infinite; margin-bottom: 20px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
         .header { text-align: center; margin-bottom: 20px; font-size: 22px; font-weight: 700; }
 
@@ -43,20 +56,13 @@
             width: 100%; padding: 14px; border-radius: 12px; border: none; 
             font-size: 16px; font-weight: 600; cursor: pointer; 
             display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 10px; 
-            opacity: 0; animation: popIn 0.3s forwards;
             background: var(--card-bg); color: var(--text-color); border: 1px solid var(--hint);
         }
-        @keyframes popIn { 0% { opacity: 0; transform: scale(0.95); } 100% { opacity: 1; transform: scale(1); } }
-        .main-btn:active { transform: scale(0.98); opacity: 0.8; }
-        
         .btn-primary { background: var(--accent); color: var(--accent-text); border: none;}
         .btn-excel { background: var(--success); color: white; border: none; } 
         .btn-back { background: var(--bg-color); color: var(--text-color); width: 30%; font-size: 22px; margin-bottom: 0; border:none;} 
-
-        /* Кнопки папок */
         .folder-btn { justify-content: space-between; padding: 16px 20px; text-align: left; }
         .folder-arrow { color: var(--hint); font-size: 14px; }
-
         .list-options { display: flex; flex-direction: column; gap: 10px; padding-bottom: 20px; }
 
         .bottom-bar {
@@ -71,6 +77,7 @@
             margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;
             opacity: 0; animation: popIn 0.3s ease forwards;
         }
+        @keyframes popIn { 0% { opacity: 0; transform: scale(0.95); } 100% { opacity: 1; transform: scale(1); } }
         .offer-info { text-align: left; max-width: 70%;}
         .offer-name { font-weight:600; font-size:14px; margin-bottom:4px; line-height: 1.2; }
         .offer-price { font-size: 17px; font-weight: 700; color: var(--accent); }
@@ -78,13 +85,6 @@
         .btn-buy-small { 
             background: var(--accent); color: white; border: none; padding: 8px 16px; 
             border-radius: 8px; font-weight: 600; font-size: 14px;
-        }
-
-        .input-price { 
-            width: 100%; padding: 10px; font-size: 24px; font-weight: bold; 
-            border: none; border-bottom: 2px solid var(--accent); 
-            background: transparent; color: var(--text-color); 
-            text-align: center; outline: none; margin: 20px 0;
         }
 
         /* Модальное окно */
@@ -95,7 +95,6 @@
             opacity: 0; pointer-events: none; transition: opacity 0.2s;
         }
         .modal-overlay.open { opacity: 1; pointer-events: all; }
-        
         .modal-content {
             background: var(--bg-color); width: 100%; 
             border-top-left-radius: 20px; border-top-right-radius: 20px;
@@ -103,7 +102,6 @@
             padding-bottom: 50px;
         }
         .modal-overlay.open .modal-content { transform: translateY(0); }
-
         .modal-title { font-size: 18px; font-weight: bold; margin-bottom: 20px; text-align: center; }
         .modal-actions { display: flex; gap: 10px; margin-top: 15px; }
         .input-edit { 
@@ -118,9 +116,14 @@
     </style>
 </head>
 <body>
+    <div id="loader">
+        <div class="spinner"></div>
+        <div>Загрузка цен...</div>
+    </div>
+
     <div id="app">
         
-        <div id="screen-welcome" class="screen active">
+        <div id="screen-welcome" class="screen">
             <h2 class="header">Горбушка Онлайн 📱</h2>
             <div class="card">
                 <p style="margin-bottom: 15px;">Выберите роль:</p>
@@ -134,8 +137,6 @@
             <h2 class="header" id="user-name">Меню</h2>
             <div class="card">
                 <button class="main-btn btn-primary" id="btn-buy" onclick="startFlow()">🔍 Найти товар</button>
-                
-                <button class="main-btn btn-primary" id="btn-price" onclick="startFlow()">💰 Добавить цену (1 шт)</button>
                 <button class="main-btn btn-outline" id="btn-my-offers" onclick="goToMyCategories()">📋 Мои товары</button>
                 <button class="main-btn btn-excel" id="btn-template" onclick="requestTemplate()">📥 Скачать шаблон (Excel)</button>
             </div>
@@ -156,18 +157,6 @@
             <div id="offers-list"></div>
             <div class="bottom-bar">
                 <button class="main-btn btn-back" style="width: 100%" onclick="showScreen('screen-flow')">⬅️ Назад к параметрам</button>
-            </div>
-        </div>
-
-        <div id="screen-price" class="screen">
-            <h2 class="header">Ваша цена 🏷️</h2>
-            <div class="card">
-                <p id="price-product-name" style="color:var(--hint)"></p>
-                <input type="number" id="price-input" class="input-price" placeholder="₽">
-            </div>
-            <div class="bottom-bar">
-                <button class="main-btn btn-back" onclick="showScreen('screen-flow')">⬅️</button>
-                <button class="main-btn btn-primary" style="margin-bottom: 0;" onclick="finishPrice()">✅ Опубликовать</button>
             </div>
         </div>
 
@@ -223,7 +212,9 @@
         let tg = window.Telegram.WebApp;
         tg.expand();
 
-        // ПОЛНЫЙ КАТАЛОГ (Для работы меню покупателя)
+        // ⚠️ ЗДЕСЬ АДРЕС ВАШЕГО БОТА НА RENDER ⚠️
+        const BACKEND_URL = "https://gorbushka.onrender.com";
+
         const csvData = `
 iPhone 16e, 128 GB, Black, Dual Physical SIM
 iPhone 16e, 256 GB, Black, Dual Physical SIM
@@ -355,8 +346,9 @@ iPhone 16 Pro Max, 512 GB, Desert Titanium, Physical + eSIM
 iPhone 16 Pro Max, 1 TB, Desert Titanium, Physical + eSIM
         `;
 
-        const admins = [464896073]; 
-        const sellers = [464896073]; 
+        // ⚠️ ЗАМЕНИТЕ НА ВАШИ ID ⚠️
+        const admins = [464896073, 210419]; 
+        const sellers = [464896073, 210419]; 
         
         const urlParams = new URLSearchParams(window.location.search);
         let myId = urlParams.get('uid') ? parseInt(urlParams.get('uid')) : tg.initDataUnsafe.user?.id;
@@ -366,16 +358,31 @@ iPhone 16 Pro Max, 1 TB, Desert Titanium, Physical + eSIM
         const headers = ["📱 Модель", "💾 Память", "🎨 Цвет", "📲 Сим-карта"];
 
         let dbOffers = []; 
-        try {
-            const dataStr = urlParams.get('data');
-            if (dataStr) dbOffers = JSON.parse(decodeURIComponent(dataStr));
-        } catch (e) { console.error(e); }
-
         let currentSelection = [];
         let userRole = '';
-        let currentEditingSku = null; // Для модалки
+        let currentEditingSku = null; 
 
-        function init() {
+        // ГЛАВНАЯ ФУНКЦИЯ ЗАГРУЗКИ
+        async function init() {
+            try {
+                // 1. Показываем лоадер
+                document.getElementById('loader').style.display = 'flex';
+                
+                // 2. Скачиваем актуальные цены с сервера
+                const response = await fetch(`${BACKEND_URL}/api/offers`);
+                if (!response.ok) throw new Error("Ошибка сети");
+                dbOffers = await response.json();
+                
+                console.log("Загружено товаров:", dbOffers.length);
+            } catch (e) {
+                console.error(e);
+                alert("Не удалось загрузить цены. Проверьте интернет.");
+            } finally {
+                // 3. Убираем лоадер
+                document.getElementById('loader').style.display = 'none';
+            }
+
+            // 4. Обычная логика запуска
             const role = localStorage.getItem('user_role');
             if(!role) showScreen('screen-welcome');
             else { userRole = role; updateInterface(role); showScreen('screen-lk'); }
@@ -400,11 +407,9 @@ iPhone 16 Pro Max, 1 TB, Desert Titanium, Physical + eSIM
             document.getElementById('btn-buy').style.display = (role === 'buyer') ? 'block' : 'none';
             
             if (role === 'seller') {
-                document.getElementById('btn-price').style.display = 'block';
                 document.getElementById('btn-template').style.display = 'block';
                 document.getElementById('btn-my-offers').style.display = 'block';
             } else {
-                document.getElementById('btn-price').style.display = 'none';
                 document.getElementById('btn-template').style.display = 'none';
                 document.getElementById('btn-my-offers').style.display = 'none';
             }
@@ -418,7 +423,6 @@ iPhone 16 Pro Max, 1 TB, Desert Titanium, Physical + eSIM
 
         function requestTemplate() { tg.sendData("REQ_TEMPLATE"); }
 
-        // --- ЛОГИКА ПОКУПАТЕЛЯ ---
         function startFlow() { currentSelection = []; renderStep(0); showScreen('screen-flow'); }
         function goBack() { 
             if (currentSelection.length > 0) { currentSelection.pop(); renderStep(currentSelection.length); } 
@@ -447,9 +451,9 @@ iPhone 16 Pro Max, 1 TB, Desert Titanium, Physical + eSIM
         function makeSelection(value) { currentSelection.push(value); renderStep(currentSelection.length); }
         function finishFlow() {
             const productName = currentSelection.join(' '); 
-            document.getElementById('price-product-name').innerText = productName;
             if (userRole === 'buyer') renderOffers(productName);
-            else showScreen('screen-price');
+            // Если продавец - просто показываем пустоту, т.к. ручное добавление отключили
+            else alert("Ручное добавление отключено. Используйте Excel.");
         }
 
         function renderOffers(productName) {
@@ -474,20 +478,16 @@ iPhone 16 Pro Max, 1 TB, Desert Titanium, Physical + eSIM
             showScreen('screen-offers');
         }
 
-        // --- ЛОГИКА "МОИ ТОВАРЫ" (ПРОДАВЕЦ) ---
-        function goToMyCategories() {
-            showScreen('screen-my-categories');
-        }
+        // --- ЛОГИКА "МОИ ТОВАРЫ" ---
+        function goToMyCategories() { showScreen('screen-my-categories'); }
 
         function goToMyFamilies(category) {
             const myOffers = dbOffers.filter(o => o.seller_id === myId);
             if(myOffers.length === 0) return alert("Нет товаров. Загрузите прайс через Excel.");
 
-            // Группировка (iPhone 16, iPhone 15...)
             const families = new Set();
             myOffers.forEach(o => {
                 const parts = o.product.split(' ');
-                // Берем первые 2 слова (iPhone 16)
                 if(parts.length >= 2) families.add(parts[0] + ' ' + parts[1]);
             });
 
@@ -516,7 +516,6 @@ iPhone 16 Pro Max, 1 TB, Desert Titanium, Physical + eSIM
             filtered.forEach((o, index) => {
                 const delay = index * 0.05;
                 const shortName = o.product.replace("iPhone ", ""); 
-                // Клик открывает модалку
                 h += `
                 <div class="offer-card" style="animation-delay: ${delay}s" onclick="openModal('${o.sku}', '${o.price}', '${o.product}')">
                     <div class="offer-info">
@@ -547,6 +546,10 @@ iPhone 16 Pro Max, 1 TB, Desert Titanium, Physical + eSIM
             if(confirm("Удалить товар?")) {
                 tg.sendData(`DELETE_OFFER|${currentEditingSku}`);
                 document.getElementById('modal-edit').classList.remove('open');
+                // Удаляем визуально без перезагрузки (для красоты)
+                dbOffers = dbOffers.filter(o => o.sku !== currentEditingSku);
+                alert("Удалено! (Обновите страницу, если хотите убедиться)");
+                showScreen('screen-lk');
             }
         }
 
@@ -555,18 +558,11 @@ iPhone 16 Pro Max, 1 TB, Desert Titanium, Physical + eSIM
             const newPrice = document.getElementById('modal-price-input').value;
             if(!newPrice) return alert("Введите цену");
             const name = document.getElementById('modal-product-name').innerText;
-            // Обновляем цену (для простоты используем старый метод добавления, он перезапишет цену)
             tg.sendData(`NEW_PRICE|${name}|${newPrice}`); 
             document.getElementById('modal-edit').classList.remove('open');
         }
 
         function requestBuy(sid, sname, price, pname) { tg.sendData(`REQ_BUY|${sid}|${sname}|${pname}|${price}`); }
-        function finishPrice() {
-            const p = document.getElementById('price-input').value;
-            const pname = document.getElementById('price-product-name').innerText;
-            if(!p) return alert("Введите цену");
-            tg.sendData(`NEW_PRICE|${pname}|${p}`);
-        }
 
         init();
     </script>
