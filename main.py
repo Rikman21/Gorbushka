@@ -16,7 +16,7 @@ import database
 
 TOKEN = "8516086910:AAH0Lg9RUbN22dBl5MmqYBRq_VXEV-Euzn4"
 # Ссылка на сайт остается прежней
-WEB_APP_URL = "https://rikman21.github.io/Gorbushka/" 
+WEB_APP_URL = "https://rikman21.github.io/Gorbushka/?v=2" 
 
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=TOKEN)
@@ -165,3 +165,4 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
