@@ -14,7 +14,7 @@ from aiogram.types import WebAppInfo, ReplyKeyboardMarkup, KeyboardButton, Inlin
 
 import database 
 
-TOKEN = "8516086910:AAH0Lg9RUbN22dBl5MmqYBRq_VXEV-Euzn4"
+TOKEN = "8451254918:AAHDJ8yIwQ44Stn7vT_s1mmxLDVYwfXUuJU"
 # Ссылка на сайт остается прежней
 WEB_APP_URL = "https://rikman21.github.io/Gorbushka/?v=2" 
 
@@ -165,4 +165,5 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
