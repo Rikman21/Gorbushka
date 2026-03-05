@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Горбушка</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,BlinkMacSystemFont,system-ui,sans-serif;background:#E1E3E8;color:#1C1C1E;line-height:1.5}
+    .container{max-width:430px;margin:0 auto;min-height:100vh;background:#F0F2F5}
+    .header{padding:20px;text-align:center;background:#007AFF;color:#fff}
+    .header h1{font-size:24px;font-weight:700}
+    .content{padding:20px}
+    .profile{background:#fff;border-radius:16px;padding:20px;margin-bottom:16px}
+    .profile-role{font-size:14px;color:#8E8E93;margin-top:8px}
+    .btn{display:block;width:100%;padding:16px;background:#007AFF;color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:600;margin-top:12px;cursor:pointer}
+    .btn:active{opacity:0.8}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🏪 Горбушка</h1>
+      <p>Биржа техники</p>
+    </div>
+    <div class="content">
+      <div class="profile">
+        <h2 id="userName">Загрузка...</h2>
+        <div class="profile-role" id="userRole">Покупатель</div>
+      </div>
+      <button class="btn" onclick="loadCatalog()">📱 Каталог</button>
+      <button class="btn" onclick="loadMyProducts()">📦 Мои предложения</button>
+      <button class="btn" onclick="downloadTemplate()">📥 Скачать шаблон Excel</button>
+    </div>
+  </div>
+  <script>
+    const API_BASE = 'http://5.129.195.48:8080';
+    const params = new URLSearchParams(window.location.search);
+    const TELEGRAM_ID = params.get('uid');
+    
+    async function loadProfile() {
+      if (!TELEGRAM_ID) return;
+      try {
+        const res = await fetch(API_BASE + '/api/user?telegram_id=' + TELEGRAM_ID);
+        const user = await res.json();
+        if (user && user.telegram_id) {
+          document.getElementById('userName').textContent = user.full_name || user.username || 'Пользователь';
+          let role = 'Покупатель';
+          if (user.is_admin) role = 'Админ · Покупатель · Поставщик';
+          else if (user.is_supplier) role = 'Поставщик';
+          document.getElementById('userRole').textContent = role;
+        }
+      } catch (e) {
+        console.error('Error loading profile:', e);
+      }
+    }
+    
+    function loadCatalog() {
+      alert('Каталог загружается...');
+    }
+    
+    function loadMyProducts() {
+      if (!TELEGRAM_ID) {
+        alert('Необходима авторизация');
+        return;
+      }
+      alert('Загрузка ваших предложений...');
+    }
+    
+    function downloadTemplate() {
+      window.open(API_BASE + '/api/supplier/template', '_blank');
+    }
+    
+    loadProfile();
+  </script>
+</body>
+</html>

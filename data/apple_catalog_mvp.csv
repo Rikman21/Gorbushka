@@ -1,0 +1,104 @@
+﻿category,subcategory,product_family,model,generation,size,chipset,launch_year,is_current,notes
+iPhone,Smartphone,iPhone,iPhone 17 Pro,,,,,mixed,Line item for marketplace catalog; storage/color variants handled separately
+iPhone,Smartphone,iPhone,iPhone 17 Pro Max,,,,,mixed,Line item for marketplace catalog; storage/color variants handled separately
+iPhone,Smartphone,iPhone,iPhone Air,,,,,mixed,Line item for marketplace catalog; storage/color variants handled separately
+iPhone,Smartphone,iPhone,iPhone 17,,,,,mixed,Line item for marketplace catalog; storage/color variants handled separately
+iPhone,Smartphone,iPhone,iPhone 16e,,,,,mixed,Line item for marketplace catalog; storage/color variants handled separately
+iPhone,Smartphone,iPhone,iPhone 16 Pro,,,,,mixed,Line item for marketplace catalog; storage/color variants handled separately
+iPhone,Smartphone,iPhone,iPhone 16 Pro Max,,,,,mixed,Line item for marketplace catalog; storage/color variants handled separately
+iPhone,Smartphone,iPhone,iPhone 16,,,,,mixed,Line item for marketplace catalog; storage/color variants handled separately
+iPhone,Smartphone,iPhone,iPhone 16 Plus,,,,,mixed,Line item for marketplace catalog; storage/color variants handled separately
+iPhone,Smartphone,iPhone,iPhone 15 Pro,,,,,mixed,Line item for marketplace catalog; storage/color variants handled separately
+iPhone,Smartphone,iPhone,iPhone 15 Pro Max,,,,,mixed,Line item for marketplace catalog; storage/color variants handled separately
+iPhone,Smartphone,iPhone,iPhone 15,,,,,mixed,Line item for marketplace catalog; storage/color variants handled separately
+iPhone,Smartphone,iPhone,iPhone 15 Plus,,,,,mixed,Line item for marketplace catalog; storage/color variants handled separately
+iPhone,Smartphone,iPhone,iPhone 14 Pro,,,,,mixed,Line item for marketplace catalog; storage/color variants handled separately
+iPhone,Smartphone,iPhone,iPhone 14 Pro Max,,,,,mixed,Line item for marketplace catalog; storage/color variants handled separately
+iPhone,Smartphone,iPhone,iPhone 14,,,,,mixed,Line item for marketplace catalog; storage/color variants handled separately
+iPhone,Smartphone,iPhone,iPhone 14 Plus,,,,,mixed,Line item for marketplace catalog; storage/color variants handled separately
+iPhone,Smartphone,iPhone,iPhone 13 Pro,,,,,mixed,Line item for marketplace catalog; storage/color variants handled separately
+iPhone,Smartphone,iPhone,iPhone 13 Pro Max,,,,,mixed,Line item for marketplace catalog; storage/color variants handled separately
+iPhone,Smartphone,iPhone,iPhone 13 mini,,,,,mixed,Line item for marketplace catalog; storage/color variants handled separately
+iPhone,Smartphone,iPhone,iPhone 13,,,,,mixed,Line item for marketplace catalog; storage/color variants handled separately
+iPhone,Smartphone,iPhone,iPhone 12 Pro,,,,,mixed,Line item for marketplace catalog; storage/color variants handled separately
+iPhone,Smartphone,iPhone,iPhone 12 Pro Max,,,,,mixed,Line item for marketplace catalog; storage/color variants handled separately
+iPhone,Smartphone,iPhone,iPhone 12,,,,,mixed,Line item for marketplace catalog; storage/color variants handled separately
+iPhone,Smartphone,iPhone,iPhone 12 mini,,,,,mixed,Line item for marketplace catalog; storage/color variants handled separately
+iPhone,Smartphone,iPhone,iPhone 11 Pro,,,,,mixed,Line item for marketplace catalog; storage/color variants handled separately
+iPhone,Smartphone,iPhone,iPhone 11 Pro Max,,,,,mixed,Line item for marketplace catalog; storage/color variants handled separately
+iPhone,Smartphone,iPhone,iPhone 11,,,,,mixed,Line item for marketplace catalog; storage/color variants handled separately
+iPhone,Smartphone,iPhone,iPhone SE (3rd generation),,,,,mixed,Line item for marketplace catalog; storage/color variants handled separately
+iPhone,Smartphone,iPhone,iPhone SE (2nd generation),,,,,mixed,Line item for marketplace catalog; storage/color variants handled separately
+iPad,Tablet,iPad Pro,iPad Pro,,11-inch,M5,,yes,Latest iPad Pro line shown on Apple iPad compare
+iPad,Tablet,iPad Pro,iPad Pro,,13-inch,M5,,yes,
+iPad,Tablet,iPad Air,iPad Air,,11-inch,M3,,yes,
+iPad,Tablet,iPad Air,iPad Air,,13-inch,M3,,yes,
+iPad,Tablet,iPad,iPad,,11-inch,A16,,yes,Often referenced as iPad (A16)
+iPad,Tablet,iPad mini,iPad mini,,8.3-inch,A17 Pro,,yes,
+Mac,Laptop,MacBook Air,MacBook Air,,13-inch,M4,,yes,
+Mac,Laptop,MacBook Air,MacBook Air,,15-inch,M4,,yes,
+Mac,Laptop,MacBook Pro,MacBook Pro,,14-inch,M5,,yes,
+Mac,Laptop,MacBook Pro,MacBook Pro,,16-inch,M5,,yes,
+Mac,Desktop,iMac,iMac,,24-inch,M4,,yes,Two-port and four-port variants
+Mac,Desktop,Mac mini,Mac mini,,,M4,,yes,
+Mac,Desktop,Mac mini,Mac mini,,,M4 Pro,,yes,
+Mac,Desktop,Mac Studio,Mac Studio,,,M4 Max,,yes,
+Mac,Desktop,Mac Studio,Mac Studio,,,M3 Ultra,,yes,
+Mac,Desktop,Mac Pro,Mac Pro,,,M2 Ultra,,yes,
+Watch,Wearable,Apple Watch,Apple Watch Series 11,,,,,yes,
+Watch,Wearable,Apple Watch,Apple Watch Ultra 3,,,,,yes,
+Watch,Wearable,Apple Watch,Apple Watch SE 3,,,,,yes,
+Audio,Headphones,AirPods,AirPods Pro 3,,,,,yes,
+Audio,Headphones,AirPods,AirPods Pro 2,,,,,mixed,
+Audio,Headphones,AirPods,AirPods 4,,,,,yes,
+Audio,Headphones,AirPods,AirPods 4 (ANC),,,,,yes,AirPods 4 with Active Noise Cancellation
+Audio,Headphones,AirPods,AirPods Max,,,,,yes,
+TV & Home,Streaming,Apple TV,Apple TV 4K,3rd generation,,,,yes,
+TV & Home,Smart speaker,HomePod,HomePod,2nd generation,,,,yes,
+TV & Home,Smart speaker,HomePod,HomePod mini,,,,,yes,
+Find My,Tracker,AirTag,AirTag,2nd generation,,,,yes,
+Vision,Spatial computer,Apple Vision,Apple Vision Pro,,,M5,,yes,
+Accessories,Display,Displays,Studio Display,,,,,yes,
+Accessories,Display,Displays,Pro Display XDR,,,,,yes,
+Accessories,Input,Magic,Magic Keyboard,,,,,unknown,USB‑C version (language variants handled separately)
+Accessories,Input,Magic,Magic Keyboard with Touch ID,,,,,unknown,For Mac with Apple silicon
+Accessories,Input,Magic,Magic Keyboard with Touch ID and Numeric Keypad,,,,,unknown,For Mac with Apple silicon
+Accessories,Input,Magic,Magic Trackpad,,,,,unknown,USB‑C version
+Accessories,Input,Magic,Magic Mouse,,,,,unknown,USB‑C version
+Accessories,iPad Keyboard,iPad Keyboards,Magic Keyboard for iPad Pro,,,,,unknown,For iPad Pro 11/13 (current generations)
+Accessories,iPad Keyboard,iPad Keyboards,Magic Keyboard for iPad Air,,,,,unknown,For iPad Air 11/13 (current generations)
+Accessories,Stylus,Apple Pencil,Apple Pencil Pro,,,,,yes,
+Accessories,Stylus,Apple Pencil,Apple Pencil (USB-C),,,,,yes,
+Accessories,Stylus,Apple Pencil,Apple Pencil (2nd generation),,,,,mixed,
+Accessories,Stylus,Apple Pencil,Apple Pencil (1st generation),,,,,mixed,
+Accessories,Power,Chargers & Power,USB-C Power Adapter 20W,,,,,unknown,
+Accessories,Power,Chargers & Power,USB-C Power Adapter 30W,,,,,unknown,
+Accessories,Power,Chargers & Power,USB-C Power Adapter 35W Dual,,,,,unknown,
+Accessories,Power,Chargers & Power,USB-C Power Adapter 67W,,,,,unknown,
+Accessories,Power,Chargers & Power,USB-C Power Adapter 70W,,,,,unknown,
+Accessories,Power,Chargers & Power,USB-C Power Adapter 96W,,,,,unknown,
+Accessories,Power,Chargers & Power,USB-C Power Adapter 140W,,,,,unknown,
+Accessories,Power,Charging,MagSafe Charger,,,,,unknown,Wireless MagSafe charging puck
+Accessories,Power,Charging,MagSafe Battery Pack,,,,,unknown,May be discontinued; include if traded
+Accessories,Power,Charging,Apple Watch Magnetic Fast Charger to USB-C Cable,,,,,unknown,Common cable for Watch
+Accessories,Cables & Adapters,Cables,USB-C Charge Cable,,,,,unknown,
+Accessories,Cables & Adapters,Cables,USB-C to Lightning Cable,,,,,unknown,
+Accessories,Cables & Adapters,Cables,Thunderbolt 4 (USB‑C) Pro Cable,,,,,unknown,
+Accessories,Cables & Adapters,Cables,Thunderbolt 5 (USB‑C) Pro Cable,,,,,unknown,
+Accessories,Cables & Adapters,Cables,USB-C Digital AV Multiport Adapter,,,,,unknown,
+Accessories,Cables & Adapters,Cables,USB-C to SD Card Reader,,,,,unknown,
+Accessories,Cables & Adapters,Cables,USB-C to USB Adapter,,,,,unknown,
+Accessories,TV Accessories,Apple TV,Siri Remote,,,,,unknown,Apple TV remote
+Accessories,TV Accessories,Apple TV,Apple TV Remote (USB‑C),,,,,unknown,If applicable; keep as accessory line
+Accessories,AirTag Accessories,AirTag,AirTag Loop,,,,,unknown,Apple-made accessory
+Accessories,AirTag Accessories,AirTag,AirTag Key Ring,,,,,unknown,Apple-made accessory
+Accessories,iPhone Accessories,Cases,iPhone Silicone Case,,,,,unknown,Model-specific variants handled separately
+Accessories,iPhone Accessories,Cases,iPhone Clear Case,,,,,unknown,Model-specific variants handled separately
+Accessories,iPhone Accessories,Cases,iPhone FineWoven Case,,,,,unknown,Model-specific variants handled separately
+Accessories,iPhone Accessories,Cases,iPhone FineWoven Wallet with MagSafe,,,,,unknown,Model-specific variants handled separately
+Accessories,iPad Accessories,Cases,iPad Smart Folio,,,,,unknown,
+Accessories,iPad Accessories,Cases,iPad Pro Smart Folio,,,,,unknown,
+Accessories,iPad Accessories,Cases,iPad mini Smart Folio,,,,,unknown,
+Accessories,Audio Accessories,AirPods,AirPods Ear Tips,,,,,unknown,For AirPods Pro
+Accessories,Audio Accessories,Audio,Lightning to 3.5 mm Headphone Jack Adapter,,,,,unknown,
+Accessories,Audio Accessories,Audio,USB‑C to 3.5 mm Headphone Jack Adapter,,,,,yes,

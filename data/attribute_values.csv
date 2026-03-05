@@ -1,0 +1,65 @@
+﻿attribute_name,value,label
+sim_config,DUAL_PHYSICAL_SIM,2 физические SIM
+sim_config,PHYSICAL_SIM_ESIM,физическая SIM + eSIM
+sim_config,ESIM_ONLY,только eSIM
+region,CN,Китай
+region,HK,Гонконг
+region,EU,Европа
+region,US,США
+region,JP,Япония
+region,AE,ОАЭ
+region,UK,Великобритания
+region,OTHER,Другое
+connectivity,WIFI,Wi‑Fi
+connectivity,WIFI_CELLULAR,Wi‑Fi + Cellular
+cellular_sim_type,ESIM,eSIM
+cellular_sim_type,NANO_SIM_ESIM,nano‑SIM + eSIM
+cellular_sim_type,UNKNOWN,не указано
+chip_family,M2,M2
+chip_family,M3,M3
+chip_family,M4,M4
+chip_family,M5,M5
+chip_family,M2 Pro,M2 Pro
+chip_family,M3 Pro,M3 Pro
+chip_family,M4 Pro,M4 Pro
+chip_family,M5 Pro,M5 Pro
+chip_family,M2 Max,M2 Max
+chip_family,M3 Max,M3 Max
+chip_family,M4 Max,M4 Max
+chip_family,M5 Max,M5 Max
+chip_family,M2 Ultra,M2 Ultra
+chip_family,M3 Ultra,M3 Ultra
+chip_family,M4 Ultra,M4 Ultra
+chip_family,M5 Ultra,M5 Ultra
+keyboard_layout,US,US/ANSI
+keyboard_layout,UK,UK/ISO
+keyboard_layout,DE,DE
+keyboard_layout,RU,RU
+keyboard_layout,FR,FR
+keyboard_layout,OTHER,Other
+case_size_mm,41,41 mm
+case_size_mm,42,42 mm
+case_size_mm,44,44 mm
+case_size_mm,45,45 mm
+case_size_mm,46,46 mm
+case_size_mm,49,49 mm
+watch_connectivity,GPS,GPS
+watch_connectivity,GPS_CELLULAR,GPS + Cellular
+case_material,ALUMINUM,Aluminum
+case_material,TITANIUM,Titanium
+case_material,STAINLESS_STEEL,Stainless Steel
+case_material,CERAMIC,Ceramic
+case_material,OTHER,Other
+band_family,SPORT_BAND,Sport Band
+band_family,SPORT_LOOP,Sport Loop
+band_family,SOLO_LOOP,Solo Loop
+band_family,BRAIDED_SOLO_LOOP,Braided Solo Loop
+band_family,ALPINE_LOOP,Alpine Loop
+band_family,TRAIL_LOOP,Trail Loop
+band_family,OCEAN_BAND,Ocean Band
+band_family,Milanese_LOOP,Milanese Loop
+band_family,LEATHER,Leather / FineWoven (legacy)
+band_family,OTHER,Other
+band_size_type,SM_ML,S/M или M/L
+band_size_type,NUMERIC,1–12 (Solo/Braided)
+band_size_type,ONE_SIZE,One Size

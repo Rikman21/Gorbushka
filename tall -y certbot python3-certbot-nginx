@@ -1,0 +1,16 @@
+[0;1;32m●[0m bot.service - Gorbushka Bot
+     Loaded: loaded (/etc/systemd/system/bot.service; enabled; vendor preset: enabled)
+     Active: [0;1;32mactive (running)[0m since Tue 2026-02-10 12:03:21 UTC; 9s ago
+   Main PID: 149156 (python3)
+      Tasks: 2 (limit: 1099)
+     Memory: 103.4M
+        CPU: 2.341s
+     CGroup: /system.slice/bot.service
+             └─149156 /usr/bin/python3 /root/bot/main.py
+
+Feb 10 12:03:21 6543199-ib544157.twc1.net systemd[1]: Started Gorbushka Bot.
+Feb 10 12:03:24 6543199-ib544157.twc1.net python3[149156]: INFO:root:База данных инициализирована
+Feb 10 12:03:24 6543199-ib544157.twc1.net python3[149156]: INFO:root:API сервер запущен на порту 8080
+Feb 10 12:03:25 6543199-ib544157.twc1.net python3[149156]: INFO:root:Бот запущен
+Feb 10 12:03:25 6543199-ib544157.twc1.net python3[149156]: INFO:aiogram.dispatcher:Start polling
+Feb 10 12:03:25 6543199-ib544157.twc1.net python3[149156]: INFO:aiogram.dispatcher:Run polling for bot @four_zero_bot id=8451254918 - '0000'

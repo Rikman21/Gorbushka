@@ -1,0 +1,21 @@
+﻿attribute_id,attribute_name,data_type,unit,description
+1,storage_gb,number,GB,"Storage capacity in GB (e.g., 128, 256, 512, 1024, 2048)"
+2,color,text,,Color name (free text or later map to a controlled list)
+3,quantity,number,pcs,Available quantity in stock
+4,lead_time_days,number,days,Lead time in days (0 = in stock / same day)
+5,moq,number,pcs,Minimum order quantity
+6,price,number,currency,Offer price (currency handled by marketplace settings)
+7,sim_config,enum,,SIM configuration (Dual physical / Physical+eSIM / eSIM-only)
+8,region,enum,,Region/market code (CN/HK/EU/US/etc.)
+9,model_number,text,,Apple model number (Axxxx) optional
+10,connectivity,enum,,Wi‑Fi or Wi‑Fi + Cellular
+11,cellular_sim_type,enum,,For Cellular models: eSIM / nano‑SIM+eSIM / etc. (optional)
+12,chip_family,enum,,"Chip family (M-series tiers, e.g., M3/M4/M5, Pro/Max/Ultra)"
+13,ram_gb,number,GB,"Memory in GB (e.g., 8, 16, 18, 24, 32, 36, 48, 64, 96, 128)"
+14,keyboard_layout,enum,,"Keyboard layout (e.g., US/UK/DE/RU)"
+15,case_size_mm,enum,,"Watch case size in mm (e.g., 41/45/49)"
+16,watch_connectivity,enum,,GPS or GPS + Cellular
+17,case_material,enum,,"Case material (e.g., Aluminum, Titanium, Stainless Steel)"
+18,band_family,enum,,"Band type family (Sport Band, Sport Loop, Alpine, Trail, Ocean, Milanese, etc.)"
+19,band_size_type,enum,,How band size is expressed (S/M vs M/L or numeric 1–12)
+20,band_size_value,text,,"Band size value (e.g., S/M, M/L, 1..12, One Size)"

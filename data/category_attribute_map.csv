@@ -1,0 +1,63 @@
+﻿category,attribute_name
+iPhone,storage_gb
+iPhone,color
+iPhone,sim_config
+iPhone,region
+iPhone,model_number
+iPhone,quantity
+iPhone,lead_time_days
+iPhone,moq
+iPhone,price
+iPad,storage_gb
+iPad,color
+iPad,connectivity
+iPad,cellular_sim_type
+iPad,quantity
+iPad,lead_time_days
+iPad,moq
+iPad,price
+Mac,chip_family
+Mac,ram_gb
+Mac,storage_gb
+Mac,color
+Mac,keyboard_layout
+Mac,quantity
+Mac,lead_time_days
+Mac,moq
+Mac,price
+Watch,case_size_mm
+Watch,watch_connectivity
+Watch,case_material
+Watch,band_family
+Watch,band_size_type
+Watch,band_size_value
+Watch,color
+Watch,quantity
+Watch,lead_time_days
+Watch,moq
+Watch,price
+Audio,color
+Audio,quantity
+Audio,lead_time_days
+Audio,moq
+Audio,price
+TV & Home,color
+TV & Home,quantity
+TV & Home,lead_time_days
+TV & Home,moq
+TV & Home,price
+Find My,color
+Find My,quantity
+Find My,lead_time_days
+Find My,moq
+Find My,price
+Vision,color
+Vision,quantity
+Vision,lead_time_days
+Vision,moq
+Vision,price
+Accessories,color
+Accessories,quantity
+Accessories,lead_time_days
+Accessories,moq
+Accessories,price
