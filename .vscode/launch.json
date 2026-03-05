@@ -1,0 +1,27 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Run Bot",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/main.py",
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+        {
+            "name": "Load Test Data",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/test_data.py",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Check Database",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/check_db.py",
+            "console": "integratedTerminal"
+        }
+    ]
+}

@@ -1,0 +1,57 @@
+@baseUrl = http://localhost:8080
+@adminId = 464896073
+
+### Health check
+GET {{baseUrl}}/
+
+###
+
+### Все офферы
+GET {{baseUrl}}/api/offers
+
+###
+
+### Офферы по категории iPhone
+GET {{baseUrl}}/api/offers?category=iPhone
+
+###
+
+### Офферы по категории iPad
+GET {{baseUrl}}/api/offers?category=iPad
+
+###
+
+### Офферы по минимальной цене
+GET {{baseUrl}}/api/offers?min_price=50000
+
+###
+
+### Каталог товаров
+GET {{baseUrl}}/api/catalog
+
+###
+
+### Каталог по категории Mac
+GET {{baseUrl}}/api/catalog?category=Mac
+
+###
+
+### Профиль пользователя (admin)
+GET {{baseUrl}}/api/user?telegram_id={{adminId}}
+
+###
+
+### Сделки пользователя (все)
+GET {{baseUrl}}/api/deals?telegram_id={{adminId}}
+
+###
+
+### Сделки пользователя (активные)
+GET {{baseUrl}}/api/deals?telegram_id={{adminId}}&status=active
+
+###
+
+### Профиль поставщика (подставить реальный supplier_id из БД)
+GET {{baseUrl}}/api/supplier?supplier_id=1
+
+###

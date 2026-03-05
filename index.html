@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#F0F2F5">
-  <title>WholeSale Hub - B2B Marketplace</title>
+  <title>Горбушка - Биржа Apple техники</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -654,8 +654,8 @@
                 </svg>
               </div>
               <div>
-                <div class="header-title" id="headerTitle">WholeSale Hub</div>
-                <div class="header-subtitle" id="headerSubtitle">B2B Marketplace</div>
+                <div class="header-title" id="headerTitle">Горбушка</div>
+                <div class="header-subtitle" id="headerSubtitle">Биржа Apple техники</div>
               </div>
             </div>
             <div class="header-actions">
@@ -674,17 +674,17 @@
         <div class="search-panel" id="searchPanel">
           <div class="search-input-wrap">
             <svg class="icon-sm search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-            <input type="text" class="search-input" id="searchInput" placeholder="Search products, suppliers...">
+            <input type="text" class="search-input" id="searchInput" placeholder="Поиск товаров, поставщиков...">
             <button class="search-clear" id="searchClear" aria-label="Clear search">
               <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
             </button>
           </div>
           <div class="search-chips no-scrollbar">
-            <button class="search-chip">All</button>
-            <button class="search-chip">Electronics</button>
-            <button class="search-chip">Textiles</button>
-            <button class="search-chip">Food</button>
-            <button class="search-chip">Packaging</button>
+            <button class="search-chip">Все</button>
+            <button class="search-chip">iPhone</button>
+            <button class="search-chip">iPad</button>
+            <button class="search-chip">Mac</button>
+            <button class="search-chip">Watch</button>
           </div>
         </div>
 
@@ -696,29 +696,29 @@
                 <div class="stat-icon green">
                   <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
                 </div>
-                <span class="stat-value">$12.4k</span>
-                <span class="stat-label">Revenue</span>
+                <span class="stat-value" id="statRevenue">—</span>
+                <span class="stat-label">Выручка</span>
               </div>
               <div class="stat-card">
                 <div class="stat-icon blue">
                   <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 9.4 7.55 4.24"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.29 7 12 12 20.71 7"/><line x1="12" y1="22" x2="12" y2="12"/></svg>
                 </div>
-                <span class="stat-value">248</span>
-                <span class="stat-label">Products</span>
+                <span class="stat-value" id="statProducts">—</span>
+                <span class="stat-label">Товаров</span>
               </div>
               <div class="stat-card">
                 <div class="stat-icon orange">
                   <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                 </div>
-                <span class="stat-value">56</span>
-                <span class="stat-label">Suppliers</span>
+                <span class="stat-value" id="statSuppliers">—</span>
+                <span class="stat-label">Поставщиков</span>
               </div>
               <div class="stat-card">
                 <div class="stat-icon teal">
                   <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
                 </div>
-                <span class="stat-value">89</span>
-                <span class="stat-label">Orders</span>
+                <span class="stat-value" id="statDeals">—</span>
+                <span class="stat-label">Сделок</span>
               </div>
             </div>
           </div>
@@ -726,39 +726,39 @@
             <div class="category-scroll no-scrollbar" id="categoryScroll">
               <button class="category-chip active" data-category="All">
                 <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg>
-                <span>All</span><span class="category-count">248</span>
+                <span>Все</span>
               </button>
-              <button class="category-chip" data-category="Home">
-                <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 9.4 7.55 4.24"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.29 7 12 12 20.71 7"/><line x1="12" y1="22" x2="12" y2="12"/></svg>
-                <span>Home</span><span class="category-count">64</span>
+              <button class="category-chip" data-category="iPhone">
+                <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+                <span>iPhone</span>
               </button>
-              <button class="category-chip" data-category="Textile">
-                <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/></svg>
-                <span>Textile</span><span class="category-count">42</span>
+              <button class="category-chip" data-category="iPad">
+                <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="2" width="18" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+                <span>iPad</span>
               </button>
-              <button class="category-chip" data-category="Food">
-                <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>
-                <span>Food</span><span class="category-count">38</span>
+              <button class="category-chip" data-category="Mac">
+                <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8m-4-4v4"/></svg>
+                <span>Mac</span>
               </button>
-              <button class="category-chip" data-category="Packaging">
-                <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
-                <span>Packaging</span><span class="category-count">55</span>
+              <button class="category-chip" data-category="Watch">
+                <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="6"/><path d="M12 10v2l1.5 1.5"/><path d="M9 2h6l1 4H8z"/><path d="M8 18H16l1 4H7z"/></svg>
+                <span>Watch</span>
               </button>
-              <button class="category-chip" data-category="Beauty">
-                <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg>
-                <span>Beauty</span><span class="category-count">49</span>
+              <button class="category-chip" data-category="AirPods">
+                <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V6a3 3 0 0 1 6 0v12"/><circle cx="9" cy="18" r="2"/><circle cx="15" cy="18" r="2"/></svg>
+                <span>AirPods</span>
               </button>
             </div>
           </div>
           <div class="products-section">
             <div class="products-header">
               <div>
-                <div class="products-title">Products</div>
-                <div class="products-count" id="productsCount">6 items available</div>
+                <div class="products-title">Предложения</div>
+                <div class="products-count" id="productsCount">0 предложений</div>
               </div>
               <button class="sort-btn">
                 <svg class="icon-14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 16 4 4 4-4"/><path d="M7 20V4"/><path d="m21 8-4-4-4 4"/><path d="M17 4v16"/></svg>
-                Sort
+                Сортировка
               </button>
             </div>
             <div class="product-stack" id="productStack"></div>
@@ -766,8 +766,8 @@
               <div class="empty-icon">
                 <svg class="icon-28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
               </div>
-              <div class="empty-title">No products found</div>
-              <div class="empty-subtitle">Try adjusting your search or filters</div>
+              <div class="empty-title">Ничего не найдено</div>
+              <div class="empty-subtitle">Попробуйте изменить поиск или фильтры</div>
             </div>
           </div>
         </section>
@@ -776,34 +776,34 @@
         <section class="screen" id="screenMyProducts">
           <div class="my-products-screen">
             <div class="screen-title-bar">
-              <div class="screen-title">My Products</div>
-              <button class="add-btn-small" id="myProductsAddBtn" aria-label="Add new product">
+              <div class="screen-title">Мои предложения</div>
+              <button class="add-btn-small" id="myProductsAddBtn" aria-label="Добавить предложение">
                 <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
-                Add
+                Добавить
               </button>
             </div>
             <div class="my-products-stats">
               <div class="my-stat-card">
                 <div class="my-stat-value" id="myActiveCount">0</div>
-                <div class="my-stat-label">Active</div>
+                <div class="my-stat-label">Активных</div>
               </div>
               <div class="my-stat-card">
                 <div class="my-stat-value" id="myDraftCount">0</div>
-                <div class="my-stat-label">Drafts</div>
+                <div class="my-stat-label">Черновики</div>
               </div>
               <div class="my-stat-card">
                 <div class="my-stat-value" id="myTotalViews">0</div>
-                <div class="my-stat-label">Views</div>
+                <div class="my-stat-label">Просмотры</div>
               </div>
             </div>
-            <div class="section-label">Your Listings</div>
+            <div class="section-label">Мои предложения</div>
             <div id="myProductsList"></div>
             <div class="empty-state" id="myProductsEmpty">
               <div class="empty-icon">
                 <svg class="icon-28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 9.4 7.55 4.24"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
               </div>
-              <div class="empty-title">No products yet</div>
-              <div class="empty-subtitle">Tap "Add" to list your first product</div>
+              <div class="empty-title">Нет предложений</div>
+              <div class="empty-subtitle">Нажмите "Добавить" для размещения предложения</div>
             </div>
           </div>
         </section>
@@ -812,31 +812,31 @@
         <section class="screen" id="screenProfile">
           <div class="profile-screen">
             <div class="screen-title-bar">
-              <div class="screen-title">Profile</div>
+              <div class="screen-title">Профиль</div>
             </div>
 
             <div class="profile-header-card">
               <div class="profile-avatar">AK</div>
               <div>
                 <div class="profile-name">Alex Karlov</div>
-                <div class="profile-role">Wholesale Supplier</div>
+                <div class="profile-role">Поставщик</div>
                 <div class="profile-verified">
                   <svg class="icon-12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-                  Verified Seller
+                  Проверенный продавец
                 </div>
               </div>
             </div>
 
             <!-- Delivery Settings -->
             <div class="settings-group">
-              <div class="settings-group-label">Delivery Settings</div>
+              <div class="settings-group-label">Настройки доставки</div>
               <div class="setting-input-row">
-                <label class="setting-input-label" for="cityInput">City</label>
-                <input type="text" id="cityInput" class="setting-input" placeholder="Enter your city" value="Istanbul">
+                <label class="setting-input-label" for="cityInput">Город</label>
+                <input type="text" id="cityInput" class="setting-input" placeholder="Введите город">
               </div>
               <div class="setting-input-row">
-                <label class="setting-input-label" for="deliveryInput">Delivery</label>
-                <input type="text" id="deliveryInput" class="setting-input" placeholder="Delivery zone or method" value="Europe, CIS">
+                <label class="setting-input-label" for="deliveryInput">Доставка</label>
+                <input type="text" id="deliveryInput" class="setting-input" placeholder="Зона или способ доставки">
               </div>
             </div>
 
@@ -844,50 +844,14 @@
             <div class="action-btn-row">
               <button class="action-btn upload" id="uploadExcelBtn">
                 <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                Upload Excel
+                Загрузить Excel
               </button>
               <button class="action-btn download" id="downloadExcelBtn">
                 <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                Download Excel
+                Скачать шаблон
               </button>
             </div>
 
-            <!-- Account -->
-            <div class="settings-group">
-              <div class="settings-group-label">Account</div>
-              <div class="setting-row">
-                <div class="setting-icon blue-bg">
-                  <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                </div>
-                <div class="setting-info">
-                  <div class="setting-title">Personal Info</div>
-                  <div class="setting-subtitle">Name, email, phone</div>
-                </div>
-                <svg class="icon-sm setting-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-              </div>
-              <div class="setting-row">
-                <div class="setting-icon green-bg">
-                  <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
-                </div>
-                <div class="setting-info">
-                  <div class="setting-title">Payment Methods</div>
-                  <div class="setting-subtitle">Cards, bank transfers</div>
-                </div>
-                <svg class="icon-sm setting-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-              </div>
-              <div class="setting-row">
-                <div class="setting-icon orange-bg">
-                  <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
-                </div>
-                <div class="setting-info">
-                  <div class="setting-title">Notifications</div>
-                  <div class="setting-subtitle">Push, email alerts</div>
-                </div>
-                <svg class="icon-sm setting-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-              </div>
-            </div>
-
-            <button class="logout-btn" id="logoutBtn">Log Out</button>
           </div>
         </section>
 
@@ -897,12 +861,12 @@
             <div class="nav-items">
               <button class="nav-tab active" data-screen="screenCatalog" aria-label="Catalog" aria-current="page">
                 <svg class="icon-xl" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                <span class="nav-label">Catalog</span>
+                <span class="nav-label">Каталог</span>
                 <div class="nav-active-dot"></div>
               </button>
               <button class="nav-tab" data-screen="screenMyProducts" aria-label="My Products">
                 <svg class="icon-xl" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 9.4 7.55 4.24"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.29 7 12 12 20.71 7"/><line x1="12" y1="22" x2="12" y2="12"/></svg>
-                <span class="nav-label">Products</span>
+                <span class="nav-label">Предложения</span>
                 <div class="nav-active-dot"></div>
               </button>
               <button class="nav-add-btn" id="addProductBtn" aria-label="Add new product">
@@ -912,12 +876,12 @@
               </button>
               <button class="nav-tab" data-screen="screenProfile" aria-label="Profile">
                 <svg class="icon-xl" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                <span class="nav-label">Profile</span>
+                <span class="nav-label">Профиль</span>
                 <div class="nav-active-dot"></div>
               </button>
               <button class="nav-tab" aria-label="Orders">
                 <svg class="icon-xl" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
-                <span class="nav-label">Orders</span>
+                <span class="nav-label">Сделки</span>
                 <div class="nav-active-dot"></div>
               </button>
             </div>
@@ -956,11 +920,11 @@
       </div>
       <div class="in-stock">
         <svg class="icon-14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-        In Stock
+        В наличии
       </div>
     </div>
     <div class="quantity-row">
-      <span class="quantity-label">Quantity</span>
+      <span class="quantity-label">Количество</span>
       <div class="quantity-controls">
         <button class="qty-btn" id="qtyMinus" aria-label="Decrease">
           <svg class="icon-14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"/></svg>
@@ -972,7 +936,7 @@
       </div>
     </div>
     <div class="subtotal-row">
-      <span>Subtotal</span>
+      <span>Итого</span>
       <span class="subtotal-value" id="subtotalValue"></span>
     </div>
     <div class="detail-actions">
@@ -980,8 +944,8 @@
         <svg class="icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>
       </button>
       <button class="add-cart-btn" id="addCartBtn">
-        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
-        Add to Cart
+        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7H4C3.45 7 3 7.45 3 8V19C3 19.55 3.45 20 4 20H20C20.55 20 21 19.55 21 19V8C21 7.45 20.55 7 20 7Z"/><path d="M16 7V5C16 3.9 15.1 3 14 3H10C8.9 3 8 3.9 8 5V7"/><path d="M12 12V16"/><path d="M10 14H14"/></svg>
+        Создать сделку
       </button>
     </div>
   </div>
@@ -996,71 +960,38 @@
       <button class="bottom-sheet-close" id="addSheetClose" aria-label="Close">
         <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
       </button>
-      <span class="bottom-sheet-title">Add Product</span>
-      <button class="bottom-sheet-done" id="addSheetDone">Done</button>
+      <span class="bottom-sheet-title">Добавить предложение</span>
+      <button class="bottom-sheet-done" id="addSheetDone">Готово</button>
     </div>
   </div>
   <div class="bottom-sheet-body">
-    <div class="upload-area">
-      <button class="upload-btn" aria-label="Upload photo">
-        <svg class="icon-28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
-      </button>
-      <span class="upload-label">Add Photo</span>
-    </div>
     <div class="form-fields">
       <div class="field-group">
-        <label class="field-label">Product Name</label>
-        <input type="text" class="field-input" id="newProductName" placeholder="e.g. Premium Cotton T-Shirt">
-      </div>
-      <div class="field-group">
-        <label class="field-label">Category</label>
+        <label class="field-label">Товар из каталога</label>
         <div class="field-select-wrap">
-          <select class="field-select" id="newProductCategory">
-            <option value="" disabled selected>Select category</option>
-            <option value="Home">Home & Kitchen</option>
-            <option value="Textile">Textiles</option>
-            <option value="Food">Food & Beverage</option>
-            <option value="Packaging">Packaging</option>
-            <option value="Beauty">Beauty & Personal Care</option>
-            <option value="Electronics">Electronics</option>
+          <select class="field-select" id="newProductCatalogId">
+            <option value="" disabled selected>Загрузка каталога...</option>
           </select>
           <svg class="icon-sm select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
         </div>
       </div>
       <div class="field-row">
         <div class="field-group">
-          <label class="field-label">Price (USD)</label>
+          <label class="field-label">Цена (₽)</label>
           <div class="price-wrap">
-            <span class="price-prefix">$</span>
-            <input type="number" class="field-input price-input" id="newProductPrice" placeholder="0.00">
+            <span class="price-prefix">₽</span>
+            <input type="number" class="field-input price-input" id="newProductPrice" placeholder="0">
           </div>
         </div>
         <div class="field-group">
-          <label class="field-label">Per Unit</label>
-          <div class="field-select-wrap">
-            <select class="field-select" id="newProductUnit">
-              <option value="pc">Piece</option>
-              <option value="set">Set</option>
-              <option value="kg">Kilogram</option>
-              <option value="btl">Bottle</option>
-              <option value="box">Box</option>
-            </select>
-            <svg class="icon-sm select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-          </div>
+          <label class="field-label">Количество (шт)</label>
+          <input type="number" class="field-input" id="newProductQuantity" placeholder="1">
         </div>
-      </div>
-      <div class="field-group">
-        <label class="field-label">Minimum Order Qty</label>
-        <input type="number" class="field-input" id="newProductMoq" placeholder="e.g. 100">
-      </div>
-      <div class="field-group">
-        <label class="field-label">Description</label>
-        <textarea class="field-textarea" id="newProductDesc" rows="3" placeholder="Describe your product..."></textarea>
       </div>
     </div>
     <button class="submit-product-btn" id="submitProduct">
       <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
-      Add Product
+      Добавить предложение
     </button>
   </div>
 </div>
@@ -1068,20 +999,79 @@
 <!-- ===== JavaScript ===== -->
 <script>
   // ── Data ──
-  const catalogProducts = [
-    { id: 1, name: "Premium Ceramic Plates Set", supplier: "CeramicWorks Co.", price: 4.20, unit: "pc", moq: 200, rating: 4.8, reviews: 124, image: "/images/product-1.jpg", badge: "Hot", category: "Home" },
-    { id: 2, name: "Extra Virgin Olive Oil 500ml", supplier: "Mediterranean Foods", price: 6.50, unit: "btl", moq: 100, rating: 4.9, reviews: 89, image: "/images/product-2.jpg", badge: "New", category: "Food" },
-    { id: 3, name: "Organic Cotton Towel Set", supplier: "TextilePro Ltd.", price: 3.80, unit: "set", moq: 150, rating: 4.6, reviews: 67, image: "/images/product-3.jpg", badge: null, category: "Textile" },
-    { id: 4, name: "Kraft Paper Gift Boxes", supplier: "PackageStar Inc.", price: 0.45, unit: "pc", moq: 500, rating: 4.7, reviews: 203, image: "/images/product-4.jpg", badge: "Best Seller", category: "Packaging" },
-    { id: 5, name: "Stainless Steel Water Bottle", supplier: "HydraCorp", price: 5.90, unit: "pc", moq: 100, rating: 4.5, reviews: 156, image: "/images/product-5.jpg", badge: null, category: "Home" },
-    { id: 6, name: "Natural Handmade Soap Bar", supplier: "PureEssence Beauty", price: 2.10, unit: "pc", moq: 300, rating: 4.8, reviews: 92, image: "/images/product-6.jpg", badge: "Eco", category: "Beauty" },
-  ];
-
+  let catalogProducts = [];
   let myProducts = [];
   let currentProduct = null;
   let quantity = 1;
   let activeCategory = 'All';
   let activeScreen = 'screenCatalog';
+
+  const BASE_URL = window.location.origin;
+  const tg = window.Telegram && window.Telegram.WebApp;
+  const tgUser = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
+  const userId = tgUser ? tgUser.id : null;
+
+  // Загрузка предложений с API
+  async function loadOffers(category) {
+    try {
+      const params = category && category !== 'All' ? `?category=${encodeURIComponent(category)}` : '';
+      const resp = await fetch(`${BASE_URL}/api/offers${params}`);
+      const data = await resp.json();
+      catalogProducts = data.map(o => ({
+        id: o.id,
+        offerId: o.id,
+        name: `${o.brand || ''} ${o.model || ''} ${o.memory || ''} ${o.color || ''}`.trim(),
+        supplier: o.company_name || o.supplier_name || 'Поставщик',
+        price: o.price || 0,
+        moq: o.moq || 1,
+        quantity: o.quantity || 0,
+        rating: o.avg_rating || 0,
+        reviews: o.reviews_count || 0,
+        image: '',
+        badge: o.condition === 'new' ? 'Новый' : (o.condition === 'used' ? 'БУ' : null),
+        category: o.category || '',
+      }));
+    } catch(e) {
+      catalogProducts = [];
+    }
+  }
+
+  // Загрузка каталога для формы добавления предложения
+  async function loadCatalogForForm() {
+    try {
+      const resp = await fetch(`${BASE_URL}/api/catalog?all=1`);
+      const data = await resp.json();
+      const sel = $('newProductCatalogId');
+      sel.innerHTML = '<option value="" disabled selected>Выберите товар</option>';
+      data.forEach(item => {
+        const opt = document.createElement('option');
+        opt.value = item.id;
+        opt.textContent = `${item.brand} ${item.model} ${item.memory} ${item.color}`.trim();
+        sel.appendChild(opt);
+      });
+    } catch(e) {
+      $('newProductCatalogId').innerHTML = '<option value="" disabled selected>Ошибка загрузки</option>';
+    }
+  }
+
+  // Загрузка моих предложений
+  async function loadMyOffers() {
+    if (!userId) return;
+    try {
+      const resp = await fetch(`${BASE_URL}/api/supplier/offers?telegram_id=${userId}`);
+      const data = await resp.json();
+      myProducts = data.map(o => ({
+        id: o.id,
+        name: `${o.brand || ''} ${o.model || ''} ${o.memory || ''} ${o.color || ''}`.trim(),
+        price: o.price || 0,
+        quantity: o.quantity || 0,
+        status: o.is_available ? 'active' : 'draft',
+        views: 0,
+      }));
+    } catch(e) {
+      myProducts = [];
+    }
+  }
 
   // ── DOM Refs ──
   const $ = (s) => document.getElementById(s);
@@ -1121,11 +1111,11 @@
 
       // Update header text
       const titles = {
-        screenCatalog: ['WholeSale Hub', 'B2B Marketplace'],
-        screenMyProducts: ['My Products', 'Manage your listings'],
-        screenProfile: ['Profile', 'Account settings'],
+        screenCatalog: ['Горбушка', 'Биржа Apple техники'],
+        screenMyProducts: ['Мои предложения', 'Управление предложениями'],
+        screenProfile: ['Профиль', 'Настройки аккаунта'],
       };
-      const [title, sub] = titles[screenId] || ['WholeSale Hub', 'B2B Marketplace'];
+      const [title, sub] = titles[screenId] || ['Горбушка', 'Биржа Apple техники'];
       $('headerTitle').textContent = title;
       $('headerSubtitle').textContent = sub;
 
@@ -1155,13 +1145,12 @@
   // ── Render Catalog Products ──
   function renderCatalogProducts(query = '') {
     const filtered = catalogProducts.filter(p => {
-      const matchSearch = p.name.toLowerCase().includes(query.toLowerCase()) ||
+      const matchSearch = !query || p.name.toLowerCase().includes(query.toLowerCase()) ||
                           p.supplier.toLowerCase().includes(query.toLowerCase());
-      const matchCategory = activeCategory === 'All' || p.category === activeCategory;
-      return matchSearch && matchCategory;
+      return matchSearch;
     });
 
-    $('productsCount').textContent = filtered.length + ' items available';
+    $('productsCount').textContent = filtered.length + ' предложений';
     const stack = $('productStack');
     stack.innerHTML = '';
 
@@ -1174,11 +1163,10 @@
     filtered.forEach(p => {
       const card = document.createElement('button');
       card.className = 'product-card';
-      card.setAttribute('aria-label', 'View ' + p.name);
+      card.setAttribute('aria-label', p.name);
       card.innerHTML = `
         <div class="product-card-inner">
           <div class="product-img-wrap">
-            <img class="product-img" src="${p.image}" alt="${p.name}">
             ${p.badge ? `<div class="product-badge">${p.badge}</div>` : ''}
           </div>
           <div class="product-info">
@@ -1190,18 +1178,15 @@
               <div class="product-supplier">${p.supplier}</div>
             </div>
             <div>
-              <div class="product-rating">
+              ${p.rating ? `<div class="product-rating">
                 <svg class="icon-12 star-icon" viewBox="0 0 24 24" fill="#FF9500" stroke="#FF9500" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                <span class="rating-val">${p.rating}</span>
+                <span class="rating-val">${p.rating.toFixed(1)}</span>
                 <span class="rating-count">(${p.reviews})</span>
-              </div>
+              </div>` : ''}
               <div class="product-bottom">
-                <div><span class="product-price">$${p.price.toFixed(2)}</span><span class="product-unit">/${p.unit}</span></div>
+                <div><span class="product-price">${p.price.toLocaleString('ru-RU')} ₽</span></div>
                 <div class="product-meta">
-                  <span class="product-moq">MOQ: ${p.moq}</span>
-                  <div class="cart-icon-btn">
-                    <svg class="icon-14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
-                  </div>
+                  <span class="product-moq">Мин. ${p.moq} шт</span>
                 </div>
               </div>
             </div>
@@ -1276,12 +1261,13 @@
   });
 
   // ── Category Chips ──
-  $('categoryScroll').addEventListener('click', (e) => {
+  $('categoryScroll').addEventListener('click', async (e) => {
     const chip = e.target.closest('.category-chip');
     if (!chip) return;
     $$('.category-chip').forEach(c => c.classList.remove('active'));
     chip.classList.add('active');
     activeCategory = chip.dataset.category;
+    await loadOffers(activeCategory === 'All' ? null : activeCategory);
     renderCatalogProducts($('searchInput').value);
   });
 
@@ -1294,11 +1280,11 @@
     $('detailImg').alt = product.name;
     $('detailName').textContent = product.name;
     $('detailSupplier').textContent = product.supplier;
-    $('detailRating').textContent = product.rating;
-    $('detailReviews').textContent = '(' + product.reviews + ' reviews)';
-    $('detailPrice').textContent = '$' + product.price.toFixed(2);
-    $('detailUnit').textContent = '/' + product.unit;
-    $('detailMoq').textContent = 'MOQ: ' + product.moq + ' units';
+    $('detailRating').textContent = product.rating ? product.rating.toFixed(1) : '';
+    $('detailReviews').textContent = product.reviews ? '(' + product.reviews + ' отзывов)' : '';
+    $('detailPrice').textContent = product.price.toLocaleString('ru-RU') + ' ₽';
+    $('detailUnit').textContent = '';
+    $('detailMoq').textContent = 'Мин. заказ: ' + product.moq + ' шт';
     const badge = $('detailBadge');
     if (product.badge) { badge.textContent = product.badge; badge.style.display = ''; }
     else { badge.style.display = 'none'; }
@@ -1314,7 +1300,7 @@
 
   function updateSubtotal() {
     if (!currentProduct) return;
-    $('subtotalValue').textContent = '$' + (currentProduct.price * quantity).toFixed(2);
+    $('subtotalValue').textContent = (currentProduct.price * quantity).toLocaleString('ru-RU') + ' ₽';
   }
 
   $('detailOverlay').addEventListener('click', closeDetail);
@@ -1322,8 +1308,12 @@
   $('qtyMinus').addEventListener('click', () => { quantity = Math.max(1, quantity - 1); $('qtyValue').textContent = quantity; updateSubtotal(); });
   $('qtyPlus').addEventListener('click', () => { quantity++; $('qtyValue').textContent = quantity; updateSubtotal(); });
   $('addCartBtn').addEventListener('click', () => {
+    if (!currentProduct) return;
+    if (tg) {
+      tg.sendData(`CREATE_DEAL|${currentProduct.offerId}|${quantity}`);
+    }
     closeDetail();
-    showToast('Added to cart!');
+    showToast('Сделка отправлена!');
   });
 
   // ── Add Product Bottom Sheet ──
@@ -1343,62 +1333,104 @@
   $('addSheetDone').addEventListener('click', () => submitNewProduct());
   $('submitProduct').addEventListener('click', () => submitNewProduct());
 
-  function submitNewProduct() {
-    const name = $('newProductName').value.trim();
-    const category = $('newProductCategory').value;
-    const price = parseFloat($('newProductPrice').value) || 0;
-    const unit = $('newProductUnit').value;
-    const moq = parseInt($('newProductMoq').value) || 100;
+  async function submitNewProduct() {
+    const catalogId = $('newProductCatalogId').value;
+    const price = parseInt($('newProductPrice').value) || 0;
+    const quantity = parseInt($('newProductQuantity').value) || 1;
 
-    if (!name) {
-      showToast('Please enter a product name');
+    if (!catalogId) {
+      showToast('Выберите товар из каталога');
       return;
     }
     if (price <= 0) {
-      showToast('Please enter a valid price');
+      showToast('Введите корректную цену');
+      return;
+    }
+    if (!userId) {
+      showToast('Ошибка: пользователь не определён');
       return;
     }
 
-    const images = ['/images/product-1.jpg','/images/product-2.jpg','/images/product-3.jpg','/images/product-4.jpg','/images/product-5.jpg','/images/product-6.jpg'];
+    try {
+      const resp = await fetch(`${BASE_URL}/api/supplier/offers`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telegram_id: userId, product_id: parseInt(catalogId), price, quantity }),
+      });
+      const data = await resp.json();
+      if (!data.ok) {
+        showToast('Ошибка: ' + (data.error || 'неизвестная ошибка'));
+        return;
+      }
+    } catch(e) {
+      showToast('Ошибка соединения');
+      return;
+    }
 
-    myProducts.unshift({
-      id: Date.now(),
-      name,
-      category: category || 'General',
-      price,
-      unit,
-      moq,
-      image: images[Math.floor(Math.random() * images.length)],
-      status: 'active',
-      views: Math.floor(Math.random() * 50),
-    });
-
-    // Reset form
-    $('newProductName').value = '';
-    $('newProductCategory').selectedIndex = 0;
+    $('newProductCatalogId').selectedIndex = 0;
     $('newProductPrice').value = '';
-    $('newProductMoq').value = '';
-    $('newProductDesc').value = '';
+    $('newProductQuantity').value = '';
 
     closeAddSheet();
-    showToast('Product added successfully!');
-
-    // Switch to My Products screen
+    showToast('Предложение добавлено!');
+    await loadMyOffers();
     setTimeout(() => switchScreen('screenMyProducts'), 350);
   }
 
   // ── Profile Actions ──
-  $('uploadExcelBtn').addEventListener('click', () => showToast('Excel upload coming soon'));
-  $('downloadExcelBtn').addEventListener('click', () => showToast('Excel downloaded!'));
-  $('logoutBtn').addEventListener('click', () => showToast('Logged out'));
+  $('uploadExcelBtn').addEventListener('click', () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.xlsx,.xls';
+    input.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file || !userId) return;
+      const form = new FormData();
+      form.append('telegram_id', userId);
+      form.append('file', file);
+      try {
+        const resp = await fetch(`${BASE_URL}/api/supplier/import`, { method: 'POST', body: form });
+        const data = await resp.json();
+        if (data.success) {
+          showToast(`Импортировано: ${data.success_count}`);
+          await loadMyOffers();
+          renderMyProducts();
+        } else {
+          showToast('Ошибка: ' + (data.error || ''));
+        }
+      } catch(e) {
+        showToast('Ошибка загрузки');
+      }
+    };
+    input.click();
+  });
 
-  // Save delivery settings on blur
-  $('cityInput').addEventListener('change', () => showToast('City updated'));
-  $('deliveryInput').addEventListener('change', () => showToast('Delivery zone updated'));
+  $('downloadExcelBtn').addEventListener('click', async () => {
+    window.location.href = `${BASE_URL}/api/supplier/template`;
+  });
+
+  $('cityInput').addEventListener('change', () => showToast('Город сохранён'));
+  $('deliveryInput').addEventListener('change', () => showToast('Зона доставки сохранена'));
+
+  // ── Open Add Sheet: load catalog ──
+  const _origOpenAddSheet = openAddSheet;
+  $('addProductBtn').removeEventListener('click', openAddSheet);
+  $('myProductsAddBtn').removeEventListener('click', openAddSheet);
+  function openAddSheetWithCatalog() {
+    openAddSheet();
+    loadCatalogForForm();
+  }
+  $('addProductBtn').addEventListener('click', openAddSheetWithCatalog);
+  $('myProductsAddBtn').addEventListener('click', openAddSheetWithCatalog);
 
   // ── Init ──
-  renderCatalogProducts();
-  renderMyProducts();
+  async function init() {
+    await loadOffers(null);
+    renderCatalogProducts();
+    await loadMyOffers();
+    renderMyProducts();
+  }
+  init();
 </script>
 
 </body>
