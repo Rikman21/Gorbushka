@@ -1370,25 +1370,18 @@ async function loadBuyerProfile() {
   }
 }
 
-async function adminSwitchView(role) {
+function adminSwitchView(role) {
   // Быстрое переключение роли для тестирования (только для админа)
   if (!isAdmin) return;
-  try {
-    await api('/api/user/role', {
-      method: 'POST',
-      body: JSON.stringify({telegram_id: parseInt(userId), role})
-    });
-    isSupplier = role === 'supplier';
-    if (currentUser) currentUser.is_supplier = isSupplier ? 1 : 0;
-    buildNav();
-    updateHeaderBadge();
-    updateAdminViewBtns();
-    // Переходим на соответствующий главный экран
-    navTo(isSupplier ? 'screenMyOffers' : 'screenFeed');
-    showToast(`Тест-режим: ${isSupplier ? 'Поставщик' : 'Покупатель'}`);
-  } catch(e) {
-    showToast('Ошибка: ' + e.message);
-  }
+  isSupplier = role === 'supplier';
+  if (currentUser) currentUser.is_supplier = isSupplier ? 1 : 0;
+  saveRoleLocally(role);
+  syncRoleToApi(role);
+  buildNav();
+  updateHeaderBadge();
+  updateAdminViewBtns();
+  navTo(isSupplier ? 'screenMyOffers' : 'screenFeed');
+  showToast(`Тест-режим: ${isSupplier ? 'Поставщик' : 'Покупатель'}`);
 }
 
 function updateAdminViewBtns() {
@@ -1404,25 +1397,18 @@ function updateAdminViewBtns() {
   }
 }
 
-async function switchRole() {
+function switchRole() {
   if (!userId) return;
   const newRole = isSupplier ? 'buyer' : 'supplier';
-  const confirm_msg = isAdmin ? true : confirm(`Сменить роль на "${newRole === 'buyer' ? 'Покупатель' : 'Поставщик'}"?`);
-  if (!confirm_msg) return;
-  try {
-    await api('/api/user/role', {
-      method: 'POST',
-      body: JSON.stringify({telegram_id: parseInt(userId), role: newRole})
-    });
-    isSupplier = newRole === 'supplier';
-    currentUser.is_supplier = isSupplier ? 1 : 0;
-    buildNav();
-    updateHeaderBadge();
-    navTo(isSupplier ? 'screenMyOffers' : 'screenFeed');
-    showToast(`✅ Роль изменена: ${isSupplier ? 'Поставщик' : 'Покупатель'}`);
-  } catch(e) {
-    showToast('Ошибка: ' + e.message);
-  }
+  if (!isAdmin && !confirm(`Сменить роль на "${newRole === 'buyer' ? 'Покупатель' : 'Поставщик'}"?`)) return;
+  isSupplier = newRole === 'supplier';
+  if (currentUser) currentUser.is_supplier = isSupplier ? 1 : 0;
+  saveRoleLocally(newRole);
+  syncRoleToApi(newRole);
+  buildNav();
+  updateHeaderBadge();
+  navTo(isSupplier ? 'screenMyOffers' : 'screenFeed');
+  showToast(`✅ Роль: ${isSupplier ? 'Поставщик' : 'Покупатель'}`);
 }
 
 // ===== IMPORT SHEET =====
@@ -1638,6 +1624,23 @@ function updateHeaderBadge() {
   if (sub) sub.textContent = isSupplier ? 'Панель поставщика' : 'Apple техника';
 }
 
+// ===== Role localStorage helpers =====
+function saveRoleLocally(role) {
+  try { if (userId) localStorage.setItem('role_' + userId, role); } catch(e) {}
+}
+function getLocalRole() {
+  try { return userId ? localStorage.getItem('role_' + userId) : null; } catch(e) { return null; }
+}
+function syncRoleToApi(role) {
+  // Фоновая синхронизация — не блокирует UI, не показывает ошибку
+  if (!userId) return;
+  fetch(API_BASE + '/api/user/role', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({telegram_id: parseInt(userId), role})
+  }).catch(() => {});
+}
+
 // ===== INIT =====
 async function init() {
   if (!userId) {
@@ -1650,45 +1653,50 @@ async function init() {
     return;
   }
 
+  isAdmin = ADMIN_IDS.includes(String(userId));
+
+  // Пробуем загрузить пользователя из API (не блокируем на ошибке)
   try {
     currentUser = await api('/api/user?telegram_id=' + userId);
   } catch(e) {
     currentUser = null;
   }
 
-  isAdmin = ADMIN_IDS.includes(String(userId));
-  isSupplier = currentUser?.is_supplier === 1;
-  const roleSelected = currentUser?.role_selected;
+  // Определяем роль: API → localStorage → overlay
+  const localRole = getLocalRole();
+  const apiRoleSelected = currentUser?.role_selected;
 
-  // Show role overlay if not selected (and not admin)
-  if (!roleSelected && !isAdmin) {
+  if (apiRoleSelected) {
+    // API знает роль — используем и кэшируем локально
+    isSupplier = currentUser.is_supplier === 1;
+    saveRoleLocally(isSupplier ? 'supplier' : 'buyer');
+    startApp();
+  } else if (localRole) {
+    // Роль есть в localStorage — сразу показываем приложение, синхронизируем в фоне
+    isSupplier = localRole === 'supplier';
+    if (currentUser) currentUser.is_supplier = isSupplier ? 1 : 0;
+    syncRoleToApi(localRole);
+    startApp();
+  } else if (isAdmin) {
+    // Админ без роли — начинаем как покупатель
+    isSupplier = false;
+    startApp();
+  } else {
+    // Первый вход — показываем выбор роли
     document.getElementById('roleOverlay').classList.remove('hidden');
-
-    document.getElementById('roleBuyer').onclick = async () => {
-      await setRole('buyer');
-    };
-    document.getElementById('roleSupplier').onclick = async () => {
-      await setRole('supplier');
-    };
-    return;
+    document.getElementById('roleBuyer').onclick = () => setRole('buyer');
+    document.getElementById('roleSupplier').onclick = () => setRole('supplier');
   }
-
-  startApp();
 }
 
-async function setRole(role) {
-  try {
-    await api('/api/user/role', {
-      method: 'POST',
-      body: JSON.stringify({telegram_id: parseInt(userId), role})
-    });
-    isSupplier = role === 'supplier';
-    if (currentUser) currentUser.is_supplier = isSupplier ? 1 : 0;
-    document.getElementById('roleOverlay').classList.add('hidden');
-    startApp();
-  } catch(e) {
-    showToast('Ошибка: ' + e.message);
-  }
+function setRole(role) {
+  // Сохраняем роль локально сразу — UI не зависит от API
+  isSupplier = role === 'supplier';
+  if (currentUser) currentUser.is_supplier = isSupplier ? 1 : 0;
+  saveRoleLocally(role);
+  syncRoleToApi(role); // фон
+  document.getElementById('roleOverlay').classList.add('hidden');
+  startApp();
 }
 
 function startApp() {
