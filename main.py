@@ -18,7 +18,7 @@ import database
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 TOKEN = "8451254918:AAHDJ8yIwQ44Stn7vT_s1mmxLDVYwfXUuJU"
-WEB_APP_URL = "https://rikman21.github.io/Gorbushka/?v=5"
+WEB_APP_URL = "https://rikman21.github.io/Gorbushka/"
 ADMIN_IDS = [210419, 464896073]
 
 logging.basicConfig(level=logging.INFO)
@@ -597,7 +597,7 @@ async def start(message: types.Message):
     # Создаём или обновляем пользователя
     database.create_or_update_user(user_id, username, full_name)
     
-    full_url = f"{WEB_APP_URL}?uid={user_id}"
+    full_url = f"{WEB_APP_URL}?v=6&uid={user_id}"
     kb = [[KeyboardButton(text="📱 ОТКРЫТЬ БИРЖУ", web_app=WebAppInfo(url=full_url))]]
     
     await message.answer(
