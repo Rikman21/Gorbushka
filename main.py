@@ -18,7 +18,7 @@ import database
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 TOKEN = "8451254918:AAHDJ8yIwQ44Stn7vT_s1mmxLDVYwfXUuJU"
-WEB_APP_URL = "https://rikman21.github.io/Gorbushka/?v=2"
+WEB_APP_URL = "https://rikman21.github.io/Gorbushka/?v=5"
 ADMIN_IDS = [210419, 464896073]
 
 logging.basicConfig(level=logging.INFO)

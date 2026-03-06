@@ -1104,8 +1104,8 @@
   const BASE_URL = window.location.origin;
   const tg = window.Telegram && window.Telegram.WebApp;
   const tgUser = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
-  const userId = tgUser ? tgUser.id : null;
-  const ADMIN_IDS = [210419, 464896073];
+  const userId = tgUser ? String(tgUser.id) : null;
+  const ADMIN_IDS = ['210419', '464896073'];
   let userRole = null;
 
   // Загрузка предложений с API
