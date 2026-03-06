@@ -1429,7 +1429,13 @@ function showImportSheet() {
 }
 
 function downloadTemplate() {
-  window.open(API_BASE + '/api/supplier/template', '_blank');
+  const url = API_BASE + '/api/supplier/template';
+  // В Telegram WebApp используем openLink для обхода ограничений HTTPS→HTTP
+  if (tg && tg.openLink) {
+    tg.openLink(url);
+  } else {
+    window.open(url, '_blank');
+  }
 }
 
 async function uploadImport() {
