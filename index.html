@@ -629,12 +629,95 @@
     .icon-14 { width: 14px; height: 14px; }
     .icon-12 { width: 12px; height: 12px; }
     .icon-28 { width: 28px; height: 28px; }
+
+    /* ===== Role Selection Overlay ===== */
+    .role-overlay {
+      position: fixed; inset: 0; z-index: 200;
+      background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+      display: flex; align-items: center; justify-content: center; padding: 20px;
+    }
+    .role-overlay.hidden { display: none; }
+    .role-modal {
+      background: #fff; border-radius: 28px; padding: 32px 24px 28px;
+      width: 100%; max-width: 390px; text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,.25);
+    }
+    .role-modal-emoji { font-size: 44px; margin-bottom: 12px; }
+    .role-modal-title { font-size: 22px; font-weight: 700; margin-bottom: 6px; color: #1C1C1E; }
+    .role-modal-sub { font-size: 14px; color: #8E8E93; margin-bottom: 28px; line-height: 1.5; }
+    .role-cards { display: flex; flex-direction: column; gap: 12px; }
+    .role-card {
+      border: 2px solid #E8EBF0; border-radius: 18px; padding: 18px 16px;
+      display: flex; align-items: center; gap: 16px; cursor: pointer;
+      transition: border-color .2s, background .2s; text-align: left;
+    }
+    .role-card:active { transform: scale(.98); }
+    .role-card.buyer-card:hover { border-color: #007AFF; background: #F0F7FF; }
+    .role-card.supplier-card:hover { border-color: #34C759; background: #F0FBF4; }
+    .role-card-icon {
+      width: 52px; height: 52px; border-radius: 16px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .role-card-icon.blue { background: #EBF3FF; color: #007AFF; }
+    .role-card-icon.green { background: #EAFAF0; color: #34C759; }
+    .role-card-title { font-size: 16px; font-weight: 600; color: #1C1C1E; }
+    .role-card-sub { font-size: 13px; color: #8E8E93; margin-top: 3px; }
+
+    /* ===== Admin Screen ===== */
+    .admin-user-item {
+      background: #fff; border-radius: 14px; padding: 14px 16px;
+      margin-bottom: 8px; display: flex; align-items: center; gap: 12px;
+    }
+    .admin-user-avatar {
+      width: 40px; height: 40px; border-radius: 50%; background: #E8EBF0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px; font-weight: 600; color: #555; flex-shrink: 0;
+    }
+    .admin-user-info { flex: 1; min-width: 0; }
+    .admin-user-name { font-size: 14px; font-weight: 600; color: #1C1C1E; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .admin-user-meta { font-size: 12px; color: #8E8E93; margin-top: 2px; }
+    .admin-user-actions { display: flex; gap: 6px; flex-shrink: 0; }
+    .admin-btn {
+      font-size: 11px; font-weight: 600; padding: 5px 10px;
+      border-radius: 8px; cursor: pointer; border: none; white-space: nowrap;
+    }
+    .admin-btn.role { background: #E8F0FE; color: #007AFF; }
+    .admin-btn.del { background: #FEE8E8; color: #FF3B30; }
   </style>
 </head>
 <body>
 
 <!-- Toast -->
 <div class="toast" id="toast"></div>
+
+<!-- ===== Role Selection Overlay ===== -->
+<div class="role-overlay hidden" id="roleOverlay">
+  <div class="role-modal">
+    <div class="role-modal-emoji">🍎</div>
+    <div class="role-modal-title">Добро пожаловать!</div>
+    <div class="role-modal-sub">Вы покупаете или продаёте Apple технику?<br>Роль выбирается один раз.</div>
+    <div class="role-cards">
+      <div class="role-card buyer-card" id="roleBuyer">
+        <div class="role-card-icon blue">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+        </div>
+        <div>
+          <div class="role-card-title">Покупатель</div>
+          <div class="role-card-sub">Покупаю Apple технику оптом</div>
+        </div>
+      </div>
+      <div class="role-card supplier-card" id="roleSupplier">
+        <div class="role-card-icon green">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 9.4 7.55 4.24"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+        </div>
+        <div>
+          <div class="role-card-title">Поставщик</div>
+          <div class="role-card-sub">Продаю Apple технику через биржу</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- ===== Mobile Shell ===== -->
 <div class="mobile-shell-outer">
@@ -855,6 +938,17 @@
           </div>
         </section>
 
+        <!-- ===== SCREEN: Admin ===== -->
+        <section class="screen" id="screenAdmin" style="display:none">
+          <div class="screen-pad">
+            <div class="section-header">
+              <div class="section-title">Пользователи</div>
+              <span class="see-all" id="adminUsersCount"></span>
+            </div>
+            <div id="adminUsersList"></div>
+          </div>
+        </section>
+
         <!-- Bottom Nav -->
         <nav class="bottom-nav" role="navigation" aria-label="Main navigation">
           <div class="bottom-nav-inner">
@@ -879,7 +973,7 @@
                 <span class="nav-label">Профиль</span>
                 <div class="nav-active-dot"></div>
               </button>
-              <button class="nav-tab" aria-label="Orders">
+              <button class="nav-tab" id="dealsAdminTab" aria-label="Orders">
                 <svg class="icon-xl" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
                 <span class="nav-label">Сделки</span>
                 <div class="nav-active-dot"></div>
@@ -1010,6 +1104,8 @@
   const tg = window.Telegram && window.Telegram.WebApp;
   const tgUser = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
   const userId = tgUser ? tgUser.id : null;
+  const ADMIN_IDS = [210419, 464896073];
+  let userRole = null;
 
   // Загрузка предложений с API
   async function loadOffers(category) {
@@ -1114,6 +1210,7 @@
         screenCatalog: ['Горбушка', 'Биржа Apple техники'],
         screenMyProducts: ['Мои предложения', 'Управление предложениями'],
         screenProfile: ['Профиль', 'Настройки аккаунта'],
+        screenAdmin: ['Администратор', 'Управление пользователями'],
       };
       const [title, sub] = titles[screenId] || ['Горбушка', 'Биржа Apple техники'];
       $('headerTitle').textContent = title;
@@ -1132,6 +1229,7 @@
 
       // Re-render my products when switching to that screen
       if (screenId === 'screenMyProducts') renderMyProducts();
+      if (screenId === 'screenAdmin') loadAdminUsers();
     }, 150);
   }
 
@@ -1423,12 +1521,127 @@
   $('addProductBtn').addEventListener('click', openAddSheetWithCatalog);
   $('myProductsAddBtn').addEventListener('click', openAddSheetWithCatalog);
 
+  // ── Admin Screen ──
+  async function loadAdminUsers() {
+    if (!ADMIN_IDS.includes(userId)) return;
+    try {
+      const resp = await fetch(`${BASE_URL}/api/admin/users?admin_id=${userId}`);
+      const users = await resp.json();
+      $('adminUsersCount').textContent = users.length + ' чел.';
+      const list = $('adminUsersList');
+      list.innerHTML = '';
+      users.forEach(u => {
+        const name = u.full_name || u.username || ('ID ' + u.telegram_id);
+        const isSupplier = !!u.is_supplier;
+        const roleLabel = isSupplier ? 'Поставщик' : 'Покупатель';
+        const roleColor = isSupplier ? '#34C759' : '#007AFF';
+        const newRole = isSupplier ? 'buyer' : 'supplier';
+        const newRoleLabel = isSupplier ? 'Покупатель' : 'Поставщик';
+        const div = document.createElement('div');
+        div.className = 'admin-user-item';
+        div.innerHTML = `
+          <div class="admin-user-avatar">${(name[0] || '?').toUpperCase()}</div>
+          <div class="admin-user-info">
+            <div class="admin-user-name">${name}</div>
+            <div class="admin-user-meta">
+              <span style="color:${roleColor}">${roleLabel}</span>
+              · @${u.username || '—'}
+              · ID: ${u.telegram_id}
+            </div>
+          </div>
+          <div class="admin-user-actions">
+            <button class="admin-btn role" onclick="adminChangeRole(${u.telegram_id},'${newRole}','${newRoleLabel}')">${newRoleLabel}</button>
+            <button class="admin-btn del" onclick="adminDeleteUser(${u.telegram_id})">✕</button>
+          </div>`;
+        list.appendChild(div);
+      });
+    } catch(e) {
+      $('adminUsersList').innerHTML = '<p style="color:#8E8E93;padding:16px">Ошибка загрузки</p>';
+    }
+  }
+
+  async function adminChangeRole(targetId, newRole, newRoleLabel) {
+    if (!confirm('Изменить роль на «' + newRoleLabel + '»?')) return;
+    try {
+      await fetch(`${BASE_URL}/api/admin/user/role`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({admin_id: userId, telegram_id: targetId, role: newRole}),
+      });
+      showToast('Роль изменена');
+      loadAdminUsers();
+    } catch(e) { showToast('Ошибка'); }
+  }
+
+  async function adminDeleteUser(targetId) {
+    if (!confirm('Удалить пользователя и все его данные?')) return;
+    try {
+      await fetch(`${BASE_URL}/api/admin/user/${targetId}?admin_id=${userId}`, {method: 'DELETE'});
+      showToast('Пользователь удалён');
+      loadAdminUsers();
+    } catch(e) { showToast('Ошибка'); }
+  }
+
+  // ── Role Selection ──
+  $('roleBuyer').addEventListener('click', async () => {
+    if (!userId) { $('roleOverlay').classList.add('hidden'); await loadContent(); return; }
+    try {
+      await fetch(`${BASE_URL}/api/user/role`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({telegram_id: userId, role: 'buyer'}),
+      });
+      userRole = 'buyer';
+    } catch(e) {}
+    $('roleOverlay').classList.add('hidden');
+    await loadContent();
+  });
+
+  $('roleSupplier').addEventListener('click', async () => {
+    if (!userId) { $('roleOverlay').classList.add('hidden'); await loadContent(); return; }
+    try {
+      await fetch(`${BASE_URL}/api/user/role`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({telegram_id: userId, role: 'supplier'}),
+      });
+      userRole = 'supplier';
+    } catch(e) {}
+    $('roleOverlay').classList.add('hidden');
+    await loadContent();
+  });
+
   // ── Init ──
-  async function init() {
+  async function loadContent() {
+    // Показываем вкладку Админ для администраторов
+    if (ADMIN_IDS.includes(userId)) {
+      const adminTab = $('dealsAdminTab');
+      adminTab.dataset.screen = 'screenAdmin';
+      adminTab.querySelector('.nav-label').textContent = 'Админ';
+      adminTab.querySelector('svg').innerHTML = `<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>`;
+      $('screenAdmin').style.display = '';
+    }
     await loadOffers(null);
     renderCatalogProducts();
     await loadMyOffers();
     renderMyProducts();
+  }
+
+  async function init() {
+    if (userId) {
+      try {
+        const resp = await fetch(`${BASE_URL}/api/user?telegram_id=${userId}`);
+        const userData = await resp.json();
+        if (userData && userData.telegram_id) {
+          if (!userData.role_selected && !ADMIN_IDS.includes(userId)) {
+            $('roleOverlay').classList.remove('hidden');
+            return; // Ждём выбора роли
+          }
+          userRole = userData.is_supplier ? 'supplier' : 'buyer';
+        }
+      } catch(e) {}
+    }
+    await loadContent();
   }
   init();
 </script>

@@ -21,6 +21,7 @@ def init_db():
             city TEXT,
             is_supplier INTEGER DEFAULT 0,
             is_verified INTEGER DEFAULT 0,
+            role_selected INTEGER DEFAULT 0,
             rating REAL DEFAULT 0.0,
             deals_count INTEGER DEFAULT 0,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -134,7 +135,13 @@ def init_db():
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_deals_buyer ON deals(buyer_id)')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_deals_supplier ON deals(supplier_id)')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_messages_deal ON messages(deal_id)')
-    
+
+    # Миграция: добавить role_selected если нет
+    try:
+        cursor.execute('ALTER TABLE users ADD COLUMN role_selected INTEGER DEFAULT 0')
+    except sqlite3.OperationalError:
+        pass  # Колонка уже существует
+
     conn.commit()
     conn.close()
     logging.info("База данных инициализирована")
@@ -754,6 +761,44 @@ def add_review(deal_id, supplier_id, buyer_id, rating, comment=None):
     
     conn.commit()
     conn.close()
+
+def set_user_role(telegram_id, role):
+    """Установить роль пользователя. role: 'buyer' или 'supplier'."""
+    is_supplier = 1 if role == 'supplier' else 0
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute(
+        'UPDATE users SET is_supplier = ?, role_selected = 1 WHERE telegram_id = ?',
+        (is_supplier, telegram_id)
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_all_users(limit=500):
+    """Получить всех пользователей (для админа)."""
+    conn = sqlite3.connect(DB_NAME)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT telegram_id, username, full_name, is_supplier, is_verified,
+               role_selected, rating, deals_count, company_name, city, created_at
+        FROM users ORDER BY created_at DESC LIMIT ?
+    ''', (limit,))
+    users = cursor.fetchall()
+    conn.close()
+    return [dict(u) for u in users]
+
+
+def delete_user(telegram_id):
+    """Удалить пользователя и его предложения с платформы."""
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM offers WHERE supplier_id = ?', (telegram_id,))
+    cursor.execute('DELETE FROM users WHERE telegram_id = ?', (telegram_id,))
+    conn.commit()
+    conn.close()
+
 
 def get_supplier_reviews(supplier_id):
     """Получить отзывы о поставщике"""

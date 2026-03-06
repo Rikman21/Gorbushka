@@ -419,6 +419,80 @@ CORS_HEADERS = {
     "Access-Control-Allow-Headers": "Content-Type",
 }
 
+async def post_user_role_api(request):
+    """API: Установить роль пользователя (POST JSON: telegram_id, role)."""
+    if request.method == "OPTIONS":
+        return web.Response(headers=CORS_HEADERS)
+    try:
+        data = await request.json()
+    except Exception:
+        return web.json_response({"error": "Invalid JSON"}, status=400, headers=CORS_HEADERS)
+    telegram_id = data.get("telegram_id")
+    role = data.get("role")
+    if not telegram_id or role not in ("buyer", "supplier"):
+        return web.json_response({"error": "Required: telegram_id, role (buyer|supplier)"}, status=400, headers=CORS_HEADERS)
+    try:
+        telegram_id = int(telegram_id)
+    except (TypeError, ValueError):
+        return web.json_response({"error": "Invalid telegram_id"}, status=400, headers=CORS_HEADERS)
+    # Не-админы могут выбрать роль только один раз
+    if telegram_id not in ADMIN_IDS:
+        user = database.get_user(telegram_id)
+        if user and user.get("role_selected"):
+            return web.json_response({"error": "Роль уже выбрана. Для изменения обратитесь к администратору."}, status=403, headers=CORS_HEADERS)
+    database.set_user_role(telegram_id, role)
+    return web.json_response({"ok": True}, headers=CORS_HEADERS)
+
+
+async def get_admin_users_api(request):
+    """API: Все пользователи (только для админа, GET ?admin_id=)."""
+    admin_id = request.query.get("admin_id")
+    try:
+        if not admin_id or int(admin_id) not in ADMIN_IDS:
+            return web.json_response({"error": "Нет прав"}, status=403, headers=CORS_HEADERS)
+    except ValueError:
+        return web.json_response({"error": "Нет прав"}, status=403, headers=CORS_HEADERS)
+    users = database.get_all_users()
+    return web.json_response(users, headers=CORS_HEADERS)
+
+
+async def post_admin_user_role_api(request):
+    """API: Изменить роль пользователя (только для админа, POST JSON: admin_id, telegram_id, role)."""
+    if request.method == "OPTIONS":
+        return web.Response(headers=CORS_HEADERS)
+    try:
+        data = await request.json()
+    except Exception:
+        return web.json_response({"error": "Invalid JSON"}, status=400, headers=CORS_HEADERS)
+    try:
+        admin_id = int(data.get("admin_id", 0))
+    except (TypeError, ValueError):
+        admin_id = 0
+    if admin_id not in ADMIN_IDS:
+        return web.json_response({"error": "Нет прав"}, status=403, headers=CORS_HEADERS)
+    telegram_id = data.get("telegram_id")
+    role = data.get("role")
+    if not telegram_id or role not in ("buyer", "supplier"):
+        return web.json_response({"error": "Required: telegram_id, role"}, status=400, headers=CORS_HEADERS)
+    database.set_user_role(int(telegram_id), role)
+    return web.json_response({"ok": True}, headers=CORS_HEADERS)
+
+
+async def delete_admin_user_api(request):
+    """API: Удалить пользователя с платформы (только для админа, DELETE /api/admin/user/{id}?admin_id=)."""
+    user_id = request.match_info.get("id")
+    admin_id = request.query.get("admin_id")
+    try:
+        if not admin_id or int(admin_id) not in ADMIN_IDS:
+            return web.json_response({"error": "Нет прав"}, status=403, headers=CORS_HEADERS)
+        if not user_id:
+            return web.json_response({"error": "id required"}, status=400, headers=CORS_HEADERS)
+        database.delete_user(int(user_id))
+    except ValueError:
+        return web.json_response({"error": "Нет прав"}, status=403, headers=CORS_HEADERS)
+    return web.json_response({"ok": True}, headers=CORS_HEADERS)
+
+
 async def post_become_supplier_api(request):
     """API: Заявка на регистрацию поставщика (POST JSON: telegram_id, company_name, city, phone)."""
     if request.method == "OPTIONS":
@@ -499,6 +573,12 @@ async def start_server():
     app.router.add_post('/api/supplier/import', post_supplier_import_api)
     app.router.add_post('/api/become_supplier', post_become_supplier_api)
     app.router.add_route("OPTIONS", "/api/become_supplier", post_become_supplier_api)
+    app.router.add_post('/api/user/role', post_user_role_api)
+    app.router.add_route("OPTIONS", "/api/user/role", post_user_role_api)
+    app.router.add_get('/api/admin/users', get_admin_users_api)
+    app.router.add_post('/api/admin/user/role', post_admin_user_role_api)
+    app.router.add_route("OPTIONS", "/api/admin/user/role", post_admin_user_role_api)
+    app.router.add_delete('/api/admin/user/{id}', delete_admin_user_api)
     
     runner = web.AppRunner(app)
     await runner.setup()
