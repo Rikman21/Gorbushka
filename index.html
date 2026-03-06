@@ -495,7 +495,7 @@
     <div class="page-title">Мои офферы</div>
     <div class="section-pad">
       <div style="display:flex;gap:8px;margin-bottom:16px">
-        <button class="btn-full btn-primary" onclick="showScreen('screenCreateOffer')" style="flex:1;height:44px;border-radius:12px;font-size:14px">
+        <button class="btn-full btn-primary" onclick="showScreen('screenCreateOffer');loadCatalogForCreate()" style="flex:1;height:44px;border-radius:12px;font-size:14px">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Создать оффер
         </button>
@@ -517,9 +517,18 @@
     <div class="page-title">Новый оффер</div>
     <div class="section-pad">
       <div class="form-group">
-        <label class="form-label">Товар из каталога</label>
-        <select class="form-select" id="createOfferCatalog"><option value="">-- Выберите товар --</option></select>
+        <label class="form-label">Модель</label>
+        <select class="form-select" id="createOfferModel" onchange="onCatalogModelChange()"><option value="">-- Выберите модель --</option></select>
       </div>
+      <div class="form-group" id="createOfferMemoryGroup" style="display:none">
+        <label class="form-label">Память / Конфигурация</label>
+        <select class="form-select" id="createOfferMemory" onchange="onCatalogMemoryChange()"><option value="">-- Выберите --</option></select>
+      </div>
+      <div class="form-group" id="createOfferColorGroup" style="display:none">
+        <label class="form-label">Цвет</label>
+        <select class="form-select" id="createOfferColor" onchange="onCatalogColorChange()"><option value="">-- Выберите --</option></select>
+      </div>
+      <input type="hidden" id="createOfferCatalogId" value="">
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">Цена (₽)</label>
@@ -1157,19 +1166,92 @@ async function deleteOffer(offerId) {
 }
 
 // ===== CREATE OFFER =====
+let catalogAllItems = [];
+
 async function loadCatalogForCreate() {
+  const modelSel = document.getElementById('createOfferModel');
+  if (!modelSel) return;
+  modelSel.innerHTML = '<option value="">Загрузка...</option>';
+  document.getElementById('createOfferMemoryGroup').style.display = 'none';
+  document.getElementById('createOfferColorGroup').style.display = 'none';
+  document.getElementById('createOfferCatalogId').value = '';
   try {
-    const catalog = await api('/api/catalog?all=1');
-    const sel = document.getElementById('createOfferCatalog');
-    if (!sel) return;
-    sel.innerHTML = '<option value="">-- Выберите товар --</option>' +
-      catalog.map(c => `<option value="${c.id}">${esc(c.brand||'')} ${esc(c.model||'')} ${esc(c.memory||'')} ${esc(c.color||'')}</option>`).join('');
-  } catch(e) {}
+    catalogAllItems = await api('/api/catalog?all=1');
+    if (!catalogAllItems || !catalogAllItems.length) {
+      modelSel.innerHTML = '<option value="">Каталог пуст — обратитесь к админу</option>';
+      return;
+    }
+    // Уникальные модели с категорией для группировки
+    const modelMap = {};
+    for (const c of catalogAllItems) {
+      if (!modelMap[c.model]) modelMap[c.model] = c.category || '';
+    }
+    const models = Object.keys(modelMap).sort();
+    modelSel.innerHTML = '<option value="">-- Выберите модель --</option>' +
+      models.map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join('');
+  } catch(e) {
+    modelSel.innerHTML = '<option value="">Ошибка загрузки каталога</option>';
+    showToast('Ошибка загрузки каталога: ' + e.message);
+  }
+}
+
+function onCatalogModelChange() {
+  const model = document.getElementById('createOfferModel').value;
+  const memSel = document.getElementById('createOfferMemory');
+  const memGroup = document.getElementById('createOfferMemoryGroup');
+  const colGroup = document.getElementById('createOfferColorGroup');
+  document.getElementById('createOfferCatalogId').value = '';
+  colGroup.style.display = 'none';
+  if (!model) { memGroup.style.display = 'none'; return; }
+  const memories = [...new Set(
+    catalogAllItems.filter(c => c.model === model && c.memory).map(c => c.memory)
+  )].sort();
+  if (!memories.length) {
+    // Нет вариантов памяти — сразу проверяем цвета
+    memGroup.style.display = 'none';
+    onCatalogMemoryChange();
+    return;
+  }
+  memSel.innerHTML = '<option value="">-- Выберите --</option>' +
+    memories.map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join('');
+  memGroup.style.display = '';
+}
+
+function onCatalogMemoryChange() {
+  const model = document.getElementById('createOfferModel').value;
+  const memory = document.getElementById('createOfferMemory').value;
+  const colSel = document.getElementById('createOfferColor');
+  const colGroup = document.getElementById('createOfferColorGroup');
+  document.getElementById('createOfferCatalogId').value = '';
+  if (!model) { colGroup.style.display = 'none'; return; }
+  const colors = [...new Set(
+    catalogAllItems.filter(c => c.model === model && (c.memory||'') === (memory||'') && c.color).map(c => c.color)
+  )].sort();
+  if (!colors.length) {
+    // нет вариантов цвета — найти ID напрямую
+    onCatalogColorChange();
+    return;
+  }
+  colSel.innerHTML = '<option value="">-- Выберите --</option>' +
+    colors.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+  colGroup.style.display = '';
+}
+
+function onCatalogColorChange() {
+  const model = document.getElementById('createOfferModel').value;
+  const memory = document.getElementById('createOfferMemory').value;
+  const color = document.getElementById('createOfferColor').value;
+  const found = catalogAllItems.find(c =>
+    c.model === model &&
+    (c.memory||'') === (memory||'') &&
+    (c.color||'') === (color||'')
+  );
+  document.getElementById('createOfferCatalogId').value = found ? found.id : '';
 }
 
 async function submitCreateOffer() {
   if (!userId) return;
-  const catalogId = document.getElementById('createOfferCatalog')?.value;
+  const catalogId = document.getElementById('createOfferCatalogId')?.value;
   const price = parseInt(document.getElementById('createOfferPrice')?.value) || 0;
   const qty = parseInt(document.getElementById('createOfferQty')?.value) || 0;
   const condition = document.getElementById('createOfferCondition')?.value || 'new';

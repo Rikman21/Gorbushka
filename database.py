@@ -1,8 +1,10 @@
 import sqlite3
 import logging
+import sys
+import os
 from datetime import datetime
 
-DB_NAME = "market.db"
+DB_NAME = os.path.join(os.path.dirname(os.path.abspath(__file__)), "market.db")
 
 def init_db():
     """Инициализация базы данных для биржи"""
@@ -183,6 +185,10 @@ def _seed_catalog_if_empty():
     conn.close()
     if count == 0:
         try:
+            # Добавляем директорию скрипта в sys.path для работы в systemd
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            if script_dir not in sys.path:
+                sys.path.insert(0, script_dir)
             import seed_catalog
             conn2 = sqlite3.connect(DB_NAME)
             added, _ = seed_catalog.seed(conn2)
