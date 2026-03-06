@@ -170,6 +170,26 @@ def init_db():
     conn.commit()
     conn.close()
     logging.info("База данных инициализирована")
+    # Заполнить каталог если он пустой
+    _seed_catalog_if_empty()
+
+
+def _seed_catalog_if_empty():
+    """Заполняет каталог товарами если он пустой."""
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) FROM catalog")
+    count = cursor.fetchone()[0]
+    conn.close()
+    if count == 0:
+        try:
+            import seed_catalog
+            conn2 = sqlite3.connect(DB_NAME)
+            added, _ = seed_catalog.seed(conn2)
+            conn2.close()
+            logging.info(f"Каталог заполнен: {added} товаров")
+        except Exception as e:
+            logging.warning(f"Не удалось заполнить каталог: {e}")
 
 # ==================== USERS ====================
 
