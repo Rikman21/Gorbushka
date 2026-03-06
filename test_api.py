@@ -160,7 +160,7 @@ if offer_id:
 
 req_id = None
 if isinstance(price_req, dict) and price_req.get("ok"):
-    req_id = price_req.get("request_id")
+    req_id = price_req.get("request_id") or price_req.get("id")
     check("Price request создан", req_id is not None, str(price_req))
 
 test("GET /api/price_requests (supplier)", "GET", f"/api/price_requests?supplier_id={SUPPLIER_ID}", expect_status=200)
@@ -186,15 +186,15 @@ test("GET /api/deals (buyer)", "GET", f"/api/deals?telegram_id={BUYER_ID}", expe
 
 if deal_id:
     test("POST /api/deals/{id}/status → confirmed", "POST", f"/api/deals/{deal_id}/status",
-         body={"telegram_id": BUYER_ID, "status": "confirmed"}, expect_status=200)
+         body={"user_id": BUYER_ID, "status": "confirmed"}, expect_status=200)
     test("POST /api/deals/{id}/status → completed", "POST", f"/api/deals/{deal_id}/status",
-         body={"telegram_id": BUYER_ID, "status": "completed"}, expect_status=200)
+         body={"user_id": BUYER_ID, "status": "completed"}, expect_status=200)
 
 # 8. Отзывы
 print("\n[ REVIEWS ]")
 if deal_id:
     test("POST /api/reviews", "POST", "/api/reviews",
-         body={"deal_id": deal_id, "reviewer_id": BUYER_ID, "rating": 5, "comment": "Отличный поставщик"},
+         body={"deal_id": deal_id, "supplier_id": SUPPLIER_ID, "buyer_id": BUYER_ID, "rating": 5, "comment": "Отличный поставщик"},
          expect_status=200)
 
 # 9. Профиль поставщика и статистика
