@@ -28,17 +28,17 @@ def req(method, path, body=None, expect_status=200):
     try:
         with urllib.request.urlopen(rq, timeout=10) as resp:
             status = resp.status
-            text = resp.read().decode()
+            raw = resp.read()
             try:
-                return status, json.loads(text)
+                return status, json.loads(raw.decode())
             except Exception:
-                return status, text
+                return status, raw[:80]
     except urllib.error.HTTPError as e:
-        text = e.read().decode()
+        raw = e.read()
         try:
-            return e.code, json.loads(text)
+            return e.code, json.loads(raw.decode())
         except Exception:
-            return e.code, text
+            return e.code, raw[:80]
     except Exception as ex:
         return 0, str(ex)
 
@@ -127,8 +127,8 @@ new_offer = test("POST /api/supplier/offers (model+color)", "POST", "/api/suppli
     }, expect_status=200)
 offer_id = None
 if isinstance(new_offer, dict) and new_offer.get("ok"):
-    offer_id = new_offer.get("offer_id")
-    check("Оффер создан, offer_id получен", offer_id is not None, str(new_offer))
+    offer_id = new_offer.get("offer_id") or new_offer.get("id")
+    check("Оффер создан, id получен", offer_id is not None, str(new_offer))
 elif isinstance(new_offer, dict):
     check("Оффер создан", False, str(new_offer))
 
@@ -199,13 +199,13 @@ if deal_id:
 
 # 9. Профиль поставщика и статистика
 print("\n[ SUPPLIER PROFILE ]")
-test("GET /api/supplier", "GET", f"/api/supplier?telegram_id={SUPPLIER_ID}", expect_status=200)
+test("GET /api/supplier", "GET", f"/api/supplier?supplier_id={SUPPLIER_ID}", expect_status=200)
 test("GET /api/supplier/stats", "GET", f"/api/supplier/stats?telegram_id={SUPPLIER_ID}", expect_status=200)
 
 # 10. Шаблон
 print("\n[ TEMPLATE ]")
 status, body = req("GET", "/api/supplier/template")
-check("GET /api/supplier/template", status == 200, f"status={status}")
+check("GET /api/supplier/template (Excel)", status == 200, f"status={status}, body={str(body)[:80]}")
 
 # 11. Админ
 print("\n[ ADMIN ]")

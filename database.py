@@ -818,6 +818,8 @@ def set_user_role(telegram_id, role):
     is_supplier = 1 if role == 'supplier' else 0
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
+    # Гарантируем существование пользователя перед обновлением
+    cursor.execute('INSERT OR IGNORE INTO users (telegram_id) VALUES (?)', (telegram_id,))
     cursor.execute(
         'UPDATE users SET is_supplier = ?, role_selected = 1 WHERE telegram_id = ?',
         (is_supplier, telegram_id)
