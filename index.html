@@ -599,6 +599,11 @@
   <!-- ===== ADMIN SCREEN ===== -->
   <div class="screen" id="screenAdmin">
     <div class="page-title">Администратор</div>
+    <div style="padding: 0 16px 12px; display:flex; gap:8px; align-items:center">
+      <span style="font-size:12px;color:#8E8E93;font-weight:500">Тест режим:</span>
+      <button id="adminViewBuyerBtn" class="btn-sm" onclick="adminSwitchView('buyer')" style="border-radius:10px;font-size:12px;padding:6px 12px">🛒 Покупатель</button>
+      <button id="adminViewSupplierBtn" class="btn-sm" onclick="adminSwitchView('supplier')" style="border-radius:10px;font-size:12px;padding:6px 12px">📦 Поставщик</button>
+    </div>
     <div class="admin-tabs" id="adminTabs">
       <button class="admin-tab active" data-tab="adminSupplierReqs" onclick="switchAdminTab(this)">Поставщики</button>
       <button class="admin-tab" data-tab="adminDeals" onclick="switchAdminTab(this)">Сделки</button>
@@ -714,7 +719,7 @@ function navTo(screenId) {
   else if (screenId === 'screenSupplierDeals') loadSupplierDeals();
   else if (screenId === 'screenMyProfile') loadMyProfile();
   else if (screenId === 'screenBuyerProfile') loadBuyerProfile();
-  else if (screenId === 'screenAdmin') loadAdminTab('adminSupplierReqs');
+  else if (screenId === 'screenAdmin') { loadAdminTab('adminSupplierReqs'); updateAdminViewBtns(); }
 }
 
 function showScreen(id, pushHistory = true) {
@@ -1362,6 +1367,40 @@ async function loadBuyerProfile() {
     `;
   } catch(e) {
     el.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">${e.message}</div></div>`;
+  }
+}
+
+async function adminSwitchView(role) {
+  // Быстрое переключение роли для тестирования (только для админа)
+  if (!isAdmin) return;
+  try {
+    await api('/api/user/role', {
+      method: 'POST',
+      body: JSON.stringify({telegram_id: parseInt(userId), role})
+    });
+    isSupplier = role === 'supplier';
+    if (currentUser) currentUser.is_supplier = isSupplier ? 1 : 0;
+    buildNav();
+    updateHeaderBadge();
+    updateAdminViewBtns();
+    // Переходим на соответствующий главный экран
+    navTo(isSupplier ? 'screenMyOffers' : 'screenFeed');
+    showToast(`Тест-режим: ${isSupplier ? 'Поставщик' : 'Покупатель'}`);
+  } catch(e) {
+    showToast('Ошибка: ' + e.message);
+  }
+}
+
+function updateAdminViewBtns() {
+  const buyerBtn = document.getElementById('adminViewBuyerBtn');
+  const supplierBtn = document.getElementById('adminViewSupplierBtn');
+  if (!buyerBtn || !supplierBtn) return;
+  if (isSupplier) {
+    buyerBtn.className = 'btn-sm btn-secondary';
+    supplierBtn.className = 'btn-sm btn-green';
+  } else {
+    buyerBtn.className = 'btn-sm btn-primary';
+    supplierBtn.className = 'btn-sm btn-secondary';
   }
 }
 
