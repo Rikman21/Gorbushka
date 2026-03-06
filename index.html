@@ -1302,7 +1302,9 @@ function _showColorSelector(model, memory) {
 
 function onCatalogColorChange() {
   const model = document.getElementById('createOfferModel').value;
-  const memory = document.getElementById('createOfferMemory').value;
+  // Если поле памяти скрыто — не используем его значение (может быть стale от предыдущей модели)
+  const memGroup = document.getElementById('createOfferMemoryGroup');
+  const memory = memGroup.style.display === 'none' ? '' : document.getElementById('createOfferMemory').value;
   const color = document.getElementById('createOfferColor').value;
   if (model && color) {
     document.getElementById('createOfferCatalogId').value = JSON.stringify({model, memory, color});
