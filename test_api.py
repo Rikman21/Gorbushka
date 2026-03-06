@@ -73,6 +73,13 @@ def test(name, method, path, body=None, expect_status=200, expect_key=None, expe
 # ─────────────────────────────────────────
 print(f"\n=== API TESTS  {BASE} ===\n")
 
+# Очистка тестовых пользователей перед запуском
+print("[ CLEANUP ]")
+for uid in [BUYER_ID, SUPPLIER_ID]:
+    s, _ = req("DELETE", f"/api/admin/user/{uid}?admin_id={ADMIN_ID}")
+    # 200 = удалён, 404 = не существовал — оба нормальны
+    print(f"  cleanup user {uid}: {'ok' if s in (200, 404) else 'skip'}")
+
 # 1. Health
 print("[ HEALTH ]")
 test("GET /health", "GET", "/health", expect_status=200)
