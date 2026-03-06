@@ -658,6 +658,84 @@
 const API_BASE = 'http://45.131.43.120:8080';
 const ADMIN_IDS = ['210419', '464896073'];
 
+// Встроенный каталог Apple — не требует API-запроса
+const CATALOG_MODELS = {
+  // iPhone 17
+  "iPhone 17 Pro":     {cat:"iPhone",mem:["128GB","256GB","512GB","1TB"],col:["Black Titanium","White Titanium","Natural Titanium","Desert Titanium"]},
+  "iPhone 17 Pro Max": {cat:"iPhone",mem:["256GB","512GB","1TB"],col:["Black Titanium","White Titanium","Natural Titanium","Desert Titanium"]},
+  "iPhone Air":        {cat:"iPhone",mem:["128GB","256GB","512GB"],col:["Black","White","Sky Blue","Ultramarine","Pink"]},
+  "iPhone 17":         {cat:"iPhone",mem:["128GB","256GB","512GB"],col:["Black","White","Sky Blue","Ultramarine","Pink"]},
+  // iPhone 16
+  "iPhone 16 Pro":     {cat:"iPhone",mem:["128GB","256GB","512GB","1TB"],col:["Black Titanium","White Titanium","Natural Titanium","Desert Titanium"]},
+  "iPhone 16 Pro Max": {cat:"iPhone",mem:["256GB","512GB","1TB"],col:["Black Titanium","White Titanium","Natural Titanium","Desert Titanium"]},
+  "iPhone 16":         {cat:"iPhone",mem:["128GB","256GB","512GB"],col:["Black","White","Pink","Teal","Ultramarine"]},
+  "iPhone 16 Plus":    {cat:"iPhone",mem:["128GB","256GB","512GB"],col:["Black","White","Pink","Teal","Ultramarine"]},
+  "iPhone 16e":        {cat:"iPhone",mem:["128GB","256GB","512GB"],col:["Black","White"]},
+  // iPhone 15
+  "iPhone 15 Pro":     {cat:"iPhone",mem:["128GB","256GB","512GB","1TB"],col:["Black Titanium","White Titanium","Blue Titanium","Natural Titanium"]},
+  "iPhone 15 Pro Max": {cat:"iPhone",mem:["256GB","512GB","1TB"],col:["Black Titanium","White Titanium","Blue Titanium","Natural Titanium"]},
+  "iPhone 15":         {cat:"iPhone",mem:["128GB","256GB","512GB"],col:["Black","Yellow","Pink","Green","Blue"]},
+  "iPhone 15 Plus":    {cat:"iPhone",mem:["128GB","256GB","512GB"],col:["Black","Yellow","Pink","Green","Blue"]},
+  // iPhone 14
+  "iPhone 14 Pro":     {cat:"iPhone",mem:["128GB","256GB","512GB","1TB"],col:["Space Black","Silver","Gold","Deep Purple"]},
+  "iPhone 14 Pro Max": {cat:"iPhone",mem:["128GB","256GB","512GB","1TB"],col:["Space Black","Silver","Gold","Deep Purple"]},
+  "iPhone 14":         {cat:"iPhone",mem:["128GB","256GB","512GB"],col:["Midnight","Starlight","Blue","Purple","Yellow","Product Red"]},
+  "iPhone 14 Plus":    {cat:"iPhone",mem:["128GB","256GB","512GB"],col:["Midnight","Starlight","Blue","Purple","Yellow","Product Red"]},
+  // iPhone 13
+  "iPhone 13 Pro":     {cat:"iPhone",mem:["128GB","256GB","512GB","1TB"],col:["Alpine Green","Sierra Blue","Silver","Gold","Graphite"]},
+  "iPhone 13 Pro Max": {cat:"iPhone",mem:["128GB","256GB","512GB","1TB"],col:["Alpine Green","Sierra Blue","Silver","Gold","Graphite"]},
+  "iPhone 13":         {cat:"iPhone",mem:["128GB","256GB","512GB"],col:["Midnight","Starlight","Blue","Pink","Green","Product Red"]},
+  "iPhone 13 mini":    {cat:"iPhone",mem:["128GB","256GB","512GB"],col:["Midnight","Starlight","Blue","Pink","Green","Product Red"]},
+  // iPhone 12
+  "iPhone 12 Pro":     {cat:"iPhone",mem:["128GB","256GB","512GB","1TB"],col:["Pacific Blue","Gold","Silver","Graphite"]},
+  "iPhone 12 Pro Max": {cat:"iPhone",mem:["128GB","256GB","512GB","1TB"],col:["Pacific Blue","Gold","Silver","Graphite"]},
+  "iPhone 12":         {cat:"iPhone",mem:["64GB","128GB","256GB"],col:["Black","White","Blue","Green","Product Red","Purple"]},
+  "iPhone 12 mini":    {cat:"iPhone",mem:["64GB","128GB","256GB"],col:["Black","White","Blue","Green","Product Red","Purple"]},
+  // iPhone 11
+  "iPhone 11 Pro":     {cat:"iPhone",mem:["64GB","256GB","512GB"],col:["Midnight Green","Space Gray","Silver","Gold"]},
+  "iPhone 11 Pro Max": {cat:"iPhone",mem:["64GB","256GB","512GB"],col:["Midnight Green","Space Gray","Silver","Gold"]},
+  "iPhone 11":         {cat:"iPhone",mem:["64GB","128GB","256GB"],col:["Black","White","Green","Yellow","Purple","Product Red"]},
+  // iPhone SE
+  "iPhone SE (3rd generation)": {cat:"iPhone",mem:["64GB","128GB","256GB"],col:["Midnight","Starlight","Product Red"]},
+  "iPhone SE (2nd generation)": {cat:"iPhone",mem:["64GB","128GB","256GB"],col:["Black","White","Product Red"]},
+  // iPad
+  "iPad Pro 11-inch":            {cat:"iPad",mem:["256GB","512GB","1TB","2TB"],col:["Space Black","Silver"]},
+  "iPad Pro 13-inch":            {cat:"iPad",mem:["256GB","512GB","1TB","2TB"],col:["Space Black","Silver"]},
+  "iPad Air 11-inch":            {cat:"iPad",mem:["128GB","256GB","512GB","1TB"],col:["Blue","Starlight","Purple","Sky Blue","Green"]},
+  "iPad Air 13-inch":            {cat:"iPad",mem:["128GB","256GB","512GB","1TB"],col:["Blue","Starlight","Purple","Sky Blue","Green"]},
+  "iPad (A16) 11-inch":          {cat:"iPad",mem:["128GB","256GB"],col:["Blue","Pink","Yellow","Silver"]},
+  "iPad mini 8.3-inch (A17 Pro)":{cat:"iPad",mem:["128GB","256GB","512GB"],col:["Blue","Starlight","Purple","Pink"]},
+  // Mac
+  "MacBook Air 13-inch": {cat:"Mac",mem:["256GB","512GB","1TB","2TB"],col:["Midnight","Starlight","Space Gray","Silver","Sky Blue","Stardust"]},
+  "MacBook Air 15-inch": {cat:"Mac",mem:["256GB","512GB","1TB","2TB"],col:["Midnight","Starlight","Space Gray","Silver","Sky Blue","Stardust"]},
+  "MacBook Pro 14-inch": {cat:"Mac",mem:["512GB","1TB","2TB","4TB"],col:["Space Black","Silver"]},
+  "MacBook Pro 16-inch": {cat:"Mac",mem:["512GB","1TB","2TB","4TB"],col:["Space Black","Silver"]},
+  "iMac 24-inch":        {cat:"Mac",mem:["256GB","512GB","1TB","2TB"],col:["Silver","Pink","Blue","Green","Yellow","Orange","Purple"]},
+  "Mac mini":            {cat:"Mac",mem:["256GB","512GB","1TB","2TB"],col:["Silver"]},
+  "Mac Studio":          {cat:"Mac",mem:["512GB","1TB","2TB","4TB"],col:["Silver"]},
+  "Mac Pro":             {cat:"Mac",mem:["1TB","2TB","4TB","8TB"],col:["Silver"]},
+  // Watch
+  "Apple Watch Series 11":          {cat:"Watch",mem:["GPS","GPS+Cellular"],col:["Midnight","Starlight","Silver","Rose Gold","Black","Blue"]},
+  "Apple Watch Ultra 3":             {cat:"Watch",mem:["GPS+Cellular"],col:["Natural Titanium","Black Titanium"]},
+  "Apple Watch SE (3rd generation)": {cat:"Watch",mem:["GPS","GPS+Cellular"],col:["Midnight","Starlight","Silver"]},
+  // AirPods
+  "AirPods Pro 3":            {cat:"AirPods",mem:[""],col:["White"]},
+  "AirPods Pro 2":            {cat:"AirPods",mem:[""],col:["White"]},
+  "AirPods 4":                {cat:"AirPods",mem:[""],col:["White"]},
+  "AirPods 4 (ANC)":          {cat:"AirPods",mem:[""],col:["White"]},
+  "AirPods Max":              {cat:"AirPods",mem:[""],col:["Midnight","Starlight","Blue","Purple","Orange"]},
+  "AirPods (3rd generation)": {cat:"AirPods",mem:[""],col:["White"]},
+  "AirPods (2nd generation)": {cat:"AirPods",mem:[""],col:["White"]},
+  // Other
+  "Apple TV 4K":              {cat:"TV & Home",mem:["Wi-Fi","Wi-Fi+Ethernet"],col:["Black"]},
+  "HomePod (2nd generation)": {cat:"TV & Home",mem:[""],col:["Midnight","White"]},
+  "HomePod mini":             {cat:"TV & Home",mem:[""],col:["Midnight","White","Yellow","Orange","Blue"]},
+  "AirTag":                   {cat:"TV & Home",mem:["1 Pack","4 Pack"],col:[""]},
+  "Apple Vision Pro":         {cat:"TV & Home",mem:["256GB","512GB","1TB"],col:["Silver"]},
+  "Studio Display":           {cat:"TV & Home",mem:[""],col:["Silver"]},
+  "Pro Display XDR":          {cat:"TV & Home",mem:[""],col:["Silver"]},
+};
+
 const tg = window.Telegram?.WebApp;
 const tgUser = tg?.initDataUnsafe?.user;
 const urlParams = new URLSearchParams(window.location.search);
@@ -1166,33 +1244,15 @@ async function deleteOffer(offerId) {
 }
 
 // ===== CREATE OFFER =====
-let catalogAllItems = [];
-
-async function loadCatalogForCreate() {
+function loadCatalogForCreate() {
   const modelSel = document.getElementById('createOfferModel');
   if (!modelSel) return;
-  modelSel.innerHTML = '<option value="">Загрузка...</option>';
   document.getElementById('createOfferMemoryGroup').style.display = 'none';
   document.getElementById('createOfferColorGroup').style.display = 'none';
   document.getElementById('createOfferCatalogId').value = '';
-  try {
-    catalogAllItems = await api('/api/catalog?all=1');
-    if (!catalogAllItems || !catalogAllItems.length) {
-      modelSel.innerHTML = '<option value="">Каталог пуст — обратитесь к админу</option>';
-      return;
-    }
-    // Уникальные модели с категорией для группировки
-    const modelMap = {};
-    for (const c of catalogAllItems) {
-      if (!modelMap[c.model]) modelMap[c.model] = c.category || '';
-    }
-    const models = Object.keys(modelMap).sort();
-    modelSel.innerHTML = '<option value="">-- Выберите модель --</option>' +
-      models.map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join('');
-  } catch(e) {
-    modelSel.innerHTML = '<option value="">Ошибка загрузки каталога</option>';
-    showToast('Ошибка загрузки каталога: ' + e.message);
-  }
+  const models = Object.keys(CATALOG_MODELS);
+  modelSel.innerHTML = '<option value="">-- Выберите модель --</option>' +
+    models.map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join('');
 }
 
 function onCatalogModelChange() {
@@ -1202,14 +1262,12 @@ function onCatalogModelChange() {
   const colGroup = document.getElementById('createOfferColorGroup');
   document.getElementById('createOfferCatalogId').value = '';
   colGroup.style.display = 'none';
-  if (!model) { memGroup.style.display = 'none'; return; }
-  const memories = [...new Set(
-    catalogAllItems.filter(c => c.model === model && c.memory).map(c => c.memory)
-  )].sort();
+  if (!model || !CATALOG_MODELS[model]) { memGroup.style.display = 'none'; return; }
+  const memories = CATALOG_MODELS[model].mem.filter(m => m);
   if (!memories.length) {
-    // Нет вариантов памяти — сразу проверяем цвета
     memGroup.style.display = 'none';
-    onCatalogMemoryChange();
+    // нет памяти — сразу показываем цвета
+    _showColorSelector(model, '');
     return;
   }
   memSel.innerHTML = '<option value="">-- Выберите --</option>' +
@@ -1220,16 +1278,21 @@ function onCatalogModelChange() {
 function onCatalogMemoryChange() {
   const model = document.getElementById('createOfferModel').value;
   const memory = document.getElementById('createOfferMemory').value;
+  document.getElementById('createOfferCatalogId').value = '';
+  if (!model) return;
+  _showColorSelector(model, memory);
+}
+
+function _showColorSelector(model, memory) {
   const colSel = document.getElementById('createOfferColor');
   const colGroup = document.getElementById('createOfferColorGroup');
   document.getElementById('createOfferCatalogId').value = '';
-  if (!model) { colGroup.style.display = 'none'; return; }
-  const colors = [...new Set(
-    catalogAllItems.filter(c => c.model === model && (c.memory||'') === (memory||'') && c.color).map(c => c.color)
-  )].sort();
+  if (!CATALOG_MODELS[model]) { colGroup.style.display = 'none'; return; }
+  const colors = CATALOG_MODELS[model].col.filter(c => c);
   if (!colors.length) {
-    // нет вариантов цвета — найти ID напрямую
-    onCatalogColorChange();
+    colGroup.style.display = 'none';
+    // нет цвета — запись полная
+    document.getElementById('createOfferCatalogId').value = JSON.stringify({model, memory, color:''});
     return;
   }
   colSel.innerHTML = '<option value="">-- Выберите --</option>' +
@@ -1241,27 +1304,28 @@ function onCatalogColorChange() {
   const model = document.getElementById('createOfferModel').value;
   const memory = document.getElementById('createOfferMemory').value;
   const color = document.getElementById('createOfferColor').value;
-  const found = catalogAllItems.find(c =>
-    c.model === model &&
-    (c.memory||'') === (memory||'') &&
-    (c.color||'') === (color||'')
-  );
-  document.getElementById('createOfferCatalogId').value = found ? found.id : '';
+  if (model && color) {
+    document.getElementById('createOfferCatalogId').value = JSON.stringify({model, memory, color});
+  } else {
+    document.getElementById('createOfferCatalogId').value = '';
+  }
 }
 
 async function submitCreateOffer() {
   if (!userId) return;
-  const catalogId = document.getElementById('createOfferCatalogId')?.value;
+  const catalogRaw = document.getElementById('createOfferCatalogId')?.value;
   const price = parseInt(document.getElementById('createOfferPrice')?.value) || 0;
   const qty = parseInt(document.getElementById('createOfferQty')?.value) || 0;
   const condition = document.getElementById('createOfferCondition')?.value || 'new';
   const priceHidden = document.getElementById('createOfferHidePrice')?.checked ? 1 : 0;
   const comment = document.getElementById('createOfferComment')?.value || '';
-  if (!catalogId || !price) { showToast('Выберите товар и укажите цену'); return; }
+  if (!catalogRaw || !price) { showToast('Выберите товар и укажите цену'); return; }
+  let catalogSel;
+  try { catalogSel = JSON.parse(catalogRaw); } catch(e) { showToast('Выберите товар'); return; }
   try {
     await api('/api/supplier/offers', {
       method: 'POST',
-      body: JSON.stringify({telegram_id: parseInt(userId), product_id: parseInt(catalogId), price, quantity: qty, comment})
+      body: JSON.stringify({telegram_id: parseInt(userId), model: catalogSel.model, memory: catalogSel.memory||'', color: catalogSel.color||'', price, quantity: qty, comment})
     });
     if (priceHidden) {
       // get last offer and toggle

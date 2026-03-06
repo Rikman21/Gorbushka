@@ -199,7 +199,9 @@ async def get_supplier_offers_api(request):
     return web.json_response(offers, headers=CORS_HEADERS)
 
 async def post_supplier_offers_api(request):
-    """API: Добавить предложение (POST JSON: telegram_id, product_id [catalog_id], price, quantity опционально)."""
+    """API: Добавить предложение.
+    Принимает JSON: telegram_id, price, quantity
+    и либо product_id (catalog_id), либо model+memory+color для поиска в каталоге."""
     if request.method == "OPTIONS":
         return web.Response(headers=CORS_HEADERS)
     try:
@@ -211,24 +213,44 @@ async def post_supplier_offers_api(request):
     product_id = data.get("product_id")
     price = data.get("price")
     quantity = data.get("quantity")
-    if telegram_id is None or product_id is None or price is None:
+    if telegram_id is None or price is None:
         return web.json_response(
-            {"ok": False, "error": "Required: telegram_id, product_id, price"},
+            {"ok": False, "error": "Required: telegram_id, price"},
             status=400,
             headers=CORS_HEADERS,
         )
     try:
         telegram_id = int(telegram_id)
-        catalog_id = int(product_id)
         price = int(price)
         quantity = int(quantity) if quantity is not None else 0
     except (TypeError, ValueError) as e:
         print("[post_supplier_offers] Bad types:", str(e))
         return web.json_response(
-            {"ok": False, "error": "telegram_id, product_id, price must be numbers"},
+            {"ok": False, "error": "telegram_id, price must be numbers"},
             status=400,
             headers=CORS_HEADERS,
         )
+    # Определяем catalog_id: по product_id или по model/memory/color
+    if product_id is not None:
+        try:
+            catalog_id = int(product_id)
+        except (TypeError, ValueError):
+            return web.json_response({"ok": False, "error": "product_id must be a number"}, status=400, headers=CORS_HEADERS)
+    else:
+        model = (data.get("model") or "").strip()
+        memory = (data.get("memory") or "").strip()
+        color = (data.get("color") or "").strip()
+        if not model:
+            return web.json_response({"ok": False, "error": "Required: product_id or model"}, status=400, headers=CORS_HEADERS)
+        catalog_id = database.find_catalog_by_brand_model_memory_color("Apple", model, memory, color)
+        if not catalog_id:
+            # Попробуем добавить товар в каталог автоматически
+            ok, msg = database.add_catalog_item("iPhone" if "iPhone" in model else "Apple", "Apple", model, memory, color,
+                                                 f"{model}-{memory}-{color}".upper().replace(" ", "-")[:80])
+            if ok:
+                catalog_id = database.find_catalog_by_brand_model_memory_color("Apple", model, memory, color)
+        if not catalog_id:
+            return web.json_response({"ok": False, "error": f"Товар '{model}' не найден в каталоге"}, status=404, headers=CORS_HEADERS)
     if price < 0:
         return web.json_response({"ok": False, "error": "price must be >= 0"}, status=400, headers=CORS_HEADERS)
     if quantity < 0:
