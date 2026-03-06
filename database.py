@@ -57,6 +57,7 @@ def init_db():
             warranty_months INTEGER DEFAULT 12,
             is_available INTEGER DEFAULT 1,
             is_visible INTEGER DEFAULT 1,
+            price_hidden INTEGER DEFAULT 0,
             comment TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -128,6 +129,26 @@ def init_db():
             FOREIGN KEY (telegram_id) REFERENCES users(telegram_id)
         )
     ''')
+
+    # Таблица запросов цены (для скрытых прайсов)
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS price_requests (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            offer_id INTEGER NOT NULL,
+            buyer_id INTEGER NOT NULL,
+            supplier_id INTEGER NOT NULL,
+            quantity INTEGER DEFAULT 1,
+            status TEXT DEFAULT 'pending',
+            buyer_price INTEGER,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            responded_at DATETIME,
+            FOREIGN KEY (offer_id) REFERENCES offers(id),
+            FOREIGN KEY (buyer_id) REFERENCES users(telegram_id),
+            FOREIGN KEY (supplier_id) REFERENCES users(telegram_id)
+        )
+    ''')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_price_requests_supplier ON price_requests(supplier_id)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_price_requests_buyer ON price_requests(buyer_id)')
     
     # Индексы для быстрого поиска
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_offers_supplier ON offers(supplier_id)')
@@ -136,11 +157,15 @@ def init_db():
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_deals_supplier ON deals(supplier_id)')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_messages_deal ON messages(deal_id)')
 
-    # Миграция: добавить role_selected если нет
-    try:
-        cursor.execute('ALTER TABLE users ADD COLUMN role_selected INTEGER DEFAULT 0')
-    except sqlite3.OperationalError:
-        pass  # Колонка уже существует
+    # Миграции: добавить колонки если не существуют
+    for migration in [
+        'ALTER TABLE users ADD COLUMN role_selected INTEGER DEFAULT 0',
+        'ALTER TABLE offers ADD COLUMN price_hidden INTEGER DEFAULT 0',
+    ]:
+        try:
+            cursor.execute(migration)
+        except sqlite3.OperationalError:
+            pass
 
     conn.commit()
     conn.close()
@@ -512,7 +537,7 @@ def update_offer(offer_id, **kwargs):
     fields = []
     values = []
     for key, value in kwargs.items():
-        if key in ['price', 'quantity', 'moq', 'condition', 'delivery_days', 'warranty_months', 'is_available', 'is_visible', 'comment']:
+        if key in ['price', 'quantity', 'moq', 'condition', 'delivery_days', 'warranty_months', 'is_available', 'is_visible', 'price_hidden', 'comment']:
             fields.append(f"{key} = ?")
             values.append(value)
     
@@ -798,6 +823,160 @@ def delete_user(telegram_id):
     cursor.execute('DELETE FROM users WHERE telegram_id = ?', (telegram_id,))
     conn.commit()
     conn.close()
+
+
+def get_all_deals(limit=200):
+    """Получить все сделки (для админа)."""
+    conn = sqlite3.connect(DB_NAME)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT d.*,
+            c.model, c.memory, c.color,
+            ub.username as buyer_username, ub.full_name as buyer_name,
+            us.username as supplier_username, us.company_name as supplier_company
+        FROM deals d
+        JOIN offers o ON d.offer_id = o.id
+        JOIN catalog c ON o.catalog_id = c.id
+        JOIN users ub ON d.buyer_id = ub.telegram_id
+        JOIN users us ON d.supplier_id = us.telegram_id
+        ORDER BY d.created_at DESC LIMIT ?
+    ''', (limit,))
+    deals = cursor.fetchall()
+    conn.close()
+    return [dict(d) for d in deals]
+
+
+def get_supplier_stats(supplier_id):
+    """Статистика поставщика: всего сделок, % подтверждённых, % отменённых."""
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT
+            COUNT(*) as total,
+            SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
+            SUM(CASE WHEN status IN ('rejected','cancelled') THEN 1 ELSE 0 END) as cancelled
+        FROM deals WHERE supplier_id = ?
+    ''', (supplier_id,))
+    row = cursor.fetchone()
+    conn.close()
+    total = row[0] or 0
+    completed = row[1] or 0
+    cancelled = row[2] or 0
+    confirmed_rate = round(completed / total * 100) if total > 0 else 0
+    cancel_rate = round(cancelled / total * 100) if total > 0 else 0
+    return {'total': total, 'completed': completed, 'cancelled': cancelled,
+            'confirmed_rate': confirmed_rate, 'cancel_rate': cancel_rate}
+
+
+# ==================== PRICE REQUESTS ====================
+
+def create_price_request(offer_id, buyer_id, supplier_id, quantity=1):
+    """Создать запрос цены."""
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO price_requests (offer_id, buyer_id, supplier_id, quantity)
+        VALUES (?, ?, ?, ?)
+    ''', (offer_id, buyer_id, supplier_id, quantity))
+    request_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    return request_id
+
+
+def get_price_request(request_id):
+    """Получить запрос цены по ID."""
+    conn = sqlite3.connect(DB_NAME)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT pr.*,
+            c.model, c.memory, c.color,
+            ub.username as buyer_username, ub.full_name as buyer_name,
+            us.company_name as supplier_company
+        FROM price_requests pr
+        JOIN offers o ON pr.offer_id = o.id
+        JOIN catalog c ON o.catalog_id = c.id
+        JOIN users ub ON pr.buyer_id = ub.telegram_id
+        JOIN users us ON pr.supplier_id = us.telegram_id
+        WHERE pr.id = ?
+    ''', (request_id,))
+    row = cursor.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def respond_price_request(request_id, price):
+    """Поставщик отвечает ценой."""
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute('''
+        UPDATE price_requests SET status = 'responded', buyer_price = ?, responded_at = ?
+        WHERE id = ?
+    ''', (price, datetime.now(), request_id))
+    conn.commit()
+    conn.close()
+
+
+def expire_price_request(request_id):
+    """Истёк таймер запроса цены."""
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute("UPDATE price_requests SET status = 'expired' WHERE id = ?", (request_id,))
+    conn.commit()
+    conn.close()
+
+
+def cancel_price_request(request_id):
+    """Отмена запроса цены покупателем."""
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute("UPDATE price_requests SET status = 'cancelled' WHERE id = ?", (request_id,))
+    conn.commit()
+    conn.close()
+
+
+def get_pending_price_requests(supplier_id):
+    """Входящие запросы цены для поставщика."""
+    conn = sqlite3.connect(DB_NAME)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT pr.*,
+            c.model, c.memory, c.color,
+            ub.username as buyer_username, ub.full_name as buyer_name
+        FROM price_requests pr
+        JOIN offers o ON pr.offer_id = o.id
+        JOIN catalog c ON o.catalog_id = c.id
+        JOIN users ub ON pr.buyer_id = ub.telegram_id
+        WHERE pr.supplier_id = ? AND pr.status = 'pending'
+        ORDER BY pr.created_at DESC
+    ''', (supplier_id,))
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def get_buyer_price_requests(buyer_id):
+    """Все запросы цены покупателя."""
+    conn = sqlite3.connect(DB_NAME)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT pr.*,
+            c.model, c.memory, c.color,
+            us.company_name as supplier_company, us.username as supplier_username
+        FROM price_requests pr
+        JOIN offers o ON pr.offer_id = o.id
+        JOIN catalog c ON o.catalog_id = c.id
+        JOIN users us ON pr.supplier_id = us.telegram_id
+        WHERE pr.buyer_id = ?
+        ORDER BY pr.created_at DESC
+    ''', (buyer_id,))
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
 
 
 def get_supplier_reviews(supplier_id):

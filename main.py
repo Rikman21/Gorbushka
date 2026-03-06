@@ -493,6 +493,349 @@ async def delete_admin_user_api(request):
     return web.json_response({"ok": True}, headers=CORS_HEADERS)
 
 
+async def post_create_deal_api(request):
+    """API: Создать сделку (POST JSON: buyer_id, offer_id, quantity)."""
+    if request.method == "OPTIONS":
+        return web.Response(headers=CORS_HEADERS)
+    try:
+        data = await request.json()
+    except Exception:
+        return web.json_response({"error": "Invalid JSON"}, status=400, headers=CORS_HEADERS)
+    buyer_id = data.get("buyer_id")
+    offer_id = data.get("offer_id")
+    quantity = data.get("quantity", 1)
+    if not buyer_id or not offer_id:
+        return web.json_response({"error": "Required: buyer_id, offer_id"}, status=400, headers=CORS_HEADERS)
+    try:
+        buyer_id = int(buyer_id)
+        offer_id = int(offer_id)
+        quantity = int(quantity)
+    except (TypeError, ValueError):
+        return web.json_response({"error": "Invalid types"}, status=400, headers=CORS_HEADERS)
+    offer = database.get_offer_by_id(offer_id)
+    if not offer:
+        return web.json_response({"error": "Offer not found"}, status=404, headers=CORS_HEADERS)
+    supplier_id = offer['supplier_id']
+    price = offer['price']
+    deal_id = database.create_deal(buyer_id, supplier_id, offer_id, quantity, price)
+    buyer_user = database.get_user(buyer_id)
+    buyer_name = (buyer_user and (buyer_user.get('username') or buyer_user.get('full_name'))) or 'Покупатель'
+    try:
+        await bot.send_message(
+            supplier_id,
+            f"🔔 Новая сделка #{deal_id}\n\n"
+            f"📦 {offer.get('model','')} {offer.get('memory','')} {offer.get('color','')}\n"
+            f"💰 {price:,} ₽ × {quantity} шт\n"
+            f"👤 Покупатель: {buyer_name}\n\n"
+            f"Откройте биржу для подтверждения"
+        )
+    except Exception as e:
+        logging.warning("Не удалось уведомить поставщика о сделке: %s", e)
+    return web.json_response({"ok": True, "deal_id": deal_id}, headers=CORS_HEADERS)
+
+
+async def post_price_request_api(request):
+    """API: Запросить цену (POST JSON: offer_id, buyer_id, quantity)."""
+    if request.method == "OPTIONS":
+        return web.Response(headers=CORS_HEADERS)
+    try:
+        data = await request.json()
+    except Exception:
+        return web.json_response({"error": "Invalid JSON"}, status=400, headers=CORS_HEADERS)
+    offer_id = data.get("offer_id")
+    buyer_id = data.get("buyer_id")
+    quantity = data.get("quantity", 1)
+    if not offer_id or not buyer_id:
+        return web.json_response({"error": "Required: offer_id, buyer_id"}, status=400, headers=CORS_HEADERS)
+    try:
+        offer_id = int(offer_id)
+        buyer_id = int(buyer_id)
+        quantity = int(quantity)
+    except (TypeError, ValueError):
+        return web.json_response({"error": "Invalid types"}, status=400, headers=CORS_HEADERS)
+    offer = database.get_offer_by_id(offer_id)
+    if not offer:
+        return web.json_response({"error": "Offer not found"}, status=404, headers=CORS_HEADERS)
+    supplier_id = offer['supplier_id']
+    request_id = database.create_price_request(offer_id, buyer_id, supplier_id, quantity)
+    # Уведомляем поставщика
+    buyer_user = database.get_user(buyer_id)
+    buyer_name = (buyer_user and (buyer_user.get('company_name') or buyer_user.get('full_name'))) or 'Покупатель'
+    try:
+        await bot.send_message(
+            supplier_id,
+            f"💬 Запрос цены #{request_id}\n\n"
+            f"📦 {offer.get('model','')} {offer.get('memory','')} {offer.get('color','')}\n"
+            f"🔢 Количество: {quantity} шт\n"
+            f"👤 Покупатель: {buyer_name}\n\n"
+            f"⏰ У вас 10 минут чтобы ответить в приложении"
+        )
+    except Exception as e:
+        logging.warning("Не удалось уведомить поставщика: %s", e)
+    # Запускаем таймер 10 минут
+    asyncio.create_task(price_request_timer(request_id, supplier_id, buyer_id))
+    return web.json_response({"ok": True, "id": request_id}, headers=CORS_HEADERS)
+
+
+async def price_request_timer(request_id, supplier_id, buyer_id):
+    """Таймер 10 минут для запроса цены."""
+    await asyncio.sleep(600)
+    req = database.get_price_request(request_id)
+    if req and req['status'] == 'pending':
+        database.expire_price_request(request_id)
+        try:
+            await bot.send_message(buyer_id, "⏰ Поставщик не ответил на запрос цены за 10 минут. Попробуйте другого поставщика.")
+        except Exception:
+            pass
+        try:
+            await bot.send_message(supplier_id, "⚠️ Запрос цены истёк — покупатель не дождался ответа.")
+        except Exception:
+            pass
+
+
+async def get_price_requests_api(request):
+    """API: Входящие запросы цены для поставщика (GET ?supplier_id=)."""
+    supplier_id = request.query.get("supplier_id")
+    if not supplier_id:
+        return web.json_response({"error": "supplier_id required"}, status=400, headers=CORS_HEADERS)
+    try:
+        requests_list = database.get_pending_price_requests(int(supplier_id))
+    except ValueError:
+        return web.json_response({"error": "Invalid supplier_id"}, status=400, headers=CORS_HEADERS)
+    return web.json_response(requests_list, headers=CORS_HEADERS)
+
+
+async def get_buyer_price_requests_api(request):
+    """API: Запросы цены покупателя (GET ?buyer_id=)."""
+    buyer_id = request.query.get("buyer_id")
+    if not buyer_id:
+        return web.json_response({"error": "buyer_id required"}, status=400, headers=CORS_HEADERS)
+    try:
+        requests_list = database.get_buyer_price_requests(int(buyer_id))
+    except ValueError:
+        return web.json_response({"error": "Invalid buyer_id"}, status=400, headers=CORS_HEADERS)
+    return web.json_response(requests_list, headers=CORS_HEADERS)
+
+
+async def post_respond_price_request_api(request):
+    """API: Ответить на запрос цены (POST JSON: request_id, price, supplier_id)."""
+    if request.method == "OPTIONS":
+        return web.Response(headers=CORS_HEADERS)
+    try:
+        data = await request.json()
+    except Exception:
+        return web.json_response({"error": "Invalid JSON"}, status=400, headers=CORS_HEADERS)
+    request_id = data.get("request_id")
+    price = data.get("price")
+    supplier_id = data.get("supplier_id")
+    if not request_id or not price or not supplier_id:
+        return web.json_response({"error": "Required: request_id, price, supplier_id"}, status=400, headers=CORS_HEADERS)
+    try:
+        request_id = int(request_id)
+        price = int(price)
+        supplier_id = int(supplier_id)
+    except (TypeError, ValueError):
+        return web.json_response({"error": "Invalid types"}, status=400, headers=CORS_HEADERS)
+    req = database.get_price_request(request_id)
+    if not req:
+        return web.json_response({"error": "Request not found"}, status=404, headers=CORS_HEADERS)
+    if req['supplier_id'] != supplier_id:
+        return web.json_response({"error": "Нет прав"}, status=403, headers=CORS_HEADERS)
+    if req['status'] != 'pending':
+        return web.json_response({"error": "Запрос уже обработан"}, status=400, headers=CORS_HEADERS)
+    database.respond_price_request(request_id, price)
+    # Уведомляем покупателя
+    supplier_user = database.get_user(supplier_id)
+    supplier_name = (supplier_user and (supplier_user.get('company_name') or supplier_user.get('full_name'))) or 'Поставщик'
+    try:
+        await bot.send_message(
+            req['buyer_id'],
+            f"💰 Получена цена!\n\n"
+            f"📦 {req.get('model','')} {req.get('memory','')} {req.get('color','')}\n"
+            f"💵 Цена: {price:,} ₽ за шт\n"
+            f"🏢 Поставщик: {supplier_name}\n\n"
+            f"Откройте приложение для подтверждения покупки"
+        )
+    except Exception as e:
+        logging.warning("Не удалось уведомить покупателя: %s", e)
+    return web.json_response({"ok": True}, headers=CORS_HEADERS)
+
+
+async def post_deal_status_api(request):
+    """API: Обновить статус сделки (POST /api/deals/{id}/status, JSON: {user_id, status})."""
+    if request.method == "OPTIONS":
+        return web.Response(headers=CORS_HEADERS)
+    deal_id = request.match_info.get("id")
+    try:
+        data = await request.json()
+    except Exception:
+        return web.json_response({"error": "Invalid JSON"}, status=400, headers=CORS_HEADERS)
+    user_id = data.get("user_id")
+    new_status = data.get("status")
+    if not deal_id or not user_id or not new_status:
+        return web.json_response({"error": "Required: deal_id, user_id, status"}, status=400, headers=CORS_HEADERS)
+    try:
+        deal_id = int(deal_id)
+        user_id = int(user_id)
+    except (TypeError, ValueError):
+        return web.json_response({"error": "Invalid types"}, status=400, headers=CORS_HEADERS)
+    deal = database.get_deal(deal_id)
+    if not deal:
+        return web.json_response({"error": "Deal not found"}, status=404, headers=CORS_HEADERS)
+    # Проверка прав: покупатель или поставщик сделки
+    if deal['buyer_id'] != user_id and deal['supplier_id'] != user_id and user_id not in ADMIN_IDS:
+        return web.json_response({"error": "Нет прав"}, status=403, headers=CORS_HEADERS)
+    database.update_deal_status(deal_id, new_status)
+    # Обмен контактами при подтверждении
+    if new_status == 'confirmed':
+        buyer_user = database.get_user(deal['buyer_id'])
+        supplier_user = database.get_user(deal['supplier_id'])
+        supplier_username = supplier_user.get('username') if supplier_user else None
+        buyer_username = buyer_user.get('username') if buyer_user else None
+        if supplier_username:
+            kb = InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text="💬 Открыть чат", url=f"https://t.me/{supplier_username}")
+            ]])
+            try:
+                await bot.send_message(
+                    deal['buyer_id'],
+                    f"✅ Сделка #{deal_id} подтверждена!\n"
+                    f"📦 {deal.get('model','')} {deal.get('memory','')} {deal.get('color','')}\n"
+                    f"🏢 Поставщик: @{supplier_username}",
+                    reply_markup=kb
+                )
+            except Exception:
+                pass
+        if buyer_username:
+            kb2 = InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text="💬 Открыть чат", url=f"https://t.me/{buyer_username}")
+            ]])
+            try:
+                await bot.send_message(
+                    deal['supplier_id'],
+                    f"✅ Вы подтвердили сделку #{deal_id}!\n"
+                    f"📦 {deal.get('model','')} {deal.get('memory','')} {deal.get('color','')}\n"
+                    f"👤 Покупатель: @{buyer_username}",
+                    reply_markup=kb2
+                )
+            except Exception:
+                pass
+    # Уведомления о других статусах
+    elif new_status == 'rejected':
+        counterparty_id = deal['buyer_id'] if user_id == deal['supplier_id'] else deal['supplier_id']
+        try:
+            await bot.send_message(counterparty_id, f"❌ Сделка #{deal_id} отклонена.")
+        except Exception:
+            pass
+    elif new_status == 'completed':
+        try:
+            await bot.send_message(
+                deal['buyer_id'],
+                f"🎉 Сделка #{deal_id} завершена! Оцените поставщика в приложении."
+            )
+        except Exception:
+            pass
+    return web.json_response({"ok": True}, headers=CORS_HEADERS)
+
+
+async def get_supplier_stats_api(request):
+    """API: Статистика поставщика (GET ?telegram_id=)."""
+    telegram_id = request.query.get("telegram_id")
+    if not telegram_id:
+        return web.json_response({"error": "telegram_id required"}, status=400, headers=CORS_HEADERS)
+    try:
+        stats = database.get_supplier_stats(int(telegram_id))
+    except ValueError:
+        return web.json_response({"error": "Invalid telegram_id"}, status=400, headers=CORS_HEADERS)
+    return web.json_response(stats, headers=CORS_HEADERS)
+
+
+async def get_admin_deals_api(request):
+    """API: Все сделки (только для админа, GET ?admin_id=)."""
+    admin_id = request.query.get("admin_id")
+    try:
+        if not admin_id or int(admin_id) not in ADMIN_IDS:
+            return web.json_response({"error": "Нет прав"}, status=403, headers=CORS_HEADERS)
+    except ValueError:
+        return web.json_response({"error": "Нет прав"}, status=403, headers=CORS_HEADERS)
+    deals = database.get_all_deals()
+    return web.json_response(deals, headers=CORS_HEADERS)
+
+
+async def get_admin_supplier_requests_api(request):
+    """API: Заявки поставщиков на верификацию (только для админа, GET ?admin_id=)."""
+    admin_id = request.query.get("admin_id")
+    try:
+        if not admin_id or int(admin_id) not in ADMIN_IDS:
+            return web.json_response({"error": "Нет прав"}, status=403, headers=CORS_HEADERS)
+    except ValueError:
+        return web.json_response({"error": "Нет прав"}, status=403, headers=CORS_HEADERS)
+    conn = __import__('sqlite3').connect(database.DB_NAME)
+    conn.row_factory = __import__('sqlite3').Row
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT sr.*, u.username, u.full_name
+        FROM supplier_requests sr
+        LEFT JOIN users u ON sr.telegram_id = u.telegram_id
+        ORDER BY sr.created_at DESC LIMIT 100
+    ''')
+    rows = cursor.fetchall()
+    conn.close()
+    return web.json_response([dict(r) for r in rows], headers=CORS_HEADERS)
+
+
+async def post_toggle_price_api(request):
+    """API: Показать/скрыть цену оффера (POST /api/supplier/offers/{id}/toggle_price, JSON: {telegram_id})."""
+    if request.method == "OPTIONS":
+        return web.Response(headers=CORS_HEADERS)
+    offer_id = request.match_info.get("id")
+    try:
+        data = await request.json()
+    except Exception:
+        return web.json_response({"error": "Invalid JSON"}, status=400, headers=CORS_HEADERS)
+    telegram_id = data.get("telegram_id")
+    if not offer_id or not telegram_id:
+        return web.json_response({"error": "Required: offer_id, telegram_id"}, status=400, headers=CORS_HEADERS)
+    try:
+        offer_id = int(offer_id)
+        telegram_id = int(telegram_id)
+    except (TypeError, ValueError):
+        return web.json_response({"error": "Invalid types"}, status=400, headers=CORS_HEADERS)
+    # Получаем текущее состояние оффера
+    conn = __import__('sqlite3').connect(database.DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute('SELECT price_hidden FROM offers WHERE id = ? AND supplier_id = ?', (offer_id, telegram_id))
+    row = cursor.fetchone()
+    conn.close()
+    if not row:
+        return web.json_response({"error": "Offer not found or access denied"}, status=404, headers=CORS_HEADERS)
+    new_hidden = 0 if row[0] else 1
+    database.update_offer(offer_id, price_hidden=new_hidden)
+    return web.json_response({"ok": True, "price_hidden": new_hidden}, headers=CORS_HEADERS)
+
+
+async def post_add_review_api(request):
+    """API: Добавить отзыв (POST JSON: deal_id, supplier_id, buyer_id, rating, comment)."""
+    if request.method == "OPTIONS":
+        return web.Response(headers=CORS_HEADERS)
+    try:
+        data = await request.json()
+    except Exception:
+        return web.json_response({"error": "Invalid JSON"}, status=400, headers=CORS_HEADERS)
+    deal_id = data.get("deal_id")
+    supplier_id = data.get("supplier_id")
+    buyer_id = data.get("buyer_id")
+    rating = data.get("rating")
+    comment = data.get("comment")
+    if not all([deal_id, supplier_id, buyer_id, rating]):
+        return web.json_response({"error": "Required: deal_id, supplier_id, buyer_id, rating"}, status=400, headers=CORS_HEADERS)
+    try:
+        database.add_review(int(deal_id), int(supplier_id), int(buyer_id), int(rating), comment)
+    except Exception as e:
+        return web.json_response({"error": str(e)}, status=500, headers=CORS_HEADERS)
+    return web.json_response({"ok": True}, headers=CORS_HEADERS)
+
+
 async def post_become_supplier_api(request):
     """API: Заявка на регистрацию поставщика (POST JSON: telegram_id, company_name, city, phone)."""
     if request.method == "OPTIONS":
@@ -579,6 +922,28 @@ async def start_server():
     app.router.add_post('/api/admin/user/role', post_admin_user_role_api)
     app.router.add_route("OPTIONS", "/api/admin/user/role", post_admin_user_role_api)
     app.router.add_delete('/api/admin/user/{id}', delete_admin_user_api)
+    # Create deal via API
+    app.router.add_post('/api/deals', post_create_deal_api)
+    app.router.add_route("OPTIONS", "/api/deals", post_create_deal_api)
+    # Price requests
+    app.router.add_post('/api/price_request', post_price_request_api)
+    app.router.add_route("OPTIONS", "/api/price_request", post_price_request_api)
+    app.router.add_get('/api/price_requests', get_price_requests_api)
+    app.router.add_get('/api/buyer/price_requests', get_buyer_price_requests_api)
+    app.router.add_post('/api/price_request/respond', post_respond_price_request_api)
+    app.router.add_route("OPTIONS", "/api/price_request/respond", post_respond_price_request_api)
+    # Deal status + reviews
+    app.router.add_post('/api/deals/{id}/status', post_deal_status_api)
+    app.router.add_route("OPTIONS", "/api/deals/{id}/status", post_deal_status_api)
+    app.router.add_post('/api/reviews', post_add_review_api)
+    app.router.add_route("OPTIONS", "/api/reviews", post_add_review_api)
+    # Supplier stats + toggle price
+    app.router.add_get('/api/supplier/stats', get_supplier_stats_api)
+    app.router.add_post('/api/supplier/offers/{id}/toggle_price', post_toggle_price_api)
+    app.router.add_route("OPTIONS", "/api/supplier/offers/{id}/toggle_price", post_toggle_price_api)
+    # Admin deals + supplier requests
+    app.router.add_get('/api/admin/deals', get_admin_deals_api)
+    app.router.add_get('/api/admin/supplier_requests', get_admin_supplier_requests_api)
     
     runner = web.AppRunner(app)
     await runner.setup()
