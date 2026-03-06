@@ -367,9 +367,11 @@
 
     /* ===== Bottom Nav ===== */
     .bottom-nav {
-      position: sticky; bottom: 0; left: 0; right: 0; z-index: 50;
-      margin-top: auto;
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
     }
+    /* отступ снизу чтобы контент не прятался за меню */
+    .screen-pad { padding-bottom: 90px; }
+    .screen.active { padding-bottom: 90px; }
     .bottom-nav-inner {
       background: rgba(255,255,255,.72);
       -webkit-backdrop-filter: blur(48px) saturate(180%);
@@ -1614,6 +1616,8 @@
 
   // ── Init ──
   async function loadContent() {
+    // DEBUG: показываем userId (удалить после проверки)
+    showToast('ID: ' + (userId || 'нет'));
     // Показываем вкладку Админ для администраторов
     if (ADMIN_IDS.includes(userId)) {
       const adminTab = $('dealsAdminTab');
