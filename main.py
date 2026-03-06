@@ -255,6 +255,8 @@ async def post_supplier_offers_api(request):
         return web.json_response({"ok": False, "error": "price must be >= 0"}, status=400, headers=CORS_HEADERS)
     if quantity < 0:
         quantity = 0
+    comment = (data.get("comment") or "").strip() or None
+    condition = data.get("condition") or "new"
     try:
         offer_id = database.create_offer(
             supplier_id=telegram_id,
@@ -262,10 +264,10 @@ async def post_supplier_offers_api(request):
             price=price,
             quantity=quantity,
             moq=1,
-            condition="new",
+            condition=condition,
             delivery_days=0,
             warranty_months=12,
-            comment=None,
+            comment=comment,
         )
     except sqlite3.IntegrityError as e:
         print("[post_supplier_offers] DB IntegrityError:", str(e))
