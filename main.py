@@ -976,12 +976,122 @@ async def start_server():
     # Admin deals + supplier requests
     app.router.add_get('/api/admin/deals', get_admin_deals_api)
     app.router.add_get('/api/admin/supplier_requests', get_admin_supplier_requests_api)
-    
+    # Buyer requests (public board)
+    app.router.add_get('/api/buyer_requests', get_buyer_requests_api)
+    app.router.add_get('/api/buyer_requests/my', get_my_buyer_requests_api)
+    app.router.add_post('/api/buyer_requests', post_buyer_request_api)
+    app.router.add_get('/api/buyer_requests/{id}/responses', get_buyer_request_responses_api)
+    app.router.add_post('/api/buyer_requests/{id}/respond', post_buyer_request_respond_api)
+    app.router.add_post('/api/buyer_requests/{id}/close', post_buyer_request_close_api)
+
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, '0.0.0.0', port)
     await site.start()
     logging.info(f"API сервер запущен на порту {port}")
+
+async def get_buyer_requests_api(request):
+    """GET /api/buyer_requests — все открытые запросы покупателей (для поставщиков)."""
+    items = database.get_open_buyer_requests()
+    return web.json_response(items, headers=CORS_HEADERS)
+
+
+async def get_my_buyer_requests_api(request):
+    """GET /api/buyer_requests/my?buyer_id=X — запросы конкретного покупателя."""
+    buyer_id = request.query.get('buyer_id')
+    if not buyer_id:
+        return web.json_response({"error": "buyer_id required"}, status=400, headers=CORS_HEADERS)
+    try:
+        buyer_id = int(buyer_id)
+    except ValueError:
+        return web.json_response({"error": "Invalid buyer_id"}, status=400, headers=CORS_HEADERS)
+    items = database.get_my_buyer_requests(buyer_id)
+    return web.json_response(items, headers=CORS_HEADERS)
+
+
+async def post_buyer_request_api(request):
+    """POST /api/buyer_requests — покупатель создаёт публичный запрос."""
+    try:
+        data = await request.json()
+    except Exception:
+        return web.json_response({"error": "Invalid JSON"}, status=400, headers=CORS_HEADERS)
+    buyer_id = data.get("buyer_id")
+    model = (data.get("model") or "").strip()
+    if not buyer_id or not model:
+        return web.json_response({"error": "Required: buyer_id, model"}, status=400, headers=CORS_HEADERS)
+    try:
+        buyer_id = int(buyer_id)
+    except (TypeError, ValueError):
+        return web.json_response({"error": "Invalid buyer_id"}, status=400, headers=CORS_HEADERS)
+    req_id = database.create_buyer_request(
+        buyer_id=buyer_id,
+        model=model,
+        memory=(data.get("memory") or "").strip(),
+        color=(data.get("color") or "").strip(),
+        quantity=int(data.get("quantity") or 1),
+        max_price=int(data["max_price"]) if data.get("max_price") else None,
+        comment=(data.get("comment") or "").strip() or None,
+    )
+    return web.json_response({"ok": True, "id": req_id}, headers=CORS_HEADERS)
+
+
+async def get_buyer_request_responses_api(request):
+    """GET /api/buyer_requests/{id}/responses — ответы поставщиков на запрос."""
+    req_id = request.match_info.get("id")
+    try:
+        req_id = int(req_id)
+    except (TypeError, ValueError):
+        return web.json_response({"error": "Invalid id"}, status=400, headers=CORS_HEADERS)
+    items = database.get_buyer_request_responses(req_id)
+    return web.json_response(items, headers=CORS_HEADERS)
+
+
+async def post_buyer_request_respond_api(request):
+    """POST /api/buyer_requests/{id}/respond — поставщик отвечает на запрос."""
+    req_id = request.match_info.get("id")
+    try:
+        req_id = int(req_id)
+    except (TypeError, ValueError):
+        return web.json_response({"error": "Invalid id"}, status=400, headers=CORS_HEADERS)
+    try:
+        data = await request.json()
+    except Exception:
+        return web.json_response({"error": "Invalid JSON"}, status=400, headers=CORS_HEADERS)
+    supplier_id = data.get("supplier_id")
+    price = data.get("price")
+    if not supplier_id or not price:
+        return web.json_response({"error": "Required: supplier_id, price"}, status=400, headers=CORS_HEADERS)
+    try:
+        supplier_id = int(supplier_id)
+        price = int(price)
+    except (TypeError, ValueError):
+        return web.json_response({"error": "Invalid types"}, status=400, headers=CORS_HEADERS)
+    database.create_buyer_request_response(
+        request_id=req_id,
+        supplier_id=supplier_id,
+        price=price,
+        comment=(data.get("comment") or "").strip() or None,
+    )
+    return web.json_response({"ok": True}, headers=CORS_HEADERS)
+
+
+async def post_buyer_request_close_api(request):
+    """POST /api/buyer_requests/{id}/close — покупатель закрывает запрос."""
+    req_id = request.match_info.get("id")
+    try:
+        req_id = int(req_id)
+    except (TypeError, ValueError):
+        return web.json_response({"error": "Invalid id"}, status=400, headers=CORS_HEADERS)
+    try:
+        data = await request.json()
+    except Exception:
+        return web.json_response({"error": "Invalid JSON"}, status=400, headers=CORS_HEADERS)
+    buyer_id = data.get("buyer_id")
+    if not buyer_id:
+        return web.json_response({"error": "buyer_id required"}, status=400, headers=CORS_HEADERS)
+    database.close_buyer_request(req_id, int(buyer_id))
+    return web.json_response({"ok": True}, headers=CORS_HEADERS)
+
 
 # ==================== TELEGRAM BOT ====================
 

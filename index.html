@@ -479,12 +479,56 @@
 
   <!-- Screen: My Requests (buyer) -->
   <div class="screen" id="screenRequests">
-    <div class="page-title">Мои запросы</div>
+    <div class="page-title">Запросы</div>
     <div class="section-pad">
-      <div class="section-title">Активные запросы цены</div>
-      <div id="requestsList"><div class="spinner"></div></div>
-      <div class="section-title" style="margin-top:8px">История сделок</div>
+      <button class="btn-full btn-primary" onclick="showScreen('screenCreateBuyerRequest')" style="margin-bottom:16px;height:44px;border-radius:12px;font-size:14px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:6px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Опубликовать запрос
+      </button>
+      <div class="section-title">Мои запросы</div>
+      <div id="myBuyerRequestsList"><div class="spinner"></div></div>
+      <div class="section-title" style="margin-top:16px">История сделок</div>
       <div id="buyerDealsList"><div class="spinner"></div></div>
+    </div>
+  </div>
+
+  <!-- Screen: Create Buyer Request -->
+  <div class="screen" id="screenCreateBuyerRequest">
+    <button onclick="goBack()" style="display:flex;align-items:center;gap:6px;padding:16px 16px 0;color:#007AFF;font-size:15px;font-weight:600">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+      Назад
+    </button>
+    <div class="page-title">Новый запрос</div>
+    <div class="section-pad">
+      <div class="form-group">
+        <label class="form-label">Модель</label>
+        <select class="form-select" id="brModel" onchange="onBRModelChange()"><option value="">-- Выберите модель --</option></select>
+      </div>
+      <div class="form-group" id="brMemoryGroup" style="display:none">
+        <label class="form-label">Память</label>
+        <select class="form-select" id="brMemory"><option value="">-- Выберите --</option></select>
+      </div>
+      <div class="form-group" id="brColorGroup" style="display:none">
+        <label class="form-label">Цвет</label>
+        <select class="form-select" id="brColor"><option value="">-- Выберите --</option></select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Кол-во (шт)</label>
+          <input class="form-input" type="number" id="brQuantity" placeholder="1" value="1">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Макс. цена (₽)</label>
+          <input class="form-input" type="number" id="brMaxPrice" placeholder="Не указана">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Комментарий (необязательно)</label>
+        <textarea class="form-textarea" id="brComment" rows="3" placeholder="Пожелания, сроки..."></textarea>
+      </div>
+      <button class="btn-full btn-primary" onclick="submitBuyerRequest()" style="margin-top:8px">
+        Опубликовать запрос
+      </button>
     </div>
   </div>
 
@@ -567,7 +611,9 @@
   <div class="screen" id="screenIncoming">
     <div class="page-title">Входящие</div>
     <div class="section-pad">
-      <div class="section-title">Запросы цены</div>
+      <div class="section-title">Запросы покупателей</div>
+      <div id="publicBuyerRequestsList"><div class="spinner"></div></div>
+      <div class="section-title" style="margin-top:16px">Запросы скрытой цены</div>
       <div id="incomingRequestsList"><div class="spinner"></div></div>
       <div class="section-title" style="margin-top:8px">Новые сделки</div>
       <div id="incomingDealsList"><div class="spinner"></div></div>
@@ -800,9 +846,10 @@ function navTo(screenId) {
   showScreen(screenId, false);
   // refresh
   if (screenId === 'screenFeed') loadFeed();
-  else if (screenId === 'screenRequests') { loadPriceRequests(); loadBuyerDeals(); }
+  else if (screenId === 'screenRequests') { loadMyBuyerRequests(); loadBuyerDeals(); }
+  else if (screenId === 'screenCreateBuyerRequest') loadBuyerRequestForm();
   else if (screenId === 'screenMyOffers') loadMyOffers();
-  else if (screenId === 'screenIncoming') { loadIncomingRequests(); loadIncomingDeals(); }
+  else if (screenId === 'screenIncoming') { loadPublicBuyerRequests(); loadIncomingRequests(); loadIncomingDeals(); }
   else if (screenId === 'screenSupplierDeals') loadSupplierDeals();
   else if (screenId === 'screenMyProfile') loadMyProfile();
   else if (screenId === 'screenBuyerProfile') loadBuyerProfile();
@@ -1068,6 +1115,132 @@ document.getElementById('feedSearch').addEventListener('input', e => {
   feedFilter.search = e.target.value.trim();
   searchTimer = setTimeout(loadFeed, 400);
 });
+
+// ===== Buyer Requests (public board) =====
+function loadBuyerRequestForm() {
+  const sel = document.getElementById('brModel');
+  sel.innerHTML = '<option value="">-- Выберите модель --</option>' +
+    Object.keys(CATALOG_MODELS).map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join('');
+  document.getElementById('brMemoryGroup').style.display = 'none';
+  document.getElementById('brColorGroup').style.display = 'none';
+}
+
+function onBRModelChange() {
+  const model = document.getElementById('brModel').value;
+  const memSel = document.getElementById('brMemory');
+  const memGroup = document.getElementById('brMemoryGroup');
+  const colGroup = document.getElementById('brColorGroup');
+  colGroup.style.display = 'none';
+  if (!model || !CATALOG_MODELS[model]) { memGroup.style.display = 'none'; return; }
+  const mems = CATALOG_MODELS[model].mem.filter(m => m);
+  if (!mems.length) { memGroup.style.display = 'none'; return; }
+  memSel.innerHTML = '<option value="">-- Выберите --</option>' + mems.map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join('');
+  memGroup.style.display = '';
+  const cols = CATALOG_MODELS[model].col.filter(c => c);
+  if (!cols.length) return;
+  document.getElementById('brColor').innerHTML = '<option value="">-- Выберите --</option>' + cols.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+  colGroup.style.display = '';
+}
+
+async function submitBuyerRequest() {
+  if (!userId) return;
+  const model = document.getElementById('brModel').value;
+  const memory = document.getElementById('brMemoryGroup').style.display === 'none' ? '' : document.getElementById('brMemory').value;
+  const color = document.getElementById('brColorGroup').style.display === 'none' ? '' : document.getElementById('brColor').value;
+  const quantity = parseInt(document.getElementById('brQuantity').value) || 1;
+  const maxPrice = parseInt(document.getElementById('brMaxPrice').value) || null;
+  const comment = document.getElementById('brComment').value.trim();
+  if (!model) { showToast('Выберите модель'); return; }
+  try {
+    await api('/api/buyer_requests', {method:'POST', body: JSON.stringify({buyer_id: parseInt(userId), model, memory, color, quantity, max_price: maxPrice, comment})});
+    showToast('✅ Запрос опубликован!');
+    goBack();
+    loadMyBuyerRequests();
+  } catch(e) {
+    showToast('Ошибка: ' + e.message);
+  }
+}
+
+async function loadMyBuyerRequests() {
+  const el = document.getElementById('myBuyerRequestsList');
+  if (!el || !userId) return;
+  try {
+    const list = await api('/api/buyer_requests/my?buyer_id=' + userId);
+    if (!list.length) {
+      el.innerHTML = '<div style="color:#8E8E93;font-size:14px;padding:12px 0">Нет активных запросов</div>';
+      return;
+    }
+    el.innerHTML = list.map(r => `
+      <div class="request-card">
+        <div style="font-size:14px;font-weight:700;color:#1C1C1E">${esc(r.model)} ${esc(r.memory||'')} ${esc(r.color||'')}</div>
+        <div style="font-size:12px;color:#8E8E93;margin-top:3px">Кол-во: ${r.quantity} шт${r.max_price ? ' · до ' + r.max_price.toLocaleString('ru') + ' ₽' : ''}</div>
+        ${r.comment ? `<div style="font-size:12px;color:#8E8E93;margin-top:2px">${esc(r.comment)}</div>` : ''}
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px">
+          <span style="font-size:12px;color:${r.status==='open'?'#34C759':'#8E8E93'};font-weight:600">${r.status==='open'?'🟢 Открыт':'⚪ Закрыт'} · ${r.response_count} ответ${r.response_count===1?'':'ов'}</span>
+          ${r.status==='open' ? `<button class="btn-sm btn-secondary" onclick="closeMyRequest(${r.id})">Закрыть</button>` : ''}
+        </div>
+        ${r.response_count > 0 ? `<button class="btn-sm btn-primary" style="margin-top:8px;width:100%" onclick="viewRequestResponses(${r.id}, '${esc(r.model)}')">Посмотреть ответы (${r.response_count})</button>` : ''}
+      </div>`).join('');
+  } catch(e) {
+    el.innerHTML = '<div style="color:#8E8E93;font-size:13px">Ошибка загрузки</div>';
+  }
+}
+
+async function closeMyRequest(requestId) {
+  try {
+    await api(`/api/buyer_requests/${requestId}/close`, {method:'POST', body: JSON.stringify({buyer_id: parseInt(userId)})});
+    showToast('Запрос закрыт');
+    loadMyBuyerRequests();
+  } catch(e) {
+    showToast('Ошибка: ' + e.message);
+  }
+}
+
+async function viewRequestResponses(requestId, modelName) {
+  const responses = await api(`/api/buyer_requests/${requestId}/responses`);
+  if (!responses.length) { showToast('Ответов пока нет'); return; }
+  const lines = responses.map(r =>
+    `• ${esc(r.company_name||r.username||'Поставщик')}: ${r.price.toLocaleString('ru')} ₽${r.comment ? ' — ' + esc(r.comment) : ''}`
+  ).join('\n');
+  alert(`Ответы на запрос "${modelName}":\n\n${lines}`);
+}
+
+async function loadPublicBuyerRequests() {
+  const el = document.getElementById('publicBuyerRequestsList');
+  if (!el) return;
+  try {
+    const list = await api('/api/buyer_requests');
+    if (!list.length) {
+      el.innerHTML = '<div style="color:#8E8E93;font-size:14px;padding:12px 0">Нет активных запросов от покупателей</div>';
+      return;
+    }
+    el.innerHTML = list.map(r => `
+      <div class="request-card">
+        <div style="font-size:14px;font-weight:700;color:#1C1C1E">${esc(r.model)} ${esc(r.memory||'')} ${esc(r.color||'')}</div>
+        <div style="font-size:12px;color:#8E8E93;margin-top:3px">Кол-во: ${r.quantity} шт${r.max_price ? ' · до ' + r.max_price.toLocaleString('ru') + ' ₽' : ''}</div>
+        ${r.comment ? `<div style="font-size:12px;color:#8E8E93;margin-top:2px">${esc(r.comment)}</div>` : ''}
+        <div style="font-size:12px;color:#8E8E93;margin-top:4px">Покупатель: ${esc(r.company_name||r.username||'—')} · ${r.response_count} ответ${r.response_count===1?'':'ов'}</div>
+        <div class="deal-actions" style="margin-top:10px">
+          <input class="form-input" type="number" id="brResp_${r.id}" placeholder="Цена ₽" style="height:38px;font-size:14px;width:130px">
+          <button class="btn-sm btn-green" onclick="respondToBuyerRequest(${r.id})">Ответить</button>
+        </div>
+      </div>`).join('');
+  } catch(e) {
+    el.innerHTML = '<div style="color:#8E8E93;font-size:13px">Ошибка загрузки</div>';
+  }
+}
+
+async function respondToBuyerRequest(requestId) {
+  const price = parseInt(document.getElementById('brResp_' + requestId)?.value);
+  if (!price || price <= 0) { showToast('Введите цену'); return; }
+  try {
+    await api(`/api/buyer_requests/${requestId}/respond`, {method:'POST', body: JSON.stringify({supplier_id: parseInt(userId), price})});
+    showToast('✅ Ответ отправлен!');
+    loadPublicBuyerRequests();
+  } catch(e) {
+    showToast('Ошибка: ' + e.message);
+  }
+}
 
 // ===== Price Requests (buyer) =====
 async function loadPriceRequests() {

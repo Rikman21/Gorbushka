@@ -151,7 +151,36 @@ def init_db():
     ''')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_price_requests_supplier ON price_requests(supplier_id)')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_price_requests_buyer ON price_requests(buyer_id)')
-    
+
+    # Публичные запросы покупателей
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS buyer_requests (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            buyer_id INTEGER NOT NULL,
+            model TEXT NOT NULL,
+            memory TEXT DEFAULT '',
+            color TEXT DEFAULT '',
+            quantity INTEGER DEFAULT 1,
+            max_price INTEGER,
+            comment TEXT,
+            status TEXT DEFAULT 'open',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (buyer_id) REFERENCES users(telegram_id)
+        )
+    ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS buyer_request_responses (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            request_id INTEGER NOT NULL,
+            supplier_id INTEGER NOT NULL,
+            price INTEGER NOT NULL,
+            comment TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (request_id) REFERENCES buyer_requests(id),
+            FOREIGN KEY (supplier_id) REFERENCES users(telegram_id)
+        )
+    ''')
+
     # Индексы для быстрого поиска
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_offers_supplier ON offers(supplier_id)')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_offers_catalog ON offers(catalog_id)')
@@ -1023,3 +1052,84 @@ def get_supplier_reviews(supplier_id):
     reviews = cursor.fetchall()
     conn.close()
     return [dict(review) for review in reviews]
+
+
+def create_buyer_request(buyer_id, model, memory, color, quantity, max_price, comment):
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO buyer_requests (buyer_id, model, memory, color, quantity, max_price, comment)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    ''', (buyer_id, model, memory or '', color or '', quantity, max_price, comment or None))
+    req_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    return req_id
+
+
+def get_open_buyer_requests():
+    conn = sqlite3.connect(DB_NAME)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT br.*, u.username, u.company_name,
+            (SELECT COUNT(*) FROM buyer_request_responses WHERE request_id = br.id) as response_count
+        FROM buyer_requests br
+        JOIN users u ON br.buyer_id = u.telegram_id
+        WHERE br.status = 'open'
+        ORDER BY br.created_at DESC
+    ''')
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def get_my_buyer_requests(buyer_id):
+    conn = sqlite3.connect(DB_NAME)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT br.*,
+            (SELECT COUNT(*) FROM buyer_request_responses WHERE request_id = br.id) as response_count
+        FROM buyer_requests br
+        WHERE br.buyer_id = ?
+        ORDER BY br.created_at DESC
+    ''', (buyer_id,))
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def get_buyer_request_responses(request_id):
+    conn = sqlite3.connect(DB_NAME)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT brr.*, u.username, u.company_name
+        FROM buyer_request_responses brr
+        JOIN users u ON brr.supplier_id = u.telegram_id
+        WHERE brr.request_id = ?
+        ORDER BY brr.price ASC
+    ''', (request_id,))
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def create_buyer_request_response(request_id, supplier_id, price, comment):
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO buyer_request_responses (request_id, supplier_id, price, comment)
+        VALUES (?, ?, ?, ?)
+    ''', (request_id, supplier_id, price, comment or None))
+    conn.commit()
+    conn.close()
+
+
+def close_buyer_request(request_id, buyer_id):
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute("UPDATE buyer_requests SET status='closed' WHERE id=? AND buyer_id=?", (request_id, buyer_id))
+    conn.commit()
+    conn.close()
