@@ -1406,9 +1406,8 @@ async function togglePrice(offerId) {
 }
 
 async function deleteOffer(offerId) {
-  if (!confirm('Удалить оффер?')) return;
   try {
-    await fetch(API_BASE + `/api/supplier/offers/${offerId}?telegram_id=${userId}`, {method:'DELETE'});
+    await api(`/api/supplier/offers/${offerId}?telegram_id=${userId}`, {method:'DELETE'});
     showToast('Оффер удалён');
     loadMyOffers();
   } catch(e) {
