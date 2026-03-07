@@ -916,7 +916,13 @@ async def post_become_supplier_api(request):
 
 async def start_server():
     port = int(os.environ.get("PORT", 8080))
-    app = web.Application()
+    @web.middleware
+    async def cors_middleware(request, handler):
+        if request.method == "OPTIONS":
+            return web.Response(headers=CORS_HEADERS)
+        return await handler(request)
+
+    app = web.Application(middlewares=[cors_middleware])
     
     # Главная страница — index.html
     app.router.add_get("/", index_page)
@@ -988,7 +994,7 @@ async def start(message: types.Message):
     # Создаём или обновляем пользователя
     database.create_or_update_user(user_id, username, full_name)
     
-    full_url = f"{WEB_APP_URL}?v=6&uid={user_id}"
+    full_url = f"{WEB_APP_URL}?v=7&uid={user_id}"
     kb = [[KeyboardButton(text="📱 ОТКРЫТЬ БИРЖУ", web_app=WebAppInfo(url=full_url))]]
     
     await message.answer(
