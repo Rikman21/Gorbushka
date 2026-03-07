@@ -16,14 +16,29 @@ import sys
 import sqlite3
 import asyncio
 import asyncpg
+from datetime import datetime
 
 SQLITE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "market.db")
 
 PG_HOST = os.environ.get("POSTGRES_HOST", "localhost")
-PG_PORT = int(os.environ.get("POSTGRES_PORT", 5432))
+PG_PORT = int(os.environ.get("POSTGRES_PORT", "5432") or "5432")
 PG_DB = os.environ.get("POSTGRES_DB", "gorbushka")
 PG_USER = os.environ.get("POSTGRES_USER", "gorbushka")
 PG_PASS = os.environ.get("POSTGRES_PASSWORD", "Gorb_2024_Secure!")
+
+
+def parse_dt(val):
+    """Convert SQLite datetime string to Python datetime or None."""
+    if val is None:
+        return None
+    if isinstance(val, datetime):
+        return val
+    for fmt in ('%Y-%m-%d %H:%M:%S', '%Y-%m-%d %H:%M:%S.%f', '%Y-%m-%d'):
+        try:
+            return datetime.strptime(str(val).strip(), fmt)
+        except ValueError:
+            continue
+    return None
 
 
 async def migrate():
@@ -197,7 +212,7 @@ async def migrate():
         ''', r['telegram_id'], r['username'], r['full_name'], r['phone'],
              r['company_name'], r['city'], r['is_supplier'], r['is_verified'],
              r['role_selected'] if 'role_selected' in r.keys() else 0,
-             r['rating'], r['deals_count'], notif, r['created_at'])
+             r['rating'], r['deals_count'], notif, parse_dt(r['created_at']))
 
     # catalog
     rows = lite.execute('SELECT * FROM catalog').fetchall()
@@ -208,7 +223,7 @@ async def migrate():
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
             ON CONFLICT (sku) DO NOTHING
         ''', r['id'], r['category'], r['brand'], r['model'], r['memory'],
-             r['color'], r['sku'], r['is_active'], r['created_at'])
+             r['color'], r['sku'], r['is_active'], parse_dt(r['created_at']))
     # Fix catalog sequence
     max_cat = lite.execute('SELECT MAX(id) FROM catalog').fetchone()[0] or 0
     if max_cat > 0:
@@ -231,7 +246,7 @@ async def migrate():
         ''', r['id'], r['supplier_id'], r['catalog_id'], r['price'], r['quantity'],
              r['moq'], r['condition'], r['delivery_days'], r['warranty_months'],
              r['is_available'], r['is_visible'], ph, r['comment'],
-             r['created_at'], r['updated_at'])
+             parse_dt(r['created_at']), parse_dt(r['updated_at']))
     max_off = lite.execute('SELECT MAX(id) FROM offers').fetchone()[0] or 0
     if max_off > 0:
         await pg.execute(f"SELECT setval('offers_id_seq', {max_off})")
@@ -246,7 +261,7 @@ async def migrate():
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
             ON CONFLICT DO NOTHING
         ''', r['id'], r['buyer_id'], r['supplier_id'], r['offer_id'], r['quantity'],
-             r['price'], r['total_price'], r['status'], r['created_at'], r['updated_at'], r['closed_at'])
+             r['price'], r['total_price'], r['status'], parse_dt(r['created_at']), parse_dt(r['updated_at']), parse_dt(r['closed_at']))
     max_deal = lite.execute('SELECT MAX(id) FROM deals').fetchone()[0] or 0
     if max_deal > 0:
         await pg.execute(f"SELECT setval('deals_id_seq', {max_deal})")
@@ -258,7 +273,7 @@ async def migrate():
         await pg.execute('''
             INSERT INTO messages (id, deal_id, sender_id, message, attachment_url, created_at)
             VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT DO NOTHING
-        ''', r['id'], r['deal_id'], r['sender_id'], r['message'], r['attachment_url'], r['created_at'])
+        ''', r['id'], r['deal_id'], r['sender_id'], r['message'], r['attachment_url'], parse_dt(r['created_at']))
 
     # reviews
     rows = lite.execute('SELECT * FROM reviews').fetchall()
@@ -267,7 +282,7 @@ async def migrate():
         await pg.execute('''
             INSERT INTO reviews (id, deal_id, supplier_id, buyer_id, rating, comment, created_at)
             VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT DO NOTHING
-        ''', r['id'], r['deal_id'], r['supplier_id'], r['buyer_id'], r['rating'], r['comment'], r['created_at'])
+        ''', r['id'], r['deal_id'], r['supplier_id'], r['buyer_id'], r['rating'], r['comment'], parse_dt(r['created_at']))
 
     # supplier_requests
     rows = lite.execute('SELECT * FROM supplier_requests').fetchall()
@@ -276,7 +291,7 @@ async def migrate():
         await pg.execute('''
             INSERT INTO supplier_requests (id, telegram_id, company_name, city, phone, status, created_at)
             VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT DO NOTHING
-        ''', r['id'], r['telegram_id'], r['company_name'], r['city'], r['phone'], r['status'], r['created_at'])
+        ''', r['id'], r['telegram_id'], r['company_name'], r['city'], r['phone'], r['status'], parse_dt(r['created_at']))
 
     # price_requests
     rows = lite.execute('SELECT * FROM price_requests').fetchall()
@@ -286,7 +301,7 @@ async def migrate():
             INSERT INTO price_requests (id, offer_id, buyer_id, supplier_id, quantity, status, buyer_price, created_at, responded_at)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT DO NOTHING
         ''', r['id'], r['offer_id'], r['buyer_id'], r['supplier_id'], r['quantity'],
-             r['status'], r['buyer_price'], r['created_at'], r['responded_at'])
+             r['status'], r['buyer_price'], parse_dt(r['created_at']), parse_dt(r['responded_at']))
 
     # buyer_requests
     try:
@@ -297,7 +312,7 @@ async def migrate():
                 INSERT INTO buyer_requests (id, buyer_id, model, memory, color, quantity, max_price, comment, status, created_at)
                 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT DO NOTHING
             ''', r['id'], r['buyer_id'], r['model'], r['memory'], r['color'],
-                 r['quantity'], r['max_price'], r['comment'], r['status'], r['created_at'])
+                 r['quantity'], r['max_price'], r['comment'], r['status'], parse_dt(r['created_at']))
     except Exception as e:
         print(f"buyer_requests: {e}")
 
@@ -309,7 +324,7 @@ async def migrate():
             await pg.execute('''
                 INSERT INTO buyer_request_responses (id, request_id, supplier_id, price, comment, created_at)
                 VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT DO NOTHING
-            ''', r['id'], r['request_id'], r['supplier_id'], r['price'], r['comment'], r['created_at'])
+            ''', r['id'], r['request_id'], r['supplier_id'], r['price'], r['comment'], parse_dt(r['created_at']))
     except Exception as e:
         print(f"buyer_request_responses: {e}")
 
