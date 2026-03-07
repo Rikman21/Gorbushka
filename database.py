@@ -152,6 +152,13 @@ def init_db():
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_price_requests_supplier ON price_requests(supplier_id)')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_price_requests_buyer ON price_requests(buyer_id)')
 
+    # Добавляем notifications_enabled если не существует
+    try:
+        cursor.execute('ALTER TABLE users ADD COLUMN notifications_enabled INTEGER DEFAULT 1')
+        conn.commit()
+    except Exception:
+        pass
+
     # Публичные запросы покупателей
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS buyer_requests (
@@ -1052,6 +1059,25 @@ def get_supplier_reviews(supplier_id):
     reviews = cursor.fetchall()
     conn.close()
     return [dict(review) for review in reviews]
+
+
+def get_suppliers_with_notifications():
+    """Все поставщики с включёнными уведомлениями."""
+    conn = sqlite3.connect(DB_NAME)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute('SELECT telegram_id FROM users WHERE is_supplier = 1 AND notifications_enabled = 1')
+    rows = cursor.fetchall()
+    conn.close()
+    return [r['telegram_id'] for r in rows]
+
+
+def set_notifications_enabled(telegram_id, enabled):
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute('UPDATE users SET notifications_enabled = ? WHERE telegram_id = ?', (1 if enabled else 0, telegram_id))
+    conn.commit()
+    conn.close()
 
 
 def create_buyer_request(buyer_id, model, memory, color, quantity, max_price, comment):

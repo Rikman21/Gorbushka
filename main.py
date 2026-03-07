@@ -976,6 +976,8 @@ async def start_server():
     # Admin deals + supplier requests
     app.router.add_get('/api/admin/deals', get_admin_deals_api)
     app.router.add_get('/api/admin/supplier_requests', get_admin_supplier_requests_api)
+    # Notifications toggle
+    app.router.add_post('/api/user/notifications', post_notifications_toggle_api)
     # Buyer requests (public board)
     app.router.add_get('/api/buyer_requests', get_buyer_requests_api)
     app.router.add_get('/api/buyer_requests/my', get_my_buyer_requests_api)
@@ -989,6 +991,20 @@ async def start_server():
     site = web.TCPSite(runner, '0.0.0.0', port)
     await site.start()
     logging.info(f"API сервер запущен на порту {port}")
+
+async def post_notifications_toggle_api(request):
+    """POST /api/user/notifications — включить/выключить уведомления."""
+    try:
+        data = await request.json()
+    except Exception:
+        return web.json_response({"error": "Invalid JSON"}, status=400, headers=CORS_HEADERS)
+    telegram_id = data.get("telegram_id")
+    enabled = data.get("enabled")
+    if telegram_id is None or enabled is None:
+        return web.json_response({"error": "Required: telegram_id, enabled"}, status=400, headers=CORS_HEADERS)
+    database.set_notifications_enabled(int(telegram_id), bool(enabled))
+    return web.json_response({"ok": True}, headers=CORS_HEADERS)
+
 
 async def get_buyer_requests_api(request):
     """GET /api/buyer_requests — все открытые запросы покупателей (для поставщиков)."""
@@ -1032,6 +1048,18 @@ async def post_buyer_request_api(request):
         max_price=int(data["max_price"]) if data.get("max_price") else None,
         comment=(data.get("comment") or "").strip() or None,
     )
+    # Уведомляем всех поставщиков
+    item = f"{model}{(' ' + memory) if memory else ''}{(' ' + color) if color else ''}"
+    text = f"🛒 Новый запрос от покупателя\n\n📱 {item}\nКол-во: {quantity} шт"
+    if max_price:
+        text += f"\nМакс. цена: {max_price:,} ₽".replace(',', ' ')
+    if comment:
+        text += f"\n💬 {comment}"
+    for supplier_id in database.get_suppliers_with_notifications():
+        try:
+            await bot.send_message(supplier_id, text)
+        except Exception:
+            pass
     return web.json_response({"ok": True, "id": req_id}, headers=CORS_HEADERS)
 
 
@@ -1072,6 +1100,18 @@ async def post_buyer_request_respond_api(request):
         price=price,
         comment=(data.get("comment") or "").strip() or None,
     )
+    # Уведомляем покупателя
+    reqs = database.get_my_buyer_requests(0)  # dummy, get by request id
+    conn = __import__('sqlite3').connect(database.DB_NAME)
+    row = conn.execute('SELECT buyer_id, model, memory, color FROM buyer_requests WHERE id=?', (req_id,)).fetchone()
+    conn.close()
+    if row:
+        buyer_id_notif, model, memory, color = row
+        item = f"{model}{(' ' + memory) if memory else ''}{(' ' + color) if color else ''}"
+        try:
+            await bot.send_message(buyer_id_notif, f"💰 Поставщик ответил на ваш запрос!\n\n📱 {item}\nЦена: {price:,} ₽".replace(',', ' ') + "\n\nОткройте приложение → Запросы")
+        except Exception:
+            pass
     return web.json_response({"ok": True}, headers=CORS_HEADERS)
 
 

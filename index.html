@@ -1599,6 +1599,7 @@ async function loadMyProfile() {
       api('/api/supplier/stats?telegram_id=' + userId)
     ]);
     const reviews = await api('/api/supplier?supplier_id=' + userId).then(r => r.reviews || []).catch(() => []);
+    notificationsEnabled = user.notifications_enabled !== 0;
     el.innerHTML = `
       <div class="profile-hero">
         <div style="display:flex;align-items:center;gap:14px">
@@ -1619,6 +1620,12 @@ async function loadMyProfile() {
         <button class="btn-full btn-secondary" onclick="showVerificationSheet()" style="margin-bottom:12px">
           🏆 Подать заявку на верификацию
         </button>` : '<div style="color:#34C759;font-weight:600;font-size:14px;padding:8px 0 12px">✓ Аккаунт верифицирован</div>'}
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-top:1px solid #F2F2F7;margin-bottom:8px">
+        <span style="font-size:15px;font-weight:500">🔔 Уведомления о запросах</span>
+        <button id="notifyToggleBtn" onclick="toggleNotifications()" style="padding:6px 16px;border-radius:20px;font-size:13px;font-weight:600;border:none;cursor:pointer;background:${user.notifications_enabled!==0?'#34C759':'#E5E5EA'};color:${user.notifications_enabled!==0?'#fff':'#8E8E93'}">
+          ${user.notifications_enabled!==0?'Вкл':'Выкл'}
+        </button>
+      </div>
       <div class="section-title">Отзывы</div>
       ${reviews.length ? reviews.map(r => `
         <div class="review-item">
@@ -1631,6 +1638,25 @@ async function loadMyProfile() {
     `;
   } catch(e) {
     el.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">${e.message}</div></div>`;
+  }
+}
+
+let notificationsEnabled = true;
+async function toggleNotifications() {
+  notificationsEnabled = !notificationsEnabled;
+  try {
+    await api('/api/user/notifications', {method:'POST', body: JSON.stringify({telegram_id: parseInt(userId), enabled: notificationsEnabled})});
+    const btns = [document.getElementById('notifyToggleBtn'), document.getElementById('notifyToggleBtnBuyer')];
+    btns.forEach(btn => {
+      if (!btn) return;
+      btn.textContent = notificationsEnabled ? 'Вкл' : 'Выкл';
+      btn.style.background = notificationsEnabled ? '#34C759' : '#E5E5EA';
+      btn.style.color = notificationsEnabled ? '#fff' : '#8E8E93';
+    });
+    showToast(notificationsEnabled ? '🔔 Уведомления включены' : '🔕 Уведомления выключены');
+  } catch(e) {
+    notificationsEnabled = !notificationsEnabled;
+    showToast('Ошибка: ' + e.message);
   }
 }
 
@@ -1668,6 +1694,7 @@ async function loadBuyerProfile() {
   if (!userId) return;
   try {
     const user = await api('/api/user?telegram_id=' + userId);
+    notificationsEnabled = user.notifications_enabled !== 0;
     el.innerHTML = `
       <div class="profile-hero">
         <div style="display:flex;align-items:center;gap:14px">
@@ -1677,6 +1704,12 @@ async function loadBuyerProfile() {
             <div class="profile-meta">${user.username ? '@'+user.username : ''}</div>
           </div>
         </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-top:1px solid #F2F2F7;margin-bottom:8px">
+        <span style="font-size:15px;font-weight:500">🔔 Уведомления об ответах</span>
+        <button id="notifyToggleBtnBuyer" onclick="toggleNotifications()" style="padding:6px 16px;border-radius:20px;font-size:13px;font-weight:600;border:none;cursor:pointer;background:${user.notifications_enabled!==0?'#34C759':'#E5E5EA'};color:${user.notifications_enabled!==0?'#fff':'#8E8E93'}">
+          ${user.notifications_enabled!==0?'Вкл':'Выкл'}
+        </button>
       </div>
       <div class="settings-list">
         <div class="settings-row" onclick="switchRole()">
