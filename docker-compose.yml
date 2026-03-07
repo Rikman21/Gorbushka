@@ -1,0 +1,86 @@
+services:
+
+  postgres:
+    image: postgres:15
+    env_file: .env
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gorbushka"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: always
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: always
+
+  user-service:
+    build: ./services/user-service
+    env_file: .env
+    ports: ["8081:8081"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: always
+
+  catalog-service:
+    build: ./services/catalog-service
+    env_file: .env
+    ports: ["8082:8082"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: always
+
+  deal-service:
+    build: ./services/deal-service
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports: ["8083:8083"]
+    restart: always
+
+  notify-service:
+    build: ./services/notify-service
+    env_file: .env
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: always
+
+  bot:
+    build: ./services/bot
+    env_file: .env
+    depends_on:
+      - user-service
+      - catalog-service
+      - deal-service
+      - redis
+    restart: always
+
+  nginx:
+    image: nginx:alpine
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - user-service
+      - catalog-service
+      - deal-service
+    restart: always
+
+volumes:
+  pgdata:
