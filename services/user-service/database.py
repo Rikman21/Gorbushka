@@ -46,6 +46,15 @@ async def init_db():
             )
         ''')
 
+        # Fix sequences after migration data
+        for table, seq in [
+            ('users', 'users_id_seq'),
+            ('supplier_requests', 'supplier_requests_id_seq'),
+        ]:
+            max_id = await conn.fetchval(f'SELECT COALESCE(MAX(id), 0) FROM {table}')
+            if max_id > 0:
+                await conn.execute(f"SELECT setval('{seq}', {max_id})")
+
 
 async def close_db():
     global pool

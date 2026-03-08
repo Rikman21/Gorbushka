@@ -100,16 +100,19 @@ async def post_create_deal_api(request):
     deal_id = await database.create_deal(buyer_id, supplier_id, offer_id, quantity, price)
 
     # Notify supplier via Redis
-    await publish_notification("new_deal", {
-        "deal_id": deal_id,
-        "supplier_id": supplier_id,
-        "buyer_id": buyer_id,
-        "model": offer.get('model', ''),
-        "memory": offer.get('memory', ''),
-        "color": offer.get('color', ''),
-        "price": price,
-        "quantity": quantity,
-    })
+    try:
+        await publish_notification("new_deal", {
+            "deal_id": deal_id,
+            "supplier_id": supplier_id,
+            "buyer_id": buyer_id,
+            "model": offer.get('model', ''),
+            "memory": offer.get('memory', ''),
+            "color": offer.get('color', ''),
+            "price": price,
+            "quantity": quantity,
+        })
+    except Exception as e:
+        logging.warning("Failed to publish new_deal notification: %s", e)
     return json_response({"ok": True, "deal_id": deal_id})
 
 
@@ -313,13 +316,16 @@ async def post_buyer_request_api(request):
     req_id = await database.create_buyer_request(buyer_id, model, memory, color, quantity, max_price, comment)
 
     # Notify all suppliers via Redis
-    item = f"{model}{(' ' + memory) if memory else ''}{(' ' + color) if color else ''}"
-    text = f"🛒 Новый запрос от покупателя\n\n📱 {item}\nКол-во: {quantity} шт"
-    if max_price:
-        text += f"\nМакс. цена: {max_price:,} ₽".replace(',', ' ')
-    if comment:
-        text += f"\n💬 {comment}"
-    await publish_notification("buyer_request", {"text": text})
+    try:
+        item = f"{model}{(' ' + memory) if memory else ''}{(' ' + color) if color else ''}"
+        text = f"🛒 Новый запрос от покупателя\n\n📱 {item}\nКол-во: {quantity} шт"
+        if max_price:
+            text += f"\nМакс. цена: {max_price:,} ₽".replace(',', ' ')
+        if comment:
+            text += f"\n💬 {comment}"
+        await publish_notification("buyer_request", {"text": text})
+    except Exception as e:
+        logging.warning("Failed to publish buyer_request notification: %s", e)
     return json_response({"ok": True, "id": req_id})
 
 
@@ -399,7 +405,17 @@ def create_app():
     async def cors_middleware(request, handler):
         if request.method == "OPTIONS":
             return web.Response(headers=CORS_HEADERS)
-        return await handler(request)
+        try:
+            resp = await handler(request)
+        except Exception as e:
+            logging.exception("Unhandled error in %s %s", request.method, request.path)
+            resp = web.Response(
+                body=json.dumps({"error": str(e)}, ensure_ascii=False),
+                content_type="application/json",
+                status=500,
+            )
+        resp.headers.update(CORS_HEADERS)
+        return resp
 
     app = web.Application(middlewares=[cors_middleware])
     app.on_startup.append(on_startup)

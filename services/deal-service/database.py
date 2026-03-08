@@ -96,6 +96,19 @@ async def init_db():
         await conn.execute('CREATE INDEX IF NOT EXISTS idx_price_requests_supplier ON price_requests(supplier_id)')
         await conn.execute('CREATE INDEX IF NOT EXISTS idx_price_requests_buyer ON price_requests(buyer_id)')
 
+        # Fix sequences after migration data
+        for table, seq in [
+            ('deals', 'deals_id_seq'),
+            ('messages', 'messages_id_seq'),
+            ('reviews', 'reviews_id_seq'),
+            ('price_requests', 'price_requests_id_seq'),
+            ('buyer_requests', 'buyer_requests_id_seq'),
+            ('buyer_request_responses', 'buyer_request_responses_id_seq'),
+        ]:
+            max_id = await conn.fetchval(f'SELECT COALESCE(MAX(id), 0) FROM {table}')
+            if max_id > 0:
+                await conn.execute(f"SELECT setval('{seq}', {max_id})")
+
 
 async def close_db():
     global pool

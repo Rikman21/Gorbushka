@@ -2052,29 +2052,6 @@ async function adminDeleteUser(telegramId) {
   } catch(e) { showToast('Ошибка'); }
 }
 
-// ===== Deals create API endpoint needed =====
-// We need POST /api/deals in main.py — let's use the existing bot webApp handler approach
-// For now create deal via special endpoint
-async function createDealViaAPI(offerId, quantity) {
-  // Main.py doesn't have POST /api/deals yet — use sendData via Telegram
-  if (tg) {
-    tg.sendData(`CREATE_DEAL|${offerId}|${quantity}`);
-    return {ok: true};
-  }
-  throw new Error('Откройте через бот');
-}
-
-// Override submitBuy to use Telegram sendData
-async function submitBuy() {
-  if (!activeOffer) return;
-  if (tg) {
-    tg.sendData(`CREATE_DEAL|${activeOffer.id}|${buyQty}`);
-    closeSheet();
-    showToast('✅ Заявка отправлена!');
-    return;
-  }
-  showToast('Откройте приложение через бот Telegram');
-}
 
 // ===== Utils =====
 function esc(s) {

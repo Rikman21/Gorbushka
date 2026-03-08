@@ -322,7 +322,17 @@ def create_app():
     async def cors_middleware(request, handler):
         if request.method == "OPTIONS":
             return web.Response(headers=CORS_HEADERS)
-        return await handler(request)
+        try:
+            resp = await handler(request)
+        except Exception as e:
+            logging.exception("Unhandled error in %s %s", request.method, request.path)
+            resp = web.Response(
+                body=json.dumps({"error": str(e)}, ensure_ascii=False),
+                content_type="application/json",
+                status=500,
+            )
+        resp.headers.update(CORS_HEADERS)
+        return resp
 
     app = web.Application(middlewares=[cors_middleware])
     app.on_startup.append(on_startup)
