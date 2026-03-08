@@ -168,6 +168,46 @@
     .product-price.hidden { font-size: 13px; font-weight: 600; color: #8E8E93; font-style: italic; }
     .product-rating { display: flex; align-items: center; gap: 3px; font-size: 11px; color: #8E8E93; }
 
+    /* Grouped product card */
+    .group-card {
+      background: #fff; border-radius: 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.04);
+      margin-bottom: 10px; overflow: hidden;
+    }
+    .group-header {
+      display: flex; gap: 12px; padding: 14px; align-items: flex-start;
+      cursor: pointer; transition: background .15s;
+    }
+    .group-header:active { background: #F5F5F7; }
+    .group-info { flex: 1; min-width: 0; }
+    .group-model { font-size: 15px; font-weight: 700; color: #1C1C1E; line-height: 1.25; }
+    .group-meta { font-size: 12px; color: #8E8E93; margin-top: 3px; }
+    .group-price { font-size: 16px; font-weight: 800; color: #1C1C1E; margin-top: 6px; }
+    .group-stats { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+    .group-badge {
+      font-size: 11px; font-weight: 600; color: #8E8E93;
+      display: flex; align-items: center; gap: 3px;
+    }
+    .group-chevron {
+      transition: transform .2s; flex-shrink: 0; color: #C7C7CC;
+    }
+    .group-card.open .group-chevron { transform: rotate(90deg); }
+    .group-items {
+      display: none; border-top: 1px solid #F0F0F3;
+    }
+    .group-card.open .group-items { display: block; }
+    .group-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 14px; border-bottom: 1px solid #F5F5F7;
+      cursor: pointer; transition: background .15s;
+    }
+    .group-item:last-child { border-bottom: none; }
+    .group-item:active { background: #F5F5F7; }
+    .group-item-name { font-size: 13px; font-weight: 500; color: #1C1C1E; }
+    .group-item-sub { font-size: 11px; color: #8E8E93; margin-top: 2px; }
+    .group-item-price { font-size: 14px; font-weight: 700; color: #1C1C1E; text-align: right; }
+    .group-item-count { font-size: 11px; color: #8E8E93; text-align: right; margin-top: 2px; }
+
     /* Filter chips */
     .filter-bar { padding: 8px 16px; display: flex; gap: 8px; overflow-x: auto; }
     .filter-bar::-webkit-scrollbar { display: none; }
@@ -953,26 +993,93 @@ function renderFeed() {
     el.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-title">Нет предложений</div><div class="empty-sub">Попробуйте изменить фильтр</div></div>';
     return;
   }
-  el.innerHTML = feedData.map(item => `
-    <div class="product-card" onclick="openCatalogItem(${item.id}, '${esc(item.model)} ${esc(item.memory || '')}')">
-      <div class="product-card-inner">
-        <div class="product-img">📱</div>
-        <div class="product-info">
-          <div class="product-name">${esc(item.brand || '')} ${esc(item.model || '')}</div>
-          <div class="product-meta">${esc(item.memory || '')} ${esc(item.color || '')}</div>
-          <div class="product-price-row">
-            <div>
-              ${item.min_price ? `<div class="product-price">от ${item.min_price.toLocaleString('ru')} ₽</div>` : '<div class="product-price hidden">Запросить цену</div>'}
-            </div>
-            <div class="product-rating">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="#FF9500" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-              ${item.offers_count || 0} поставщ.
+  // Group by base model name (e.g. "iPhone 16 Pro Max")
+  const groups = {};
+  feedData.forEach(item => {
+    const key = (item.brand || '') + ' ' + (item.model || '');
+    if (!groups[key]) {
+      groups[key] = { brand: item.brand, model: item.model, items: [], totalOffers: 0, globalMin: null, globalMax: null };
+    }
+    const g = groups[key];
+    g.items.push(item);
+    g.totalOffers += (item.offers_count || 0);
+    if (item.min_price) {
+      if (g.globalMin === null || item.min_price < g.globalMin) g.globalMin = item.min_price;
+    }
+    if (item.max_price) {
+      if (g.globalMax === null || item.max_price > g.globalMax) g.globalMax = item.max_price;
+    }
+  });
+
+  el.innerHTML = Object.entries(groups).map(([key, g], idx) => {
+    // If only 1 variant — show simple card, click goes directly to offers
+    if (g.items.length === 1) {
+      const item = g.items[0];
+      return `
+        <div class="product-card" onclick="openCatalogItem(${item.id}, '${esc(item.model)} ${esc(item.memory || '')}')">
+          <div class="product-card-inner">
+            <div class="product-img">📱</div>
+            <div class="product-info">
+              <div class="product-name">${esc(key)}</div>
+              <div class="product-meta">${esc(item.memory || '')} ${esc(item.color || '')}</div>
+              <div class="product-price-row">
+                <div>
+                  ${item.min_price ? `<div class="product-price">от ${item.min_price.toLocaleString('ru')} ₽</div>` : '<div class="product-price hidden">Запросить цену</div>'}
+                </div>
+                <div class="product-rating">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="#FF9500" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                  ${item.offers_count || 0} поставщ.
+                </div>
+              </div>
             </div>
           </div>
+        </div>`;
+    }
+    // Multiple variants — grouped card
+    const priceText = g.globalMin && g.globalMax
+      ? (g.globalMin === g.globalMax
+        ? `${g.globalMin.toLocaleString('ru')} ₽`
+        : `${g.globalMin.toLocaleString('ru')} – ${g.globalMax.toLocaleString('ru')} ₽`)
+      : 'Запросить цену';
+    const variants = g.items.map(item => {
+      const varLabel = [item.memory, item.color].filter(Boolean).join(' · ') || 'Стандарт';
+      const varPrice = item.min_price ? `от ${item.min_price.toLocaleString('ru')} ₽` : 'Запросить';
+      return `
+        <div class="group-item" onclick="event.stopPropagation();openCatalogItem(${item.id}, '${esc(item.model)} ${esc(item.memory || '')}')">
+          <div>
+            <div class="group-item-name">${esc(varLabel)}</div>
+            <div class="group-item-sub">${item.offers_count || 0} поставщ.</div>
+          </div>
+          <div>
+            <div class="group-item-price">${varPrice}</div>
+          </div>
+        </div>`;
+    }).join('');
+
+    return `
+      <div class="group-card" id="group_${idx}">
+        <div class="group-header" onclick="toggleGroup('group_${idx}')">
+          <div class="product-img">📱</div>
+          <div class="group-info">
+            <div class="group-model">${esc(key)}</div>
+            <div class="group-meta">${g.items.length} вариант${g.items.length > 4 ? 'ов' : g.items.length > 1 ? 'а' : ''}</div>
+            <div class="group-price">${priceText}</div>
+            <div class="group-stats">
+              <div class="group-badge">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="#FF9500" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                ${g.totalOffers} поставщ.
+              </div>
+            </div>
+          </div>
+          <svg class="group-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
         </div>
-      </div>
-    </div>
-  `).join('');
+        <div class="group-items">${variants}</div>
+      </div>`;
+  }).join('');
+}
+
+function toggleGroup(id) {
+  document.getElementById(id)?.classList.toggle('open');
 }
 
 function openCatalogItem(catalogId, name) {
