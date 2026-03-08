@@ -1525,8 +1525,9 @@ async function loadMyOffers() {
         </div>
         ${o.price_hidden ? '<div style="font-size:11px;color:#FF9500;margin-top:4px;font-weight:600">🔒 Цена скрыта</div>' : ''}
         <div class="my-offer-actions">
+          <button class="btn-sm btn-secondary" onclick="openEditOffer(${o.id}, ${o.price||0}, ${o.quantity||0})">✏️ Цена</button>
           <button class="btn-sm btn-secondary" onclick="togglePrice(${o.id})">
-            ${o.price_hidden ? '👁 Показать цену' : '🔒 Скрыть цену'}
+            ${o.price_hidden ? '👁 Показать' : '🔒 Скрыть'}
           </button>
           <button class="btn-sm btn-red" onclick="deleteOffer(${o.id})">Удалить</button>
         </div>
@@ -1545,6 +1546,38 @@ async function togglePrice(offerId) {
       body: JSON.stringify({telegram_id: parseInt(userId)})
     });
     showToast(r.price_hidden ? '🔒 Цена скрыта' : '👁 Цена видна покупателям');
+    loadMyOffers();
+  } catch(e) {
+    showToast('Ошибка: ' + e.message);
+  }
+}
+
+function openEditOffer(offerId, currentPrice, currentQty) {
+  openSheet('Редактировать оффер', `
+    <div class="form-group">
+      <label class="form-label">Цена (₽)</label>
+      <input type="number" class="form-input" id="editOfferPrice" value="${currentPrice}" min="1">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Количество (шт)</label>
+      <input type="number" class="form-input" id="editOfferQty" value="${currentQty}" min="1">
+    </div>
+    <button class="btn-full btn-primary" onclick="saveOffer(${offerId})" style="margin-top:12px;height:44px;border-radius:12px">Сохранить</button>
+  `);
+}
+
+async function saveOffer(offerId) {
+  const price = parseInt(document.getElementById('editOfferPrice').value);
+  const quantity = parseInt(document.getElementById('editOfferQty').value);
+  if (!price || price < 1) { showToast('Введите корректную цену'); return; }
+  if (!quantity || quantity < 1) { showToast('Введите корректное количество'); return; }
+  try {
+    await api(`/api/supplier/offers/${offerId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({telegram_id: parseInt(userId), price, quantity})
+    });
+    closeSheet();
+    showToast('✅ Оффер обновлён');
     loadMyOffers();
   } catch(e) {
     showToast('Ошибка: ' + e.message);

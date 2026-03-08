@@ -10,7 +10,7 @@ logging.basicConfig(level=logging.INFO)
 
 CORS_HEADERS = {
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
 }
 
@@ -187,6 +187,33 @@ async def delete_supplier_offer_api(request):
     return json_response({"ok": True})
 
 
+async def patch_supplier_offer_api(request):
+    offer_id = request.match_info.get("id")
+    data = await request.json()
+    telegram_id = data.get("telegram_id")
+    if not offer_id or not telegram_id:
+        return json_response({"error": "Required: offer_id, telegram_id"}, status=400)
+    try:
+        offer_id = int(offer_id)
+        telegram_id = int(telegram_id)
+    except (TypeError, ValueError):
+        return json_response({"error": "Invalid types"}, status=400)
+    async with database.pool.acquire() as conn:
+        row = await conn.fetchrow(
+            'SELECT id FROM offers WHERE id = $1 AND supplier_id = $2', offer_id, telegram_id
+        )
+    if not row:
+        return json_response({"error": "Offer not found or access denied"}, status=404)
+    updates = {}
+    for field in ['price', 'quantity']:
+        if field in data and data[field] is not None:
+            updates[field] = int(data[field])
+    if not updates:
+        return json_response({"error": "Nothing to update"}, status=400)
+    await database.update_offer(offer_id, **updates)
+    return json_response({"ok": True})
+
+
 async def post_toggle_price_api(request):
     offer_id = request.match_info.get("id")
     data = await request.json()
@@ -346,6 +373,7 @@ def create_app():
     app.router.add_get("/api/supplier/offers", get_supplier_offers_api)
     app.router.add_post("/api/supplier/offers", post_supplier_offers_api)
     app.router.add_delete("/api/supplier/offers/{id}", delete_supplier_offer_api)
+    app.router.add_patch("/api/supplier/offers/{id}", patch_supplier_offer_api)
     app.router.add_post("/api/supplier/offers/{id}/toggle_price", post_toggle_price_api)
     app.router.add_get("/api/supplier/template", get_supplier_template_api)
     app.router.add_post("/api/supplier/import", post_supplier_import_api)
