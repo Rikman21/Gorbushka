@@ -90,6 +90,13 @@ async def init_db():
                 created_at TIMESTAMP DEFAULT NOW()
             )
         ''')
+        # Add status column to buyer_request_responses if missing
+        await conn.execute('''
+            DO $$ BEGIN
+                ALTER TABLE buyer_request_responses ADD COLUMN status TEXT DEFAULT 'pending';
+            EXCEPTION WHEN duplicate_column THEN NULL;
+            END $$
+        ''')
         await conn.execute('CREATE INDEX IF NOT EXISTS idx_deals_buyer ON deals(buyer_id)')
         await conn.execute('CREATE INDEX IF NOT EXISTS idx_deals_supplier ON deals(supplier_id)')
         await conn.execute('CREATE INDEX IF NOT EXISTS idx_messages_deal ON messages(deal_id)')
@@ -402,3 +409,32 @@ async def get_buyer_request_by_id(request_id):
             'SELECT buyer_id, model, memory, color FROM buyer_requests WHERE id=$1', request_id
         )
         return dict(row) if row else None
+
+
+async def get_buyer_request_response_by_id(response_id):
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow('''
+            SELECT brr.*, br.buyer_id, br.model, br.memory, br.color,
+                u.username as buyer_username, u.full_name as buyer_name
+            FROM buyer_request_responses brr
+            JOIN buyer_requests br ON brr.request_id = br.id
+            JOIN users u ON br.buyer_id = u.telegram_id
+            WHERE brr.id = $1
+        ''', response_id)
+        return dict(row) if row else None
+
+
+async def accept_buyer_request_response(response_id):
+    async with pool.acquire() as conn:
+        await conn.execute(
+            "UPDATE buyer_request_responses SET status='accepted' WHERE id=$1",
+            response_id,
+        )
+
+
+async def reject_buyer_request_response(response_id):
+    async with pool.acquire() as conn:
+        await conn.execute(
+            "UPDATE buyer_request_responses SET status='rejected' WHERE id=$1",
+            response_id,
+        )

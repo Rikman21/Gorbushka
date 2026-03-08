@@ -1306,10 +1306,42 @@ async function closeMyRequest(requestId) {
 async function viewRequestResponses(requestId, modelName) {
   const responses = await api(`/api/buyer_requests/${requestId}/responses`);
   if (!responses.length) { showToast('Ответов пока нет'); return; }
-  const lines = responses.map(r =>
-    `• ${esc(r.company_name||r.username||'Поставщик')}: ${r.price.toLocaleString('ru')} ₽${r.comment ? ' — ' + esc(r.comment) : ''}`
-  ).join('\n');
-  alert(`Ответы на запрос "${modelName}":\n\n${lines}`);
+  const html = responses.map(r => {
+    const statusLabel = r.status === 'accepted' ? '<div style="color:#34C759;font-weight:600;margin-top:6px">✅ Принято — контакт отправлен</div>'
+      : r.status === 'rejected' ? '<div style="color:#8E8E93;margin-top:6px">❌ Отклонено</div>'
+      : `<div class="deal-actions" style="margin-top:8px">
+          <button class="btn-sm btn-green" onclick="acceptBuyerResponse(${r.id})">Принять ${r.price.toLocaleString('ru')} ₽</button>
+          <button class="btn-sm btn-secondary" onclick="rejectBuyerResponse(${r.id})">Отклонить</button>
+        </div>`;
+    return `<div class="request-card">
+      <div style="font-size:15px;font-weight:700;color:#1C1C1E">${r.price.toLocaleString('ru')} ₽</div>
+      ${r.comment ? `<div style="font-size:13px;color:#8E8E93;margin-top:4px">${esc(r.comment)}</div>` : ''}
+      ${statusLabel}
+    </div>`;
+  }).join('');
+  openSheet(`Ответы: ${esc(modelName)}`, html);
+}
+
+async function acceptBuyerResponse(responseId) {
+  try {
+    await api(`/api/buyer_requests/response/${responseId}/accept`, {
+      method: 'POST', body: JSON.stringify({buyer_id: parseInt(userId)})
+    });
+    showToast('✅ Принято! Ваш контакт отправлен поставщику.');
+    closeSheet();
+    loadMyBuyerRequests();
+  } catch(e) { showToast('Ошибка: ' + e.message); }
+}
+
+async function rejectBuyerResponse(responseId) {
+  try {
+    await api(`/api/buyer_requests/response/${responseId}/reject`, {
+      method: 'POST', body: JSON.stringify({buyer_id: parseInt(userId)})
+    });
+    showToast('Отклонено');
+    closeSheet();
+    loadMyBuyerRequests();
+  } catch(e) { showToast('Ошибка: ' + e.message); }
 }
 
 async function loadPublicBuyerRequests() {
@@ -1364,7 +1396,6 @@ async function loadPriceRequests() {
       return `
         <div class="request-card">
           <div style="font-size:14px;font-weight:700;color:#1C1C1E">${esc(r.model||'')} ${esc(r.memory||'')} ${esc(r.color||'')}</div>
-          <div style="font-size:12px;color:#8E8E93;margin-top:3px">Поставщик: ${esc(r.supplier_company||'')}</div>
           <div style="font-size:13px;font-weight:600;margin-top:8px;color:${r.status==='responded'?'#34C759':r.status==='pending'?'#FF9500':'#8E8E93'}">
             ${statusMap[r.status] || r.status}
             ${r.status === 'responded' ? ` — ${(r.buyer_price||0).toLocaleString('ru')} ₽/шт` : ''}

@@ -456,6 +456,75 @@ async def post_buyer_request_close_api(request):
     return json_response({"ok": True})
 
 
+# ==================== BUYER REQUEST RESPONSE ACCEPT/REJECT ====================
+
+async def post_accept_buyer_response_api(request):
+    resp_id = request.match_info.get("resp_id")
+    try:
+        resp_id = int(resp_id)
+    except (TypeError, ValueError):
+        return json_response({"error": "Invalid id"}, status=400)
+    data = await request.json()
+    buyer_id = data.get("buyer_id")
+    if not buyer_id:
+        return json_response({"error": "buyer_id required"}, status=400)
+
+    resp = await database.get_buyer_request_response_by_id(resp_id)
+    if not resp:
+        return json_response({"error": "Response not found"}, status=404)
+    if resp['buyer_id'] != int(buyer_id):
+        return json_response({"error": "Not your request"}, status=403)
+
+    await database.accept_buyer_request_response(resp_id)
+
+    try:
+        await publish_notification("buyer_response_accepted", {
+            "supplier_id": resp['supplier_id'],
+            "buyer_id": resp['buyer_id'],
+            "buyer_username": resp.get('buyer_username', ''),
+            "buyer_name": resp.get('buyer_name', ''),
+            "model": resp.get('model', ''),
+            "memory": resp.get('memory', ''),
+            "color": resp.get('color', ''),
+            "price": resp['price'],
+        })
+    except Exception as e:
+        logging.warning("Failed to publish buyer_response_accepted: %s", e)
+    return json_response({"ok": True})
+
+
+async def post_reject_buyer_response_api(request):
+    resp_id = request.match_info.get("resp_id")
+    try:
+        resp_id = int(resp_id)
+    except (TypeError, ValueError):
+        return json_response({"error": "Invalid id"}, status=400)
+    data = await request.json()
+    buyer_id = data.get("buyer_id")
+    if not buyer_id:
+        return json_response({"error": "buyer_id required"}, status=400)
+
+    resp = await database.get_buyer_request_response_by_id(resp_id)
+    if not resp:
+        return json_response({"error": "Response not found"}, status=404)
+    if resp['buyer_id'] != int(buyer_id):
+        return json_response({"error": "Not your request"}, status=403)
+
+    await database.reject_buyer_request_response(resp_id)
+
+    try:
+        await publish_notification("buyer_response_rejected", {
+            "supplier_id": resp['supplier_id'],
+            "model": resp.get('model', ''),
+            "memory": resp.get('memory', ''),
+            "color": resp.get('color', ''),
+            "price": resp['price'],
+        })
+    except Exception as e:
+        logging.warning("Failed to publish buyer_response_rejected: %s", e)
+    return json_response({"ok": True})
+
+
 # ==================== APP ====================
 
 async def on_startup(app):
@@ -515,6 +584,8 @@ def create_app():
     app.router.add_get("/api/buyer_requests/{id}/responses", get_buyer_request_responses_api)
     app.router.add_post("/api/buyer_requests/{id}/respond", post_buyer_request_respond_api)
     app.router.add_post("/api/buyer_requests/{id}/close", post_buyer_request_close_api)
+    app.router.add_post("/api/buyer_requests/response/{resp_id}/accept", post_accept_buyer_response_api)
+    app.router.add_post("/api/buyer_requests/response/{resp_id}/reject", post_reject_buyer_response_api)
 
     return app
 

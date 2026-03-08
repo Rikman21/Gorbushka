@@ -129,18 +129,15 @@ async def handle_notification(payload):
 
     elif event_type == "price_response":
         buyer_id = payload["buyer_id"]
-        supplier_id = payload["supplier_id"]
         model = payload.get("model", "")
         memory = payload.get("memory", "")
         color = payload.get("color", "")
         price = payload.get("price", 0)
-        supplier_link = await get_user_link(supplier_id)
         await send_safe(
             buyer_id,
             f"💰 Получена цена!\n\n"
             f"📦 {model} {memory} {color}\n"
-            f"💵 Цена: {price:,} ₽ за шт\n"
-            f"🏢 Поставщик: {supplier_link}\n\n"
+            f"💵 Цена: {price:,} ₽ за шт\n\n"
             f"Откройте приложение → Примите или отклоните цену"
         )
 
@@ -190,16 +187,46 @@ async def handle_notification(payload):
 
     elif event_type == "buyer_request_response":
         buyer_id = payload["buyer_id"]
-        supplier_id = payload.get("supplier_id")
         item = payload.get("item", "")
         price = payload.get("price", 0)
-        supplier_link = await get_user_link(supplier_id) if supplier_id else "Поставщик"
         await send_safe(
             buyer_id,
-            f"💰 {supplier_link} ответил на ваш запрос!\n\n"
+            f"💰 Поставщик ответил на ваш запрос!\n\n"
             f"📱 {item}\n"
             f"💵 Цена: {price:,} ₽\n\n"
-            f"Откройте приложение → Запросы"
+            f"Откройте приложение → Примите или отклоните"
+        )
+
+    elif event_type == "buyer_response_accepted":
+        supplier_id = payload["supplier_id"]
+        buyer_id = payload["buyer_id"]
+        buyer_username = payload.get("buyer_username", "")
+        buyer_name = payload.get("buyer_name", "")
+        model = payload.get("model", "")
+        memory = payload.get("memory", "")
+        color = payload.get("color", "")
+        price = payload.get("price", 0)
+        contact = f"@{buyer_username}" if buyer_username else buyer_name or str(buyer_id)
+        await send_safe(
+            supplier_id,
+            f"✅ Покупатель принял вашу цену!\n\n"
+            f"📦 {model} {memory} {color}\n"
+            f"💵 Цена: {price:,} ₽\n\n"
+            f"👤 Контакт покупателя: {contact}\n"
+            f"Свяжитесь для завершения сделки"
+        )
+
+    elif event_type == "buyer_response_rejected":
+        supplier_id = payload["supplier_id"]
+        model = payload.get("model", "")
+        memory = payload.get("memory", "")
+        color = payload.get("color", "")
+        price = payload.get("price", 0)
+        await send_safe(
+            supplier_id,
+            f"❌ Покупатель отклонил вашу цену\n\n"
+            f"📦 {model} {memory} {color}\n"
+            f"💵 Цена была: {price:,} ₽"
         )
 
     elif event_type == "supplier_approved":
