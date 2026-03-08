@@ -28,6 +28,23 @@ async def get_suppliers_with_notifications():
     return []
 
 
+async def get_user_link(telegram_id):
+    """Get user display name with @username link if available."""
+    async with aiohttp.ClientSession() as session:
+        try:
+            async with session.get(f"{USER_SERVICE}/api/user?telegram_id={telegram_id}") as resp:
+                if resp.status == 200:
+                    user = await resp.json()
+                    username = user.get("username")
+                    name = user.get("company_name") or user.get("full_name") or str(telegram_id)
+                    if username:
+                        return f"{name} (@{username})"
+                    return name
+        except Exception as e:
+            logging.warning("Failed to get user %s: %s", telegram_id, e)
+    return str(telegram_id)
+
+
 async def send_safe(chat_id, text, **kwargs):
     """Send message ignoring errors."""
     try:
@@ -42,17 +59,20 @@ async def handle_notification(payload):
 
     if event_type == "new_deal":
         supplier_id = payload["supplier_id"]
+        buyer_id = payload["buyer_id"]
         deal_id = payload["deal_id"]
         model = payload.get("model", "")
         memory = payload.get("memory", "")
         color = payload.get("color", "")
         price = payload.get("price", 0)
         quantity = payload.get("quantity", 1)
+        buyer_link = await get_user_link(buyer_id)
         await send_safe(
             supplier_id,
             f"🔔 Новая сделка #{deal_id}\n\n"
             f"📦 {model} {memory} {color}\n"
-            f"💰 {price:,} ₽ × {quantity} шт\n\n"
+            f"💰 {price:,} ₽ × {quantity} шт\n"
+            f"👤 Покупатель: {buyer_link}\n\n"
             f"Откройте биржу для подтверждения"
         )
 
@@ -91,30 +111,36 @@ async def handle_notification(payload):
 
     elif event_type == "price_request":
         supplier_id = payload["supplier_id"]
+        buyer_id = payload["buyer_id"]
         request_id = payload["request_id"]
         model = payload.get("model", "")
         memory = payload.get("memory", "")
         color = payload.get("color", "")
         quantity = payload.get("quantity", 1)
+        buyer_link = await get_user_link(buyer_id)
         await send_safe(
             supplier_id,
             f"💬 Запрос цены #{request_id}\n\n"
             f"📦 {model} {memory} {color}\n"
-            f"🔢 Количество: {quantity} шт\n\n"
+            f"🔢 Количество: {quantity} шт\n"
+            f"👤 Покупатель: {buyer_link}\n\n"
             f"⏰ У вас 10 минут чтобы ответить в приложении"
         )
 
     elif event_type == "price_response":
         buyer_id = payload["buyer_id"]
+        supplier_id = payload["supplier_id"]
         model = payload.get("model", "")
         memory = payload.get("memory", "")
         color = payload.get("color", "")
         price = payload.get("price", 0)
+        supplier_link = await get_user_link(supplier_id)
         await send_safe(
             buyer_id,
             f"💰 Получена цена!\n\n"
             f"📦 {model} {memory} {color}\n"
-            f"💵 Цена: {price:,} ₽ за шт\n\n"
+            f"💵 Цена: {price:,} ₽ за шт\n"
+            f"🏢 Поставщик: {supplier_link}\n\n"
             f"Откройте приложение для подтверждения покупки"
         )
 
@@ -132,11 +158,16 @@ async def handle_notification(payload):
 
     elif event_type == "buyer_request_response":
         buyer_id = payload["buyer_id"]
+        supplier_id = payload.get("supplier_id")
         item = payload.get("item", "")
         price = payload.get("price", 0)
+        supplier_link = await get_user_link(supplier_id) if supplier_id else "Поставщик"
         await send_safe(
             buyer_id,
-            f"💰 Поставщик ответил на ваш запрос!\n\n📱 {item}\nЦена: {price:,} ₽\n\nОткройте приложение → Запросы"
+            f"💰 {supplier_link} ответил на ваш запрос!\n\n"
+            f"📱 {item}\n"
+            f"💵 Цена: {price:,} ₽\n\n"
+            f"Откройте приложение → Запросы"
         )
 
     elif event_type == "supplier_approved":

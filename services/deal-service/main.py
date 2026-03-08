@@ -365,6 +365,7 @@ async def post_buyer_request_respond_api(request):
         item = f"{br['model']}{(' ' + br['memory']) if br.get('memory') else ''}{(' ' + br['color']) if br.get('color') else ''}"
         await publish_notification("buyer_request_response", {
             "buyer_id": br['buyer_id'],
+            "supplier_id": supplier_id,
             "item": item,
             "price": price,
         })
