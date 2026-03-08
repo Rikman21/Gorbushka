@@ -525,7 +525,9 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:6px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Опубликовать запрос
       </button>
-      <div class="section-title">Мои запросы</div>
+      <div class="section-title">Запросы цены</div>
+      <div id="requestsList"><div class="spinner"></div></div>
+      <div class="section-title" style="margin-top:16px">Мои запросы</div>
       <div id="myBuyerRequestsList"><div class="spinner"></div></div>
       <div class="section-title" style="margin-top:16px">История сделок</div>
       <div id="buyerDealsList"><div class="spinner"></div></div>
@@ -886,7 +888,7 @@ function navTo(screenId) {
   showScreen(screenId, false);
   // refresh
   if (screenId === 'screenFeed') loadFeed();
-  else if (screenId === 'screenRequests') { loadMyBuyerRequests(); loadBuyerDeals(); }
+  else if (screenId === 'screenRequests') { loadPriceRequests(); loadMyBuyerRequests(); loadBuyerDeals(); }
   else if (screenId === 'screenCreateBuyerRequest') loadBuyerRequestForm();
   else if (screenId === 'screenMyOffers') loadMyOffers();
   else if (screenId === 'screenIncoming') { loadPublicBuyerRequests(); loadIncomingRequests(); loadIncomingDeals(); }
