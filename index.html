@@ -1369,7 +1369,13 @@ async function loadPriceRequests() {
             ${statusMap[r.status] || r.status}
             ${r.status === 'responded' ? ` — ${(r.buyer_price||0).toLocaleString('ru')} ₽/шт` : ''}
           </div>
-          ${r.status === 'responded' ? `<button class="btn-sm btn-primary" style="margin-top:10px" onclick="buyFromRequest(${r.id}, ${r.offer_id}, ${r.buyer_price}, ${r.quantity})">Купить за ${(r.buyer_price||0).toLocaleString('ru')} ₽</button>` : ''}
+          ${r.status === 'responded' ? `
+            <div class="deal-actions" style="margin-top:10px">
+              <button class="btn-sm btn-green" onclick="acceptPriceRequest(${r.id})">Принять ${(r.buyer_price||0).toLocaleString('ru')} ₽</button>
+              <button class="btn-sm btn-secondary" onclick="rejectPriceRequest(${r.id})">Отклонить</button>
+            </div>` : ''}
+          ${r.status === 'accepted' ? `<div style="margin-top:8px;font-size:13px;color:#34C759;font-weight:600">✅ Принято — контакт отправлен поставщику</div>` : ''}
+          ${r.status === 'rejected' ? `<div style="margin-top:8px;font-size:13px;color:#8E8E93">❌ Отклонено</div>` : ''}
         </div>`;
     }).join('');
   } catch(e) {
@@ -1915,8 +1921,36 @@ async function uploadImport() {
   }
 }
 
-// ===== CREATE DEAL API (not via webApp.sendData) =====
-// Register a proper create deal endpoint in backend using API call
+// ===== PRICE REQUEST ACCEPT / REJECT =====
+async function acceptPriceRequest(requestId) {
+  if (!userId) return;
+  try {
+    await api(`/api/price_request/${requestId}/accept`, {
+      method: 'POST',
+      body: JSON.stringify({buyer_id: parseInt(userId)})
+    });
+    showToast('✅ Цена принята! Ваш контакт отправлен поставщику.');
+    loadPriceRequests();
+  } catch(e) {
+    showToast('Ошибка: ' + e.message);
+  }
+}
+
+async function rejectPriceRequest(requestId) {
+  if (!userId) return;
+  try {
+    await api(`/api/price_request/${requestId}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({buyer_id: parseInt(userId)})
+    });
+    showToast('Запрос отклонён');
+    loadPriceRequests();
+  } catch(e) {
+    showToast('Ошибка: ' + e.message);
+  }
+}
+
+// ===== CREATE DEAL API =====
 async function buyFromRequest(requestId, offerId, price, quantity) {
   if (!userId) return;
   // get offer to get supplier_id

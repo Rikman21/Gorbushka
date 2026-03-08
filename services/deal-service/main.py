@@ -263,6 +263,76 @@ async def post_respond_price_request_api(request):
     return json_response({"ok": True})
 
 
+# ==================== PRICE REQUEST ACCEPT/REJECT ====================
+
+async def post_accept_price_request_api(request):
+    req_id = request.match_info.get("id")
+    try:
+        req_id = int(req_id)
+    except (TypeError, ValueError):
+        return json_response({"error": "Invalid id"}, status=400)
+    data = await request.json()
+    buyer_id = data.get("buyer_id")
+    if not buyer_id:
+        return json_response({"error": "buyer_id required"}, status=400)
+
+    req = await database.get_price_request(req_id)
+    if not req or req['status'] != 'responded':
+        return json_response({"error": "Request not found or not responded"}, status=404)
+    if req['buyer_id'] != int(buyer_id):
+        return json_response({"error": "Not your request"}, status=403)
+
+    await database.accept_price_request(req_id)
+
+    # Notify supplier with buyer's contact
+    try:
+        await publish_notification("price_accepted", {
+            "supplier_id": req['supplier_id'],
+            "buyer_id": req['buyer_id'],
+            "buyer_username": req.get('buyer_username', ''),
+            "buyer_name": req.get('buyer_name', ''),
+            "model": req.get('model', ''),
+            "memory": req.get('memory', ''),
+            "color": req.get('color', ''),
+            "price": req.get('buyer_price', 0),
+        })
+    except Exception as e:
+        logging.warning("Failed to publish price_accepted: %s", e)
+    return json_response({"ok": True})
+
+
+async def post_reject_price_request_api(request):
+    req_id = request.match_info.get("id")
+    try:
+        req_id = int(req_id)
+    except (TypeError, ValueError):
+        return json_response({"error": "Invalid id"}, status=400)
+    data = await request.json()
+    buyer_id = data.get("buyer_id")
+    if not buyer_id:
+        return json_response({"error": "buyer_id required"}, status=400)
+
+    req = await database.get_price_request(req_id)
+    if not req or req['status'] != 'responded':
+        return json_response({"error": "Request not found or not responded"}, status=404)
+    if req['buyer_id'] != int(buyer_id):
+        return json_response({"error": "Not your request"}, status=403)
+
+    await database.reject_price_request(req_id)
+
+    try:
+        await publish_notification("price_rejected", {
+            "supplier_id": req['supplier_id'],
+            "model": req.get('model', ''),
+            "memory": req.get('memory', ''),
+            "color": req.get('color', ''),
+            "price": req.get('buyer_price', 0),
+        })
+    except Exception as e:
+        logging.warning("Failed to publish price_rejected: %s", e)
+    return json_response({"ok": True})
+
+
 # ==================== REVIEWS ====================
 
 async def post_add_review_api(request):
@@ -434,6 +504,8 @@ def create_app():
     app.router.add_get("/api/price_requests", get_price_requests_api)
     app.router.add_get("/api/buyer/price_requests", get_buyer_price_requests_api)
     app.router.add_post("/api/price_request/respond", post_respond_price_request_api)
+    app.router.add_post("/api/price_request/{id}/accept", post_accept_price_request_api)
+    app.router.add_post("/api/price_request/{id}/reject", post_reject_price_request_api)
     # Reviews
     app.router.add_post("/api/reviews", post_add_review_api)
     # Buyer requests

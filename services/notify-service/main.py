@@ -141,7 +141,39 @@ async def handle_notification(payload):
             f"📦 {model} {memory} {color}\n"
             f"💵 Цена: {price:,} ₽ за шт\n"
             f"🏢 Поставщик: {supplier_link}\n\n"
-            f"Откройте приложение для подтверждения покупки"
+            f"Откройте приложение → Примите или отклоните цену"
+        )
+
+    elif event_type == "price_accepted":
+        supplier_id = payload["supplier_id"]
+        buyer_id = payload["buyer_id"]
+        buyer_username = payload.get("buyer_username", "")
+        buyer_name = payload.get("buyer_name", "")
+        model = payload.get("model", "")
+        memory = payload.get("memory", "")
+        color = payload.get("color", "")
+        price = payload.get("price", 0)
+        contact = f"@{buyer_username}" if buyer_username else buyer_name or str(buyer_id)
+        await send_safe(
+            supplier_id,
+            f"✅ Покупатель принял вашу цену!\n\n"
+            f"📦 {model} {memory} {color}\n"
+            f"💵 Цена: {price:,} ₽ за шт\n\n"
+            f"👤 Контакт покупателя: {contact}\n"
+            f"Свяжитесь для завершения сделки"
+        )
+
+    elif event_type == "price_rejected":
+        supplier_id = payload["supplier_id"]
+        model = payload.get("model", "")
+        memory = payload.get("memory", "")
+        color = payload.get("color", "")
+        price = payload.get("price", 0)
+        await send_safe(
+            supplier_id,
+            f"❌ Покупатель отклонил цену\n\n"
+            f"📦 {model} {memory} {color}\n"
+            f"💵 Цена была: {price:,} ₽ за шт"
         )
 
     elif event_type == "price_request_expired":

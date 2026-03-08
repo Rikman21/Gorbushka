@@ -284,6 +284,22 @@ async def expire_price_request(request_id):
         )
 
 
+async def accept_price_request(request_id):
+    async with pool.acquire() as conn:
+        await conn.execute(
+            "UPDATE price_requests SET status = 'accepted' WHERE id = $1 AND status = 'responded'",
+            request_id,
+        )
+
+
+async def reject_price_request(request_id):
+    async with pool.acquire() as conn:
+        await conn.execute(
+            "UPDATE price_requests SET status = 'rejected' WHERE id = $1 AND status = 'responded'",
+            request_id,
+        )
+
+
 async def get_pending_price_requests(supplier_id):
     async with pool.acquire() as conn:
         rows = await conn.fetch('''
