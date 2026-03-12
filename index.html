@@ -766,81 +766,109 @@ const API_BASE = 'https://api.4-0.xn--p1ai';
 const ADMIN_IDS = ['210419', '464896073'];
 
 // Встроенный каталог Apple — не требует API-запроса
+// ВАЖНО: должен совпадать с seed_catalog.py
 const CATALOG_MODELS = {
   // iPhone 17
-  "iPhone 17 Pro":     {cat:"iPhone",mem:["128GB","256GB","512GB","1TB"],col:["Black Titanium","White Titanium","Natural Titanium","Desert Titanium"]},
   "iPhone 17 Pro Max": {cat:"iPhone",mem:["256GB","512GB","1TB"],col:["Black Titanium","White Titanium","Natural Titanium","Desert Titanium"]},
+  "iPhone 17 Pro":     {cat:"iPhone",mem:["128GB","256GB","512GB","1TB"],col:["Black Titanium","White Titanium","Natural Titanium","Desert Titanium"]},
   "iPhone Air":        {cat:"iPhone",mem:["128GB","256GB","512GB"],col:["Black","White","Sky Blue","Ultramarine","Pink"]},
   "iPhone 17":         {cat:"iPhone",mem:["128GB","256GB","512GB"],col:["Black","White","Sky Blue","Ultramarine","Pink"]},
   // iPhone 16
-  "iPhone 16 Pro":     {cat:"iPhone",mem:["128GB","256GB","512GB","1TB"],col:["Black Titanium","White Titanium","Natural Titanium","Desert Titanium"]},
   "iPhone 16 Pro Max": {cat:"iPhone",mem:["256GB","512GB","1TB"],col:["Black Titanium","White Titanium","Natural Titanium","Desert Titanium"]},
-  "iPhone 16":         {cat:"iPhone",mem:["128GB","256GB","512GB"],col:["Black","White","Pink","Teal","Ultramarine"]},
+  "iPhone 16 Pro":     {cat:"iPhone",mem:["128GB","256GB","512GB","1TB"],col:["Black Titanium","White Titanium","Natural Titanium","Desert Titanium"]},
   "iPhone 16 Plus":    {cat:"iPhone",mem:["128GB","256GB","512GB"],col:["Black","White","Pink","Teal","Ultramarine"]},
+  "iPhone 16":         {cat:"iPhone",mem:["128GB","256GB","512GB"],col:["Black","White","Pink","Teal","Ultramarine"]},
   "iPhone 16e":        {cat:"iPhone",mem:["128GB","256GB","512GB"],col:["Black","White"]},
   // iPhone 15
-  "iPhone 15 Pro":     {cat:"iPhone",mem:["128GB","256GB","512GB","1TB"],col:["Black Titanium","White Titanium","Blue Titanium","Natural Titanium"]},
   "iPhone 15 Pro Max": {cat:"iPhone",mem:["256GB","512GB","1TB"],col:["Black Titanium","White Titanium","Blue Titanium","Natural Titanium"]},
-  "iPhone 15":         {cat:"iPhone",mem:["128GB","256GB","512GB"],col:["Black","Yellow","Pink","Green","Blue"]},
+  "iPhone 15 Pro":     {cat:"iPhone",mem:["128GB","256GB","512GB","1TB"],col:["Black Titanium","White Titanium","Blue Titanium","Natural Titanium"]},
   "iPhone 15 Plus":    {cat:"iPhone",mem:["128GB","256GB","512GB"],col:["Black","Yellow","Pink","Green","Blue"]},
+  "iPhone 15":         {cat:"iPhone",mem:["128GB","256GB","512GB"],col:["Black","Yellow","Pink","Green","Blue"]},
   // iPhone 14
-  "iPhone 14 Pro":     {cat:"iPhone",mem:["128GB","256GB","512GB","1TB"],col:["Space Black","Silver","Gold","Deep Purple"]},
   "iPhone 14 Pro Max": {cat:"iPhone",mem:["128GB","256GB","512GB","1TB"],col:["Space Black","Silver","Gold","Deep Purple"]},
-  "iPhone 14":         {cat:"iPhone",mem:["128GB","256GB","512GB"],col:["Midnight","Starlight","Blue","Purple","Yellow","Product Red"]},
+  "iPhone 14 Pro":     {cat:"iPhone",mem:["128GB","256GB","512GB","1TB"],col:["Space Black","Silver","Gold","Deep Purple"]},
   "iPhone 14 Plus":    {cat:"iPhone",mem:["128GB","256GB","512GB"],col:["Midnight","Starlight","Blue","Purple","Yellow","Product Red"]},
+  "iPhone 14":         {cat:"iPhone",mem:["128GB","256GB","512GB"],col:["Midnight","Starlight","Blue","Purple","Yellow","Product Red"]},
   // iPhone 13
-  "iPhone 13 Pro":     {cat:"iPhone",mem:["128GB","256GB","512GB","1TB"],col:["Alpine Green","Sierra Blue","Silver","Gold","Graphite"]},
   "iPhone 13 Pro Max": {cat:"iPhone",mem:["128GB","256GB","512GB","1TB"],col:["Alpine Green","Sierra Blue","Silver","Gold","Graphite"]},
-  "iPhone 13":         {cat:"iPhone",mem:["128GB","256GB","512GB"],col:["Midnight","Starlight","Blue","Pink","Green","Product Red"]},
+  "iPhone 13 Pro":     {cat:"iPhone",mem:["128GB","256GB","512GB","1TB"],col:["Alpine Green","Sierra Blue","Silver","Gold","Graphite"]},
   "iPhone 13 mini":    {cat:"iPhone",mem:["128GB","256GB","512GB"],col:["Midnight","Starlight","Blue","Pink","Green","Product Red"]},
+  "iPhone 13":         {cat:"iPhone",mem:["128GB","256GB","512GB"],col:["Midnight","Starlight","Blue","Pink","Green","Product Red"]},
   // iPhone 12
-  "iPhone 12 Pro":     {cat:"iPhone",mem:["128GB","256GB","512GB","1TB"],col:["Pacific Blue","Gold","Silver","Graphite"]},
   "iPhone 12 Pro Max": {cat:"iPhone",mem:["128GB","256GB","512GB","1TB"],col:["Pacific Blue","Gold","Silver","Graphite"]},
+  "iPhone 12 Pro":     {cat:"iPhone",mem:["128GB","256GB","512GB","1TB"],col:["Pacific Blue","Gold","Silver","Graphite"]},
   "iPhone 12":         {cat:"iPhone",mem:["64GB","128GB","256GB"],col:["Black","White","Blue","Green","Product Red","Purple"]},
   "iPhone 12 mini":    {cat:"iPhone",mem:["64GB","128GB","256GB"],col:["Black","White","Blue","Green","Product Red","Purple"]},
   // iPhone 11
-  "iPhone 11 Pro":     {cat:"iPhone",mem:["64GB","256GB","512GB"],col:["Midnight Green","Space Gray","Silver","Gold"]},
   "iPhone 11 Pro Max": {cat:"iPhone",mem:["64GB","256GB","512GB"],col:["Midnight Green","Space Gray","Silver","Gold"]},
+  "iPhone 11 Pro":     {cat:"iPhone",mem:["64GB","256GB","512GB"],col:["Midnight Green","Space Gray","Silver","Gold"]},
   "iPhone 11":         {cat:"iPhone",mem:["64GB","128GB","256GB"],col:["Black","White","Green","Yellow","Purple","Product Red"]},
   // iPhone SE
   "iPhone SE (3rd generation)": {cat:"iPhone",mem:["64GB","128GB","256GB"],col:["Midnight","Starlight","Product Red"]},
   "iPhone SE (2nd generation)": {cat:"iPhone",mem:["64GB","128GB","256GB"],col:["Black","White","Product Red"]},
-  // iPad
-  "iPad Pro 11-inch":            {cat:"iPad",mem:["256GB","512GB","1TB","2TB"],col:["Space Black","Silver"]},
-  "iPad Pro 13-inch":            {cat:"iPad",mem:["256GB","512GB","1TB","2TB"],col:["Space Black","Silver"]},
-  "iPad Air 11-inch":            {cat:"iPad",mem:["128GB","256GB","512GB","1TB"],col:["Blue","Starlight","Purple","Sky Blue","Green"]},
-  "iPad Air 13-inch":            {cat:"iPad",mem:["128GB","256GB","512GB","1TB"],col:["Blue","Starlight","Purple","Sky Blue","Green"]},
-  "iPad (A16) 11-inch":          {cat:"iPad",mem:["128GB","256GB"],col:["Blue","Pink","Yellow","Silver"]},
-  "iPad mini 8.3-inch (A17 Pro)":{cat:"iPad",mem:["128GB","256GB","512GB"],col:["Blue","Starlight","Purple","Pink"]},
-  // Mac
-  "MacBook Air 13-inch": {cat:"Mac",mem:["256GB","512GB","1TB","2TB"],col:["Midnight","Starlight","Space Gray","Silver","Sky Blue","Stardust"]},
-  "MacBook Air 15-inch": {cat:"Mac",mem:["256GB","512GB","1TB","2TB"],col:["Midnight","Starlight","Space Gray","Silver","Sky Blue","Stardust"]},
-  "MacBook Pro 14-inch": {cat:"Mac",mem:["512GB","1TB","2TB","4TB"],col:["Space Black","Silver"]},
-  "MacBook Pro 16-inch": {cat:"Mac",mem:["512GB","1TB","2TB","4TB"],col:["Space Black","Silver"]},
-  "iMac 24-inch":        {cat:"Mac",mem:["256GB","512GB","1TB","2TB"],col:["Silver","Pink","Blue","Green","Yellow","Orange","Purple"]},
-  "Mac mini":            {cat:"Mac",mem:["256GB","512GB","1TB","2TB"],col:["Silver"]},
-  "Mac Studio":          {cat:"Mac",mem:["512GB","1TB","2TB","4TB"],col:["Silver"]},
-  "Mac Pro":             {cat:"Mac",mem:["1TB","2TB","4TB","8TB"],col:["Silver"]},
-  // Watch
-  "Apple Watch Series 11":          {cat:"Watch",mem:["GPS","GPS+Cellular"],col:["Midnight","Starlight","Silver","Rose Gold","Black","Blue"]},
-  "Apple Watch Ultra 3":             {cat:"Watch",mem:["GPS+Cellular"],col:["Natural Titanium","Black Titanium"]},
-  "Apple Watch SE (3rd generation)": {cat:"Watch",mem:["GPS","GPS+Cellular"],col:["Midnight","Starlight","Silver"]},
+  // iPad Pro M4 (Wi-Fi и Wi-Fi+Cellular отдельно — разная цена)
+  "iPad Pro 11-inch M4 Wi-Fi":          {cat:"iPad",mem:["256GB","512GB","1TB","2TB"],col:["Space Black","Silver"]},
+  "iPad Pro 11-inch M4 Wi-Fi+Cellular": {cat:"iPad",mem:["256GB","512GB","1TB","2TB"],col:["Space Black","Silver"]},
+  "iPad Pro 13-inch M4 Wi-Fi":          {cat:"iPad",mem:["256GB","512GB","1TB","2TB"],col:["Space Black","Silver"]},
+  "iPad Pro 13-inch M4 Wi-Fi+Cellular": {cat:"iPad",mem:["256GB","512GB","1TB","2TB"],col:["Space Black","Silver"]},
+  // iPad Air M3
+  "iPad Air 11-inch M3": {cat:"iPad",mem:["128GB","256GB","512GB","1TB"],col:["Blue","Starlight","Purple","Sky Blue","Green"]},
+  "iPad Air 13-inch M3": {cat:"iPad",mem:["128GB","256GB","512GB","1TB"],col:["Blue","Starlight","Purple","Sky Blue","Green"]},
+  // iPad и iPad mini
+  "iPad (A16) 11-inch":           {cat:"iPad",mem:["128GB","256GB","512GB"],col:["Blue","Pink","Yellow","Silver"]},
+  "iPad mini (A17 Pro) 8.3-inch": {cat:"iPad",mem:["128GB","256GB","512GB"],col:["Blue","Starlight","Purple","Pink"]},
+  // MacBook Neo (2026, A18 Pro)
+  "MacBook Neo 13-inch A18 Pro": {cat:"Mac",mem:["256GB","512GB"],col:["Silver","Blush","Citrus","Indigo"]},
+  // MacBook Air M4
+  "MacBook Air 13-inch M4": {cat:"Mac",mem:["256GB","512GB","1TB","2TB"],col:["Midnight","Starlight","Sky Blue","Rose Gold"]},
+  "MacBook Air 15-inch M4": {cat:"Mac",mem:["256GB","512GB","1TB","2TB"],col:["Midnight","Starlight","Sky Blue","Rose Gold"]},
+  // MacBook Pro 14-inch (5 вариантов чипа)
+  "MacBook Pro 14-inch M4":          {cat:"Mac",mem:["512GB","1TB","2TB"],col:["Space Black","Silver"]},
+  "MacBook Pro 14-inch M4 Pro 24GB": {cat:"Mac",mem:["512GB","1TB","2TB"],col:["Space Black","Silver"]},
+  "MacBook Pro 14-inch M4 Pro 48GB": {cat:"Mac",mem:["512GB","1TB","2TB"],col:["Space Black","Silver"]},
+  "MacBook Pro 14-inch M4 Max 48GB": {cat:"Mac",mem:["512GB","1TB","2TB"],col:["Space Black","Silver"]},
+  "MacBook Pro 14-inch M4 Max 128GB":{cat:"Mac",mem:["1TB","2TB"],col:["Space Black","Silver"]},
+  // MacBook Pro 16-inch (4 варианта чипа)
+  "MacBook Pro 16-inch M4 Pro 24GB": {cat:"Mac",mem:["512GB","1TB","2TB"],col:["Space Black","Silver"]},
+  "MacBook Pro 16-inch M4 Pro 48GB": {cat:"Mac",mem:["512GB","1TB","2TB"],col:["Space Black","Silver"]},
+  "MacBook Pro 16-inch M4 Max 48GB": {cat:"Mac",mem:["512GB","1TB","2TB","4TB"],col:["Space Black","Silver"]},
+  "MacBook Pro 16-inch M4 Max 128GB":{cat:"Mac",mem:["1TB","2TB","4TB"],col:["Space Black","Silver"]},
+  // iMac M4
+  "iMac 24-inch M4": {cat:"Mac",mem:["256GB","512GB","1TB","2TB"],col:["Blue","Green","Pink","Silver","Orange","Purple","Yellow"]},
+  // Mac mini (3 варианта чипа)
+  "Mac mini M4":          {cat:"Mac",mem:["256GB","512GB","1TB","2TB"],col:["Silver"]},
+  "Mac mini M4 Pro 24GB": {cat:"Mac",mem:["512GB","1TB","2TB"],col:["Silver"]},
+  "Mac mini M4 Pro 48GB": {cat:"Mac",mem:["512GB","1TB","2TB"],col:["Silver"]},
+  // Mac Studio (4 варианта чипа)
+  "Mac Studio M4 Max 36GB":  {cat:"Mac",mem:["512GB","1TB","2TB"],col:["Silver"]},
+  "Mac Studio M4 Max 128GB": {cat:"Mac",mem:["1TB","2TB"],col:["Silver"]},
+  "Mac Studio M4 Ultra 80GB":{cat:"Mac",mem:["1TB","2TB","4TB"],col:["Silver"]},
+  "Mac Studio M4 Ultra 192GB":{cat:"Mac",mem:["2TB","4TB"],col:["Silver"]},
+  // Mac Pro
+  "Mac Pro M4 Ultra 192GB": {cat:"Mac",mem:["1TB","2TB","4TB","8TB"],col:["Silver"]},
+  // Apple Watch
+  "Apple Watch Series 11 41mm":           {cat:"Watch",mem:["GPS","GPS+Cellular"],col:["Midnight","Starlight","Silver","Rose Gold","Black","Blue"]},
+  "Apple Watch Series 11 45mm":           {cat:"Watch",mem:["GPS","GPS+Cellular"],col:["Midnight","Starlight","Silver","Rose Gold","Black","Blue"]},
+  "Apple Watch Ultra 3 49mm":             {cat:"Watch",mem:["GPS+Cellular"],col:["Natural Titanium","Black Titanium"]},
+  "Apple Watch SE (3rd generation) 40mm": {cat:"Watch",mem:["GPS","GPS+Cellular"],col:["Midnight","Starlight","Silver"]},
+  "Apple Watch SE (3rd generation) 44mm": {cat:"Watch",mem:["GPS","GPS+Cellular"],col:["Midnight","Starlight","Silver"]},
   // AirPods
-  "AirPods Pro 3":            {cat:"AirPods",mem:[""],col:["White"]},
-  "AirPods Pro 2":            {cat:"AirPods",mem:[""],col:["White"]},
   "AirPods 4":                {cat:"AirPods",mem:[""],col:["White"]},
   "AirPods 4 (ANC)":          {cat:"AirPods",mem:[""],col:["White"]},
-  "AirPods Max":              {cat:"AirPods",mem:[""],col:["Midnight","Starlight","Blue","Purple","Orange"]},
-  "AirPods (3rd generation)": {cat:"AirPods",mem:[""],col:["White"]},
-  "AirPods (2nd generation)": {cat:"AirPods",mem:[""],col:["White"]},
-  // Other
-  "Apple TV 4K":              {cat:"TV & Home",mem:["Wi-Fi","Wi-Fi+Ethernet"],col:["Black"]},
-  "HomePod (2nd generation)": {cat:"TV & Home",mem:[""],col:["Midnight","White"]},
-  "HomePod mini":             {cat:"TV & Home",mem:[""],col:["Midnight","White","Yellow","Orange","Blue"]},
-  "AirTag":                   {cat:"TV & Home",mem:["1 Pack","4 Pack"],col:[""]},
-  "Apple Vision Pro":         {cat:"TV & Home",mem:["256GB","512GB","1TB"],col:["Silver"]},
-  "Studio Display":           {cat:"TV & Home",mem:[""],col:["Silver"]},
-  "Pro Display XDR":          {cat:"TV & Home",mem:[""],col:["Silver"]},
+  "AirPods Pro 3":             {cat:"AirPods",mem:[""],col:["White"]},
+  "AirPods Pro 2":             {cat:"AirPods",mem:[""],col:["White"]},
+  "AirPods Max":               {cat:"AirPods",mem:[""],col:["Midnight","Starlight","Blue","Purple","Orange"]},
+  "AirPods (3rd generation)":  {cat:"AirPods",mem:[""],col:["White"]},
+  "AirPods (2nd generation)":  {cat:"AirPods",mem:[""],col:["White"]},
+  // TV & Home
+  "Apple TV 4K (Wi-Fi)":          {cat:"TV & Home",mem:[""],col:["Black"]},
+  "Apple TV 4K (Wi-Fi+Ethernet)": {cat:"TV & Home",mem:[""],col:["Black"]},
+  "HomePod":                       {cat:"TV & Home",mem:[""],col:["Midnight","White"]},
+  "HomePod mini":                  {cat:"TV & Home",mem:[""],col:["Midnight","White","Yellow","Orange","Blue"]},
+  // Vision
+  "Apple Vision Pro": {cat:"Vision",mem:["256GB","512GB","1TB"],col:["Silver"]},
+  // Accessories
+  "AirTag": {cat:"Accessories",mem:["1 Pack","4 Pack"],col:[""]},
 };
 
 const tg = window.Telegram?.WebApp;
