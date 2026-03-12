@@ -529,8 +529,19 @@
       <div id="requestsList"><div class="spinner"></div></div>
       <div class="section-title" style="margin-top:16px">Мои запросы</div>
       <div id="myBuyerRequestsList"><div class="spinner"></div></div>
-      <div class="section-title" style="margin-top:16px">История сделок</div>
-      <div id="buyerDealsList"><div class="spinner"></div></div>
+    </div>
+  </div>
+
+  <!-- Screen: Buyer Deals -->
+  <div class="screen" id="screenBuyerDeals">
+    <div class="page-title">Мои сделки</div>
+    <div class="section-pad">
+      <div class="section-title">Активные</div>
+      <div id="buyerDealsActive"><div class="spinner"></div></div>
+      <details class="history-spoiler" style="margin-top:16px">
+        <summary class="section-title" style="cursor:pointer;user-select:none">История сделок</summary>
+        <div id="buyerDealsHistory" style="margin-top:8px"><div class="spinner"></div></div>
+      </details>
     </div>
   </div>
 
@@ -662,11 +673,16 @@
     </div>
   </div>
 
-  <!-- Screen: Supplier Deals History -->
+  <!-- Screen: Supplier Deals -->
   <div class="screen" id="screenSupplierDeals">
     <div class="page-title">Мои сделки</div>
     <div class="section-pad">
-      <div id="supplierDealsList"><div class="spinner"></div></div>
+      <div class="section-title">Активные</div>
+      <div id="supplierDealsActive"><div class="spinner"></div></div>
+      <details class="history-spoiler" style="margin-top:16px">
+        <summary class="section-title" style="cursor:pointer;user-select:none">История сделок</summary>
+        <div id="supplierDealsHistory" style="margin-top:8px"><div class="spinner"></div></div>
+      </details>
     </div>
   </div>
 
@@ -865,11 +881,13 @@ function getBuyerTabs() {
   return [
     {id:'screenFeed', icon: homeIcon(), label:'Лента'},
     {id:'screenRequests', icon: requestIcon(), label:'Запросы'},
+    {id:'screenBuyerDeals', icon: dealsIcon(), label:'Сделки'},
     {id:'screenBuyerProfile', icon: profileIcon(), label:'Профиль'},
   ];
 }
 function getSupplierTabs() {
   return [
+    {id:'screenFeed', icon: homeIcon(), label:'Лента'},
     {id:'screenMyOffers', icon: offersIcon(), label:'Офферы'},
     {id:'screenIncoming', icon: requestIcon(), label:'Входящие'},
     {id:'screenSupplierDeals', icon: dealsIcon(), label:'Сделки'},
@@ -888,7 +906,8 @@ function navTo(screenId) {
   showScreen(screenId, false);
   // refresh
   if (screenId === 'screenFeed') loadFeed();
-  else if (screenId === 'screenRequests') { loadPriceRequests(); loadMyBuyerRequests(); loadBuyerDeals(); }
+  else if (screenId === 'screenRequests') { loadPriceRequests(); loadMyBuyerRequests(); }
+  else if (screenId === 'screenBuyerDeals') loadBuyerDeals();
   else if (screenId === 'screenCreateBuyerRequest') loadBuyerRequestForm();
   else if (screenId === 'screenMyOffers') loadMyOffers();
   else if (screenId === 'screenIncoming') { loadPublicBuyerRequests(); loadIncomingRequests(); loadIncomingDeals(); }
@@ -1454,18 +1473,26 @@ function startPriceTimers() {
   }, 1000);
 }
 
+const ACTIVE_STATUSES = ['created', 'confirmed'];
+const HISTORY_STATUSES = ['completed', 'rejected', 'cancelled'];
+
 async function loadBuyerDeals() {
-  const el = document.getElementById('buyerDealsList');
-  if (!userId) { el.innerHTML = ''; return; }
+  const elActive = document.getElementById('buyerDealsActive');
+  const elHistory = document.getElementById('buyerDealsHistory');
+  if (!userId) return;
   try {
     const deals = await api('/api/deals?telegram_id=' + userId);
-    if (!deals.length) {
-      el.innerHTML = '<div style="color:#8E8E93;font-size:14px;padding:12px 0">Нет сделок</div>';
-      return;
-    }
-    el.innerHTML = deals.map(d => renderDealCard(d, 'buyer')).join('');
+    const active = deals.filter(d => ACTIVE_STATUSES.includes(d.status));
+    const history = deals.filter(d => HISTORY_STATUSES.includes(d.status))
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    elActive.innerHTML = active.length
+      ? active.map(d => renderDealCard(d, 'buyer')).join('')
+      : '<div style="color:#8E8E93;font-size:14px;padding:8px 0">Нет активных сделок</div>';
+    elHistory.innerHTML = history.length
+      ? history.map(d => renderDealCard(d, 'buyer')).join('')
+      : '<div style="color:#8E8E93;font-size:14px;padding:8px 0">Пока пусто</div>';
   } catch(e) {
-    el.innerHTML = '<div style="color:#8E8E93;font-size:13px">Ошибка загрузки</div>';
+    elActive.innerHTML = '<div style="color:#8E8E93;font-size:13px">Ошибка загрузки</div>';
   }
 }
 
@@ -1814,18 +1841,23 @@ async function loadIncomingDeals() {
 }
 
 async function loadSupplierDeals() {
-  const el = document.getElementById('supplierDealsList');
+  const elActive = document.getElementById('supplierDealsActive');
+  const elHistory = document.getElementById('supplierDealsHistory');
   if (!userId) return;
   try {
     const deals = await api('/api/deals?telegram_id=' + userId);
     const myDeals = deals.filter(d => d.supplier_id === parseInt(userId));
-    if (!myDeals.length) {
-      el.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-title">Нет сделок</div></div>';
-      return;
-    }
-    el.innerHTML = myDeals.map(d => renderDealCard(d, 'supplier')).join('');
+    const active = myDeals.filter(d => ACTIVE_STATUSES.includes(d.status));
+    const history = myDeals.filter(d => HISTORY_STATUSES.includes(d.status))
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    elActive.innerHTML = active.length
+      ? active.map(d => renderDealCard(d, 'supplier')).join('')
+      : '<div style="color:#8E8E93;font-size:14px;padding:8px 0">Нет активных сделок</div>';
+    elHistory.innerHTML = history.length
+      ? history.map(d => renderDealCard(d, 'supplier')).join('')
+      : '<div style="color:#8E8E93;font-size:14px;padding:8px 0">Пока пусто</div>';
   } catch(e) {
-    el.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">${e.message}</div></div>`;
+    elActive.innerHTML = `<div style="color:#8E8E93;font-size:13px">${e.message}</div>`;
   }
 }
 
