@@ -110,6 +110,11 @@ async def init_db():
         await conn.execute('CREATE INDEX IF NOT EXISTS idx_messages_deal ON messages(deal_id)')
         await conn.execute('CREATE INDEX IF NOT EXISTS idx_price_requests_supplier ON price_requests(supplier_id)')
         await conn.execute('CREATE INDEX IF NOT EXISTS idx_price_requests_buyer ON price_requests(buyer_id)')
+        # Unique constraint: one review per deal per role
+        await conn.execute('''
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_reviews_deal_role
+            ON reviews(deal_id, author_role)
+        ''')
 
         # Fix sequences after migration data
         for table, seq in [
@@ -185,10 +190,12 @@ async def get_user_deals(telegram_id, status_filter=None):
                 END as counterparty,
                 EXISTS(
                     SELECT 1 FROM reviews r
-                    WHERE r.deal_id = d.id
-                    AND ((d.buyer_id = $1 AND r.author_role = 'buyer')
-                      OR (d.supplier_id = $1 AND r.author_role = 'supplier'))
-                ) as _reviewed
+                    WHERE r.deal_id = d.id AND r.author_role = 'buyer'
+                ) as _buyer_reviewed,
+                EXISTS(
+                    SELECT 1 FROM reviews r
+                    WHERE r.deal_id = d.id AND r.author_role = 'supplier'
+                ) as _supplier_reviewed
             FROM deals d
             JOIN offers o ON d.offer_id = o.id
             JOIN catalog c ON o.catalog_id = c.id

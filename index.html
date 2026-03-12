@@ -1486,8 +1486,8 @@ function renderDealCard(d, role) {
         ${canConfirm ? `<button class="btn-sm btn-green" onclick="updateDealStatus(${d.id},'confirmed')">Подтвердить</button>` : ''}
         ${canComplete ? `<button class="btn-sm btn-green" onclick="updateDealStatus(${d.id},'completed')">Завершить</button>` : ''}
         ${canReject ? `<button class="btn-sm btn-red" onclick="updateDealStatus(${d.id},'${role==='buyer'?'cancelled':'rejected'}')">Отклонить</button>` : ''}
-        ${d.status === 'completed' && !d._reviewed && role === 'buyer' ? `<button class="btn-sm btn-secondary" onclick="openRatingSheet(${d.id}, ${d.supplier_id}, ${d.buyer_id}, 'buyer')">Оценить поставщика</button>` : ''}
-        ${d.status === 'completed' && !d._reviewed && role === 'supplier' ? `<button class="btn-sm btn-secondary" onclick="openRatingSheet(${d.id}, ${d.supplier_id}, ${d.buyer_id}, 'supplier')">Оценить покупателя</button>` : ''}
+        ${d.status === 'completed' && d.buyer_id === parseInt(userId) ? (d._buyer_reviewed ? `<span style="color:#8E8E93;font-size:12px">Поставщик оценён</span>` : `<button class="btn-sm btn-secondary" onclick="openRatingSheet(${d.id}, ${d.supplier_id}, ${d.buyer_id}, 'buyer')">Оценить поставщика</button>`) : ''}
+        ${d.status === 'completed' && d.supplier_id === parseInt(userId) ? (d._supplier_reviewed ? `<span style="color:#8E8E93;font-size:12px">Покупатель оценён</span>` : `<button class="btn-sm btn-secondary" onclick="openRatingSheet(${d.id}, ${d.supplier_id}, ${d.buyer_id}, 'supplier')">Оценить покупателя</button>`) : ''}
       </div>
     </div>`;
 }
@@ -1542,8 +1542,9 @@ async function submitReview() {
     });
     closeSheet();
     showToast('✅ Отзыв отправлен!');
+    // Reload all deal lists to update reviewed flags
     if (isSupplier) { loadIncomingDeals(); loadSupplierDeals(); }
-    else { loadBuyerDeals(); }
+    loadBuyerDeals();
   } catch(e) {
     showToast('Ошибка: ' + e.message);
   }
