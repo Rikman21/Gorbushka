@@ -60,13 +60,15 @@ async def start(message: types.Message):
         "full_name": full_name,
     })
 
+    kb = InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="📱 Открыть биржу", web_app=WebAppInfo(url=WEB_APP_URL))
+    ]])
     await message.answer(
         "👋 Добро пожаловать на **0000**\n\n"
         "🔹 Покупайте технику по лучшим ценам\n"
         "🔹 Продавайте через удобную панель\n"
-        "🔹 Безопасные сделки \n\n"
-        "Нажмите синюю кнопку слева внизу, чтобы открыть биржу.",
-        reply_markup=ReplyKeyboardRemove(),
+        "🔹 Безопасные сделки",
+        reply_markup=kb,
         parse_mode="Markdown"
     )
 
