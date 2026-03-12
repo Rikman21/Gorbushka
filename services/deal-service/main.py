@@ -354,6 +354,31 @@ async def post_add_review_api(request):
     return json_response({"ok": True})
 
 
+async def get_admin_reviews_api(request):
+    admin_id = request.query.get("admin_id")
+    try:
+        if not admin_id or int(admin_id) not in ADMIN_IDS:
+            return json_response({"error": "Нет прав"}, status=403)
+    except ValueError:
+        return json_response({"error": "Нет прав"}, status=403)
+    reviews = await database.get_all_reviews()
+    return json_response(reviews)
+
+
+async def delete_review_api(request):
+    admin_id = request.query.get("admin_id")
+    try:
+        if not admin_id or int(admin_id) not in ADMIN_IDS:
+            return json_response({"error": "Нет прав"}, status=403)
+    except ValueError:
+        return json_response({"error": "Нет прав"}, status=403)
+    review_id = int(request.match_info['id'])
+    result = await database.delete_review(review_id)
+    if not result:
+        return json_response({"error": "Отзыв не найден"}, status=404)
+    return json_response({"ok": True})
+
+
 # ==================== BUYER REQUESTS ====================
 
 async def get_buyer_requests_api(request):
@@ -580,6 +605,8 @@ def create_app():
     app.router.add_post("/api/price_request/{id}/reject", post_reject_price_request_api)
     # Reviews
     app.router.add_post("/api/reviews", post_add_review_api)
+    app.router.add_get("/api/admin/reviews", get_admin_reviews_api)
+    app.router.add_delete("/api/admin/reviews/{id}", delete_review_api)
     # Buyer requests
     app.router.add_get("/api/buyer_requests", get_buyer_requests_api)
     app.router.add_get("/api/buyer_requests/my", get_my_buyer_requests_api)

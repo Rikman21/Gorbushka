@@ -721,11 +721,13 @@
       <button class="admin-tab active" data-tab="adminSupplierReqs" onclick="switchAdminTab(this)">Поставщики</button>
       <button class="admin-tab" data-tab="adminDeals" onclick="switchAdminTab(this)">Сделки</button>
       <button class="admin-tab" data-tab="adminComplaints" onclick="switchAdminTab(this)">Жалобы</button>
+      <button class="admin-tab" data-tab="adminReviews" onclick="switchAdminTab(this)">Отзывы</button>
       <button class="admin-tab" data-tab="adminUsers" onclick="switchAdminTab(this)">Пользователи</button>
     </div>
     <div class="section-pad">
       <div id="adminSupplierReqs"></div>
       <div id="adminDeals" style="display:none"></div>
+      <div id="adminReviews" style="display:none"></div>
       <div id="adminComplaints" style="display:none">
         <div class="empty-state"><div class="empty-icon">🚩</div><div class="empty-title">Жалоб нет</div><div class="empty-sub">Раздел в разработке</div></div>
       </div>
@@ -2141,6 +2143,7 @@ function switchAdminTab(btn) {
 async function loadAdminTab(tabId) {
   if (tabId === 'adminSupplierReqs') await loadAdminSupplierReqs();
   else if (tabId === 'adminDeals') await loadAdminDeals();
+  else if (tabId === 'adminReviews') await loadAdminReviews();
   else if (tabId === 'adminUsers') await loadAdminUsers();
 }
 
@@ -2202,6 +2205,46 @@ async function loadAdminDeals() {
       </div>`).join('');
   } catch(e) {
     el.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">${e.message}</div></div>`;
+  }
+}
+
+async function loadAdminReviews() {
+  const el = document.getElementById('adminReviews');
+  el.innerHTML = '<div class="spinner"></div>';
+  try {
+    const reviews = await api('/api/admin/reviews?admin_id=' + userId);
+    if (!reviews.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">⭐</div><div class="empty-title">Нет отзывов</div></div>'; return; }
+    el.innerHTML = reviews.map(r => `
+      <div class="card" style="margin-bottom:8px">
+        <div class="card-body" style="padding:12px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div>
+              <div style="font-size:13px;font-weight:600;color:#1C1C1E">Сделка #${r.deal_id} · ${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</div>
+              <div style="font-size:12px;color:#8E8E93;margin-top:2px">
+                ${r.author_role === 'buyer' ? 'Покупатель' : 'Поставщик'}:
+                ${esc(r.author_role === 'buyer' ? (r.buyer_name || r.buyer_username || '—') : (r.supplier_company || r.supplier_username || '—'))}
+                → ${r.author_role === 'buyer' ? esc(r.supplier_company || r.supplier_username || '—') : esc(r.buyer_name || r.buyer_username || '—')}
+              </div>
+              ${r.comment ? `<div style="font-size:12px;color:#636366;margin-top:4px">${esc(r.comment)}</div>` : ''}
+              <div style="font-size:11px;color:#AEAEB2;margin-top:4px">${new Date(r.created_at).toLocaleString('ru')}</div>
+            </div>
+            <button class="btn-sm btn-red" onclick="adminDeleteReview(${r.id})" style="flex-shrink:0;margin-left:8px">Удалить</button>
+          </div>
+        </div>
+      </div>`).join('');
+  } catch(e) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">${e.message}</div></div>`;
+  }
+}
+
+async function adminDeleteReview(reviewId) {
+  if (!confirm('Удалить этот отзыв? Рейтинг пользователя будет пересчитан.')) return;
+  try {
+    await api(`/api/admin/reviews/${reviewId}?admin_id=${userId}`, {method: 'DELETE'});
+    showToast('✅ Отзыв удалён');
+    loadAdminReviews();
+  } catch(e) {
+    showToast('Ошибка: ' + e.message);
   }
 }
 

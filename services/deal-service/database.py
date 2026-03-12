@@ -283,6 +283,44 @@ async def add_review(deal_id, supplier_id, buyer_id, rating, comment=None, autho
             ''', buyer_id)
 
 
+async def get_all_reviews():
+    async with pool.acquire() as conn:
+        rows = await conn.fetch('''
+            SELECT r.*,
+                ub.username as buyer_username, ub.full_name as buyer_name,
+                us.username as supplier_username, us.company_name as supplier_company
+            FROM reviews r
+            LEFT JOIN users ub ON r.buyer_id = ub.telegram_id
+            LEFT JOIN users us ON r.supplier_id = us.telegram_id
+            ORDER BY r.created_at DESC
+        ''')
+        return [dict(r) for r in rows]
+
+
+async def delete_review(review_id):
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow('SELECT * FROM reviews WHERE id = $1', review_id)
+        if not row:
+            return None
+        await conn.execute('DELETE FROM reviews WHERE id = $1', review_id)
+        # Recalculate rating for the affected user
+        if row['author_role'] == 'buyer':
+            avg = await conn.fetchval(
+                "SELECT AVG(rating) FROM reviews WHERE supplier_id = $1 AND author_role = 'buyer'",
+                row['supplier_id'])
+            await conn.execute(
+                'UPDATE users SET rating = $1 WHERE telegram_id = $2',
+                avg or 0, row['supplier_id'])
+        else:
+            avg = await conn.fetchval(
+                "SELECT AVG(rating) FROM reviews WHERE buyer_id = $1 AND author_role = 'supplier'",
+                row['buyer_id'])
+            await conn.execute(
+                'UPDATE users SET rating = $1 WHERE telegram_id = $2',
+                avg or 0, row['buyer_id'])
+        return dict(row)
+
+
 # ==================== PRICE REQUESTS ====================
 
 async def create_price_request(offer_id, buyer_id, supplier_id, quantity=1):
