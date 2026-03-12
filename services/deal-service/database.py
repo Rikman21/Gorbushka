@@ -105,6 +105,13 @@ async def init_db():
             EXCEPTION WHEN duplicate_column THEN NULL;
             END $$
         ''')
+        # Add reply_text column to reviews if missing
+        await conn.execute('''
+            DO $$ BEGIN
+                ALTER TABLE reviews ADD COLUMN reply_text TEXT;
+            EXCEPTION WHEN duplicate_column THEN NULL;
+            END $$
+        ''')
         await conn.execute('CREATE INDEX IF NOT EXISTS idx_deals_buyer ON deals(buyer_id)')
         await conn.execute('CREATE INDEX IF NOT EXISTS idx_deals_supplier ON deals(supplier_id)')
         await conn.execute('CREATE INDEX IF NOT EXISTS idx_messages_deal ON messages(deal_id)')
@@ -319,6 +326,33 @@ async def delete_review(review_id):
                 'UPDATE users SET rating = $1 WHERE telegram_id = $2',
                 avg or 0, row['buyer_id'])
         return dict(row)
+
+
+async def reply_to_review(review_id, reply_text):
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow('SELECT id FROM reviews WHERE id = $1', review_id)
+        if not row:
+            raise Exception('Отзыв не найден')
+        await conn.execute(
+            'UPDATE reviews SET reply_text = $1 WHERE id = $2',
+            reply_text, review_id)
+
+
+async def get_user_reviews(telegram_id):
+    """Get reviews about this user (both as buyer and supplier)."""
+    async with pool.acquire() as conn:
+        rows = await conn.fetch('''
+            SELECT r.*,
+                ub.username as buyer_username, ub.full_name as buyer_name,
+                us.username as supplier_username, us.company_name as supplier_company
+            FROM reviews r
+            LEFT JOIN users ub ON r.buyer_id = ub.telegram_id
+            LEFT JOIN users us ON r.supplier_id = us.telegram_id
+            WHERE (r.supplier_id = $1 AND r.author_role = 'buyer')
+               OR (r.buyer_id = $1 AND r.author_role = 'supplier')
+            ORDER BY r.created_at DESC
+        ''', telegram_id)
+        return [dict(r) for r in rows]
 
 
 # ==================== PRICE REQUESTS ====================

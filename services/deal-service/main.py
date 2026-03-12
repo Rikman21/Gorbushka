@@ -379,6 +379,28 @@ async def delete_review_api(request):
     return json_response({"ok": True})
 
 
+async def post_reply_review_api(request):
+    review_id = int(request.match_info['id'])
+    data = await request.json()
+    user_id = data.get("user_id")
+    reply_text = (data.get("reply_text") or "").strip()
+    if not user_id or not reply_text:
+        return json_response({"error": "user_id and reply_text required"}, status=400)
+    try:
+        await database.reply_to_review(review_id, reply_text)
+    except Exception as e:
+        return json_response({"error": str(e)}, status=500)
+    return json_response({"ok": True})
+
+
+async def get_user_reviews_api(request):
+    telegram_id = request.query.get("telegram_id")
+    if not telegram_id:
+        return json_response({"error": "telegram_id required"}, status=400)
+    reviews = await database.get_user_reviews(int(telegram_id))
+    return json_response(reviews)
+
+
 # ==================== BUYER REQUESTS ====================
 
 async def get_buyer_requests_api(request):
@@ -605,6 +627,8 @@ def create_app():
     app.router.add_post("/api/price_request/{id}/reject", post_reject_price_request_api)
     # Reviews
     app.router.add_post("/api/reviews", post_add_review_api)
+    app.router.add_post("/api/reviews/{id}/reply", post_reply_review_api)
+    app.router.add_get("/api/user/reviews", get_user_reviews_api)
     app.router.add_get("/api/admin/reviews", get_admin_reviews_api)
     app.router.add_delete("/api/admin/reviews/{id}", delete_review_api)
     # Buyer requests

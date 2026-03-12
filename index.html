@@ -1579,6 +1579,31 @@ async function submitReview() {
   }
 }
 
+// ===== Reply to Review =====
+function openReplySheet(reviewId) {
+  openSheet('Ответить на отзыв', `
+    <textarea class="form-textarea" id="replyText" rows="3" placeholder="Ваш ответ..."></textarea>
+    <button class="btn-full btn-primary" style="margin-top:12px" onclick="submitReply(${reviewId})">Отправить ответ</button>
+  `);
+}
+
+async function submitReply(reviewId) {
+  const text = document.getElementById('replyText')?.value?.trim();
+  if (!text) { showToast('Напишите ответ'); return; }
+  try {
+    await api(`/api/reviews/${reviewId}/reply`, {
+      method: 'POST',
+      body: JSON.stringify({user_id: parseInt(userId), reply_text: text})
+    });
+    closeSheet();
+    showToast('✅ Ответ отправлен');
+    if (isSupplier) loadMyProfile();
+    else loadBuyerProfile();
+  } catch(e) {
+    showToast('Ошибка: ' + e.message);
+  }
+}
+
 // ===== MY OFFERS (supplier) =====
 async function loadMyOffers() {
   const el = document.getElementById('myOffersList');
@@ -1872,7 +1897,7 @@ async function loadMyProfile() {
       api('/api/user?telegram_id=' + userId),
       api('/api/supplier/stats?telegram_id=' + userId)
     ]);
-    const reviews = await api('/api/supplier?supplier_id=' + userId).then(r => r.reviews || []).catch(() => []);
+    const reviews = await api('/api/user/reviews?telegram_id=' + userId).catch(() => []);
     notificationsEnabled = user.notifications_enabled !== 0;
     el.innerHTML = `
       <div class="profile-hero">
@@ -1904,10 +1929,11 @@ async function loadMyProfile() {
       ${reviews.length ? reviews.map(r => `
         <div class="review-item">
           <div class="review-header">
-            <div class="review-author">${esc(r.username||r.company_name||'Покупатель')}</div>
-            <div class="review-rating">${'★'.repeat(r.rating)}</div>
+            <div class="review-author">${esc(r.author_role === 'buyer' ? (r.buyer_name || r.buyer_username || 'Покупатель') : (r.supplier_company || r.supplier_username || 'Поставщик'))}</div>
+            <div class="review-rating">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</div>
           </div>
           ${r.comment ? `<div class="review-text">${esc(r.comment)}</div>` : ''}
+          ${r.reply_text ? `<div style="background:#E8F5E9;border-radius:10px;padding:8px 10px;margin-top:6px;font-size:12px"><span style="font-weight:600;color:#2E7D32">Ответ:</span> ${esc(r.reply_text)}</div>` : `<button class="btn-sm btn-secondary" style="margin-top:6px;font-size:11px" onclick="openReplySheet(${r.id})">Ответить</button>`}
         </div>`).join('') : '<div style="color:#8E8E93;font-size:13px">Отзывов пока нет</div>'}
     `;
   } catch(e) {
@@ -1968,6 +1994,7 @@ async function loadBuyerProfile() {
   if (!userId) return;
   try {
     const user = await api('/api/user?telegram_id=' + userId);
+    const reviews = await api('/api/user/reviews?telegram_id=' + userId).catch(() => []);
     notificationsEnabled = user.notifications_enabled !== 0;
     el.innerHTML = `
       <div class="profile-hero">
@@ -1976,6 +2003,7 @@ async function loadBuyerProfile() {
           <div>
             <div class="profile-name">${esc(user.full_name || 'Покупатель')}</div>
             <div class="profile-meta">${user.username ? '@'+user.username : ''}</div>
+            <div style="margin-top:6px">${starsHtml(user.rating)}</div>
           </div>
         </div>
       </div>
@@ -1985,7 +2013,17 @@ async function loadBuyerProfile() {
           ${user.notifications_enabled!==0?'Вкл':'Выкл'}
         </button>
       </div>
-      <div class="settings-list">
+      <div class="section-title">Отзывы обо мне</div>
+      ${reviews.length ? reviews.map(r => `
+        <div class="review-item">
+          <div class="review-header">
+            <div class="review-author">${esc(r.author_role === 'supplier' ? (r.supplier_company || r.supplier_username || 'Поставщик') : (r.buyer_name || r.buyer_username || 'Покупатель'))}</div>
+            <div class="review-rating">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</div>
+          </div>
+          ${r.comment ? `<div class="review-text">${esc(r.comment)}</div>` : ''}
+          ${r.reply_text ? `<div style="background:#E8F5E9;border-radius:10px;padding:8px 10px;margin-top:6px;font-size:12px"><span style="font-weight:600;color:#2E7D32">Ответ:</span> ${esc(r.reply_text)}</div>` : `<button class="btn-sm btn-secondary" style="margin-top:6px;font-size:11px" onclick="openReplySheet(${r.id})">Ответить</button>`}
+        </div>`).join('') : '<div style="color:#8E8E93;font-size:13px">Отзывов пока нет</div>'}
+      <div class="settings-list" style="margin-top:12px">
         <div class="settings-row" onclick="switchRole()">
           <div class="settings-icon orange"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div>
           <div><div class="settings-title">Стать поставщиком</div><div class="settings-sub">Переключите роль</div></div>
