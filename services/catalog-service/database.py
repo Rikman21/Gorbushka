@@ -94,8 +94,8 @@ async def get_catalog_with_offers(filters=None):
         query = '''
             SELECT
                 c.id, c.category, c.brand, c.model, c.memory, c.color, c.sku, c.is_active, c.created_at,
-                MIN(o.price) AS min_price,
-                MAX(o.price) AS max_price,
+                MIN(CASE WHEN o.price_hidden = 0 THEN o.price END) AS min_price,
+                MAX(CASE WHEN o.price_hidden = 0 THEN o.price END) AS max_price,
                 COUNT(o.id) AS offers_count
             FROM catalog c
             INNER JOIN offers o ON o.catalog_id = c.id AND o.is_visible = 1 AND o.is_available = 1
