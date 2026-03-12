@@ -618,6 +618,10 @@
     <div class="page-title">Новый оффер</div>
     <div class="section-pad">
       <div class="form-group">
+        <label class="form-label">Категория</label>
+        <select class="form-select" id="createOfferCategory" onchange="onCatalogCategoryChange()"><option value="">-- Выберите категорию --</option></select>
+      </div>
+      <div class="form-group" id="createOfferModelGroup" style="display:none">
         <label class="form-label">Модель</label>
         <select class="form-select" id="createOfferModel" onchange="onCatalogModelChange()"><option value="">-- Выберите модель --</option></select>
       </div>
@@ -1733,14 +1737,31 @@ async function deleteOffer(offerId) {
 
 // ===== CREATE OFFER =====
 function loadCatalogForCreate() {
-  const modelSel = document.getElementById('createOfferModel');
-  if (!modelSel) return;
+  const catSel = document.getElementById('createOfferCategory');
+  if (!catSel) return;
+  document.getElementById('createOfferModelGroup').style.display = 'none';
   document.getElementById('createOfferMemoryGroup').style.display = 'none';
   document.getElementById('createOfferColorGroup').style.display = 'none';
   document.getElementById('createOfferCatalogId').value = '';
-  const models = Object.keys(CATALOG_MODELS);
+  // Собираем уникальные категории с иконками
+  const cats = [...new Set(Object.values(CATALOG_MODELS).map(v => v.cat))];
+  catSel.value = '';
+  catSel.innerHTML = '<option value="">-- Выберите категорию --</option>' +
+    cats.map(c => `<option value="${esc(c)}">${catEmoji(c)} ${esc(c)}</option>`).join('');
+}
+
+function onCatalogCategoryChange() {
+  const cat = document.getElementById('createOfferCategory').value;
+  const modelGroup = document.getElementById('createOfferModelGroup');
+  const modelSel = document.getElementById('createOfferModel');
+  document.getElementById('createOfferMemoryGroup').style.display = 'none';
+  document.getElementById('createOfferColorGroup').style.display = 'none';
+  document.getElementById('createOfferCatalogId').value = '';
+  if (!cat) { modelGroup.style.display = 'none'; return; }
+  const models = Object.keys(CATALOG_MODELS).filter(m => CATALOG_MODELS[m].cat === cat);
   modelSel.innerHTML = '<option value="">-- Выберите модель --</option>' +
     models.map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join('');
+  modelGroup.style.display = '';
 }
 
 function onCatalogModelChange() {
