@@ -1395,6 +1395,18 @@ async function loadPriceRequests() {
     }
     el.innerHTML = list.map(r => {
       const statusMap = {pending:'⏳ Ожидание ответа', responded:'💰 Получена цена', expired:'⏰ Истёк', cancelled:'❌ Отменён'};
+      let timerHtml = '';
+      if (r.status === 'pending' && r.created_at) {
+        const created = new Date(r.created_at + (r.created_at.endsWith('Z') ? '' : 'Z'));
+        const expires = created.getTime() + 10 * 60 * 1000;
+        const left = Math.max(0, Math.floor((expires - Date.now()) / 1000));
+        if (left > 0) {
+          const m = Math.floor(left / 60), s = left % 60;
+          timerHtml = `<div class="request-timer" data-expires="${expires}" style="margin-top:6px">⏱ ${m}:${String(s).padStart(2,'0')}</div>`;
+        } else {
+          timerHtml = '<div style="margin-top:6px;font-size:12px;color:#FF3B30;font-weight:600">⏰ Время истекло</div>';
+        }
+      }
       return `
         <div class="request-card">
           <div style="font-size:14px;font-weight:700;color:#1C1C1E">${esc(r.model||'')} ${esc(r.memory||'')} ${esc(r.color||'')}</div>
@@ -1402,6 +1414,7 @@ async function loadPriceRequests() {
             ${statusMap[r.status] || r.status}
             ${r.status === 'responded' ? ` — ${(r.buyer_price||0).toLocaleString('ru')} ₽/шт` : ''}
           </div>
+          ${timerHtml}
           ${r.status === 'responded' ? `
             <div class="deal-actions" style="margin-top:10px">
               <button class="btn-sm btn-green" onclick="acceptPriceRequest(${r.id})">Принять ${(r.buyer_price||0).toLocaleString('ru')} ₽</button>
@@ -1411,9 +1424,34 @@ async function loadPriceRequests() {
           ${r.status === 'rejected' ? `<div style="margin-top:8px;font-size:13px;color:#8E8E93">❌ Отклонено</div>` : ''}
         </div>`;
     }).join('');
+    startPriceTimers();
   } catch(e) {
     el.innerHTML = '<div style="color:#8E8E93;font-size:13px">Ошибка загрузки</div>';
   }
+}
+
+let priceTimerInterval = null;
+function startPriceTimers() {
+  if (priceTimerInterval) clearInterval(priceTimerInterval);
+  const timers = document.querySelectorAll('.request-timer[data-expires]');
+  if (!timers.length) return;
+  priceTimerInterval = setInterval(() => {
+    let active = false;
+    timers.forEach(el => {
+      const expires = parseInt(el.dataset.expires);
+      const left = Math.max(0, Math.floor((expires - Date.now()) / 1000));
+      if (left > 0) {
+        const m = Math.floor(left / 60), s = left % 60;
+        el.textContent = `⏱ ${m}:${String(s).padStart(2, '0')}`;
+        active = true;
+      } else {
+        el.textContent = '⏰ Время истекло';
+        el.style.color = '#FF3B30';
+        el.classList.remove('request-timer');
+      }
+    });
+    if (!active) { clearInterval(priceTimerInterval); priceTimerInterval = null; loadPriceRequests(); }
+  }, 1000);
 }
 
 async function loadBuyerDeals() {
@@ -1704,17 +1742,32 @@ async function loadIncomingRequests() {
       el.innerHTML = '<div style="color:#8E8E93;font-size:14px;padding:8px 0">Нет входящих запросов</div>';
       return;
     }
-    el.innerHTML = reqs.map(r => `
+    el.innerHTML = reqs.map(r => {
+      let timerHtml = '';
+      if (r.created_at) {
+        const created = new Date(r.created_at + (r.created_at.endsWith('Z') ? '' : 'Z'));
+        const expires = created.getTime() + 10 * 60 * 1000;
+        const left = Math.max(0, Math.floor((expires - Date.now()) / 1000));
+        if (left > 0) {
+          const m = Math.floor(left / 60), s = left % 60;
+          timerHtml = `<div class="request-timer" data-expires="${expires}" style="margin-top:4px">⏱ Осталось: ${m}:${String(s).padStart(2,'0')}</div>`;
+        } else {
+          timerHtml = '<div style="margin-top:4px;font-size:12px;color:#FF3B30;font-weight:600">⏰ Время истекло</div>';
+        }
+      }
+      return `
       <div class="request-card">
         <div style="font-size:14px;font-weight:700;color:#1C1C1E">${esc(r.model||'')} ${esc(r.memory||'')} ${esc(r.color||'')}</div>
         <div style="font-size:13px;color:#8E8E93;margin-top:3px">Покупатель: ${esc(r.buyer_name||r.buyer_username||'')}</div>
         <div style="font-size:12px;color:#8E8E93">Количество: ${r.quantity} шт</div>
-        <div style="font-size:12px;color:#FF9500;margin-top:6px;font-weight:600">⏰ Ответьте на запрос</div>
+        ${timerHtml}
         <div class="deal-actions" style="margin-top:10px">
           <input class="form-input" type="number" id="respPrice_${r.id}" placeholder="Цена ₽" style="height:38px;font-size:14px;width:130px">
           <button class="btn-sm btn-green" onclick="respondRequest(${r.id})">Ответить</button>
         </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
+    startPriceTimers();
   } catch(e) {
     el.innerHTML = '<div style="color:#8E8E93;font-size:13px">Ошибка загрузки</div>';
   }
