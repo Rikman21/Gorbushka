@@ -496,12 +496,15 @@
       </div>
     </div>
     <div class="filter-bar" id="feedFilters">
-      <button class="chip active" data-memory="">Все</button>
-      <button class="chip" data-memory="64GB">64GB</button>
-      <button class="chip" data-memory="128GB">128GB</button>
-      <button class="chip" data-memory="256GB">256GB</button>
-      <button class="chip" data-memory="512GB">512GB</button>
-      <button class="chip" data-memory="1TB">1TB</button>
+      <button class="chip active" data-cat="">Все</button>
+      <button class="chip" data-cat="iPhone">📱 iPhone</button>
+      <button class="chip" data-cat="iPad">📟 iPad</button>
+      <button class="chip" data-cat="Mac">💻 Mac</button>
+      <button class="chip" data-cat="Watch">⌚ Watch</button>
+      <button class="chip" data-cat="AirPods">🎧 AirPods</button>
+      <button class="chip" data-cat="TV & Home">📺 TV & Home</button>
+      <button class="chip" data-cat="Vision">🥽 Vision</button>
+      <button class="chip" data-cat="Accessories">🎁 Accessories</button>
     </div>
     <div class="section-pad">
       <div id="feedList"><div class="spinner"></div></div>
@@ -1021,16 +1024,21 @@ function dealStatusLabel(status) {
   return `<span class="status-pill ${cls}">${label}</span>`;
 }
 
+function catEmoji(cat) {
+  const map = {iPhone:'📱',iPad:'📟',Mac:'💻',Watch:'⌚',AirPods:'🎧','TV & Home':'📺',Vision:'🥽',Accessories:'🎁'};
+  return map[cat] || '📦';
+}
+
 // ===== FEED =====
 let feedData = [];
-let feedFilter = {memory: '', search: ''};
+let feedFilter = {category: '', search: ''};
 
 async function loadFeed() {
   const el = document.getElementById('feedList');
   el.innerHTML = '<div class="spinner"></div>';
   try {
     const params = new URLSearchParams();
-    if (feedFilter.memory) params.set('memory', feedFilter.memory);
+    if (feedFilter.category) params.set('category', feedFilter.category);
     if (feedFilter.search) params.set('model', feedFilter.search);
     feedData = await api('/api/catalog?' + params.toString());
     renderFeed();
@@ -1070,7 +1078,7 @@ function renderFeed() {
       return `
         <div class="product-card" onclick="openCatalogItem(${item.id}, '${esc(item.model)} ${esc(item.memory || '')}')">
           <div class="product-card-inner">
-            <div class="product-img">📱</div>
+            <div class="product-img">${catEmoji(item.category)}</div>
             <div class="product-info">
               <div class="product-name">${esc(key)}</div>
               <div class="product-meta">${esc(item.memory || '')} ${esc(item.color || '')}</div>
@@ -1111,7 +1119,7 @@ function renderFeed() {
     return `
       <div class="group-card" id="group_${idx}">
         <div class="group-header" onclick="toggleGroup('group_${idx}')">
-          <div class="product-img">📱</div>
+          <div class="product-img">${catEmoji(g.items[0]?.category)}</div>
           <div class="group-info">
             <div class="group-model">${esc(key)}</div>
             <div class="group-meta">${g.items.length} вариант${g.items.length > 4 ? 'ов' : g.items.length > 1 ? 'а' : ''}</div>
@@ -1264,7 +1272,7 @@ document.getElementById('feedFilters').addEventListener('click', e => {
   if (!chip) return;
   document.querySelectorAll('#feedFilters .chip').forEach(c => c.classList.remove('active'));
   chip.classList.add('active');
-  feedFilter.memory = chip.dataset.memory;
+  feedFilter.category = chip.dataset.cat;
   loadFeed();
 });
 
