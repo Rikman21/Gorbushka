@@ -1042,6 +1042,7 @@ async function loadFeed() {
   el.innerHTML = '<div class="spinner"></div>';
   try {
     const params = new URLSearchParams();
+    params.set('all', '1');
     if (feedFilter.category) params.set('category', feedFilter.category);
     if (feedFilter.search) params.set('model', feedFilter.search);
     feedData = await api('/api/catalog?' + params.toString());
