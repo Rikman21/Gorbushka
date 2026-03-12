@@ -2367,6 +2367,11 @@ async function init() {
         <div class="empty-icon">🤖</div>
         <div class="empty-title">Откройте через бот</div>
         <div class="empty-sub">Используйте команду /start в Telegram-боте для входа</div>
+        <div style="font-size:11px;color:#888;margin-top:16px;text-align:left;padding:0 16px;word-break:break-all">
+          tg=${JSON.stringify(window.Telegram?.WebApp?.initDataUnsafe)}<br>
+          initData=${window.Telegram?.WebApp?.initData?.substring(0,80)}<br>
+          ver=${window.Telegram?.WebApp?.version}
+        </div>
       </div>`;
     return;
   }
