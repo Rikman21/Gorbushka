@@ -60,7 +60,7 @@ async def start(message: types.Message):
         "full_name": full_name,
     })
 
-    full_url = f"{WEB_APP_URL}?v=13&uid={user_id}"
+    full_url = f"{WEB_APP_URL}?v=14&uid={user_id}"
     kb = [[KeyboardButton(text="📱 ОТКРЫТЬ БИРЖУ", web_app=WebAppInfo(url=full_url))]]
 
     await message.answer(

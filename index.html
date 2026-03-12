@@ -1486,7 +1486,8 @@ function renderDealCard(d, role) {
         ${canConfirm ? `<button class="btn-sm btn-green" onclick="updateDealStatus(${d.id},'confirmed')">Подтвердить</button>` : ''}
         ${canComplete ? `<button class="btn-sm btn-green" onclick="updateDealStatus(${d.id},'completed')">Завершить</button>` : ''}
         ${canReject ? `<button class="btn-sm btn-red" onclick="updateDealStatus(${d.id},'${role==='buyer'?'cancelled':'rejected'}')">Отклонить</button>` : ''}
-        ${d.status === 'completed' && !d._reviewed ? `<button class="btn-sm btn-secondary" onclick="openRatingSheet(${d.id}, ${d.supplier_id})">Оценить</button>` : ''}
+        ${d.status === 'completed' && !d._reviewed && role === 'buyer' ? `<button class="btn-sm btn-secondary" onclick="openRatingSheet(${d.id}, ${d.supplier_id}, ${d.buyer_id}, 'buyer')">Оценить поставщика</button>` : ''}
+        ${d.status === 'completed' && !d._reviewed && role === 'supplier' ? `<button class="btn-sm btn-secondary" onclick="openRatingSheet(${d.id}, ${d.supplier_id}, ${d.buyer_id}, 'supplier')">Оценить покупателя</button>` : ''}
       </div>
     </div>`;
 }
@@ -1508,35 +1509,41 @@ async function updateDealStatus(dealId, status) {
 
 // ===== Rating Sheet =====
 let ratingVal = 0;
-function openRatingSheet(dealId, supplierId) {
+let reviewMeta = {};
+function openRatingSheet(dealId, supplierId, buyerId, authorRole) {
   ratingVal = 0;
+  reviewMeta = {dealId, supplierId, buyerId, authorRole};
+  const label = authorRole === 'buyer' ? 'Оцените поставщика' : 'Оцените покупателя';
   openSheet('Оставить отзыв', `
-    <div style="font-size:14px;color:#8E8E93;margin-bottom:8px">Оцените поставщика по сделке #${dealId}</div>
+    <div style="font-size:14px;color:#8E8E93;margin-bottom:8px">${label} по сделке #${dealId}</div>
     <div class="stars-input" id="starsInput">
-      ${[1,2,3,4,5].map(i=>`<button class="star-btn" data-val="${i}" onclick="setRating(${i},${dealId},${supplierId})">★</button>`).join('')}
+      ${[1,2,3,4,5].map(i=>`<button class="star-btn" data-val="${i}" onclick="setRating(${i})">★</button>`).join('')}
     </div>
     <textarea class="form-textarea" id="reviewComment" rows="3" placeholder="Ваш комментарий (необязательно)..."></textarea>
-    <button class="btn-full btn-primary" style="margin-top:16px" onclick="submitReview(${dealId}, ${supplierId})">Отправить отзыв</button>
+    <button class="btn-full btn-primary" style="margin-top:16px" onclick="submitReview()">Отправить отзыв</button>
   `);
 }
 
-function setRating(val, dealId, supplierId) {
+function setRating(val) {
   ratingVal = val;
   document.querySelectorAll('.star-btn').forEach((b, i) => {
     b.classList.toggle('active', i < val);
   });
 }
 
-async function submitReview(dealId, supplierId) {
+async function submitReview() {
   if (!userId || !ratingVal) { showToast('Выберите оценку'); return; }
   const comment = document.getElementById('reviewComment')?.value || '';
+  const {dealId, supplierId, buyerId, authorRole} = reviewMeta;
   try {
     await api('/api/reviews', {
       method: 'POST',
-      body: JSON.stringify({deal_id: dealId, supplier_id: supplierId, buyer_id: parseInt(userId), rating: ratingVal, comment})
+      body: JSON.stringify({deal_id: dealId, supplier_id: supplierId, buyer_id: buyerId, rating: ratingVal, comment, author_role: authorRole})
     });
     closeSheet();
     showToast('✅ Отзыв отправлен!');
+    if (isSupplier) { loadIncomingDeals(); loadSupplierDeals(); }
+    else { loadBuyerDeals(); }
   } catch(e) {
     showToast('Ошибка: ' + e.message);
   }

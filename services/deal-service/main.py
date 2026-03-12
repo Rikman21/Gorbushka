@@ -342,10 +342,13 @@ async def post_add_review_api(request):
     buyer_id = data.get("buyer_id")
     rating = data.get("rating")
     comment = data.get("comment")
+    author_role = data.get("author_role", "buyer")
     if not all([deal_id, supplier_id, buyer_id, rating]):
         return json_response({"error": "Required: deal_id, supplier_id, buyer_id, rating"}, status=400)
+    if author_role not in ('buyer', 'supplier'):
+        return json_response({"error": "author_role must be buyer or supplier"}, status=400)
     try:
-        await database.add_review(int(deal_id), int(supplier_id), int(buyer_id), int(rating), comment)
+        await database.add_review(int(deal_id), int(supplier_id), int(buyer_id), int(rating), comment, author_role)
     except Exception as e:
         return json_response({"error": str(e)}, status=500)
     return json_response({"ok": True})

@@ -50,6 +50,7 @@ async def init_db():
                 buyer_id BIGINT NOT NULL,
                 rating INTEGER NOT NULL,
                 comment TEXT,
+                author_role TEXT DEFAULT 'buyer',
                 created_at TIMESTAMP DEFAULT NOW()
             )
         ''')
@@ -94,6 +95,13 @@ async def init_db():
         await conn.execute('''
             DO $$ BEGIN
                 ALTER TABLE buyer_request_responses ADD COLUMN status TEXT DEFAULT 'pending';
+            EXCEPTION WHEN duplicate_column THEN NULL;
+            END $$
+        ''')
+        # Add author_role column to reviews if missing
+        await conn.execute('''
+            DO $$ BEGIN
+                ALTER TABLE reviews ADD COLUMN author_role TEXT DEFAULT 'buyer';
             EXCEPTION WHEN duplicate_column THEN NULL;
             END $$
         ''')
@@ -174,7 +182,13 @@ async def get_user_deals(telegram_id, status_filter=None):
                 CASE
                     WHEN d.buyer_id = $1 THEN u.company_name
                     ELSE ub.company_name
-                END as counterparty
+                END as counterparty,
+                EXISTS(
+                    SELECT 1 FROM reviews r
+                    WHERE r.deal_id = d.id
+                    AND ((d.buyer_id = $1 AND r.author_role = 'buyer')
+                      OR (d.supplier_id = $1 AND r.author_role = 'supplier'))
+                ) as _reviewed
             FROM deals d
             JOIN offers o ON d.offer_id = o.id
             JOIN catalog c ON o.catalog_id = c.id
@@ -234,18 +248,32 @@ async def get_deal_messages(deal_id):
 
 # ==================== REVIEWS ====================
 
-async def add_review(deal_id, supplier_id, buyer_id, rating, comment=None):
+async def add_review(deal_id, supplier_id, buyer_id, rating, comment=None, author_role='buyer'):
     async with pool.acquire() as conn:
+        # Check if already reviewed by this role
+        exists = await conn.fetchval('''
+            SELECT 1 FROM reviews WHERE deal_id = $1 AND author_role = $2
+        ''', deal_id, author_role)
+        if exists:
+            raise Exception('Вы уже оставили отзыв по этой сделке')
         await conn.execute('''
-            INSERT INTO reviews (deal_id, supplier_id, buyer_id, rating, comment)
-            VALUES ($1, $2, $3, $4, $5)
-        ''', deal_id, supplier_id, buyer_id, rating, comment)
-        await conn.execute('''
-            UPDATE users SET
-                rating = (SELECT AVG(rating) FROM reviews WHERE supplier_id = $1),
-                deals_count = deals_count + 1
-            WHERE telegram_id = $1
-        ''', supplier_id)
+            INSERT INTO reviews (deal_id, supplier_id, buyer_id, rating, comment, author_role)
+            VALUES ($1, $2, $3, $4, $5, $6)
+        ''', deal_id, supplier_id, buyer_id, rating, comment, author_role)
+        if author_role == 'buyer':
+            # Buyer rates supplier — update supplier rating
+            await conn.execute('''
+                UPDATE users SET
+                    rating = (SELECT AVG(rating) FROM reviews WHERE supplier_id = $1 AND author_role = 'buyer')
+                WHERE telegram_id = $1
+            ''', supplier_id)
+        else:
+            # Supplier rates buyer — update buyer rating
+            await conn.execute('''
+                UPDATE users SET
+                    rating = (SELECT AVG(rating) FROM reviews WHERE buyer_id = $1 AND author_role = 'supplier')
+                WHERE telegram_id = $1
+            ''', buyer_id)
 
 
 # ==================== PRICE REQUESTS ====================
