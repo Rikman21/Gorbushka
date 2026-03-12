@@ -8,7 +8,7 @@ from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 from aiogram.types import (
     WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton,
-    MenuButtonWebApp,
+    MenuButtonWebApp, ReplyKeyboardRemove,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -65,7 +65,8 @@ async def start(message: types.Message):
         "🔹 Покупайте технику по лучшим ценам\n"
         "🔹 Продавайте через удобную панель\n"
         "🔹 Безопасные сделки \n\n"
-        "Нажмите кнопку меню внизу, чтобы открыть биржу.",
+        "Нажмите синюю кнопку слева внизу, чтобы открыть биржу.",
+        reply_markup=ReplyKeyboardRemove(),
         parse_mode="Markdown"
     )
 
