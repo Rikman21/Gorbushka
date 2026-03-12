@@ -1,3 +1,9 @@
+raise SystemExit(
+    "\n\n⛔ СТАРЫЙ МОНОЛИТ — НЕ ЗАПУСКАТЬ!\n"
+    "Используйте Docker: docker-compose up -d\n"
+    "Этот файл устарел и конфликтует с Docker-ботом.\n"
+)
+
 import asyncio
 import logging
 import json
