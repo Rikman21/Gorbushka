@@ -7,14 +7,14 @@ import redis.asyncio as redis
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 from aiogram.types import (
-    WebAppInfo, ReplyKeyboardMarkup, KeyboardButton,
-    InlineKeyboardMarkup, InlineKeyboardButton,
+    WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton,
+    MenuButtonWebApp,
 )
 
 logging.basicConfig(level=logging.INFO)
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
-WEB_APP_URL = os.environ.get("WEB_APP_URL", "https://rikman21.github.io/Gorbushka/")
+WEB_APP_URL = os.environ.get("WEB_APP_URL", "https://api.4-0.xn--p1ai/")
 ADMIN_IDS = [int(x) for x in os.environ.get("ADMIN_IDS", "").split(",") if x.strip()]
 USER_SERVICE = os.environ.get("USER_SERVICE_URL", "http://user-service:8081")
 CATALOG_SERVICE = os.environ.get("CATALOG_SERVICE_URL", "http://catalog-service:8082")
@@ -60,16 +60,12 @@ async def start(message: types.Message):
         "full_name": full_name,
     })
 
-    full_url = f"{WEB_APP_URL}?v=14&uid={user_id}"
-    kb = [[KeyboardButton(text="📱 ОТКРЫТЬ БИРЖУ", web_app=WebAppInfo(url=full_url))]]
-
     await message.answer(
         "👋 Добро пожаловать на **0000**\n\n"
         "🔹 Покупайте технику по лучшим ценам\n"
         "🔹 Продавайте через удобную панель\n"
         "🔹 Безопасные сделки \n\n"
-        "Нажмите кнопку ниже, чтобы начать:",
-        reply_markup=ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True),
+        "Нажмите кнопку меню внизу, чтобы открыть биржу.",
         parse_mode="Markdown"
     )
 
@@ -256,6 +252,10 @@ async def handle_webapp(message: types.Message):
 async def main():
     logging.info("Bot starting...")
     await bot.delete_webhook(drop_pending_updates=True)
+    await bot.set_chat_menu_button(menu_button=MenuButtonWebApp(
+        text="📱 Открыть биржу",
+        web_app=WebAppInfo(url=WEB_APP_URL),
+    ))
     logging.info("Bot started, polling...")
     await dp.start_polling(bot)
 
