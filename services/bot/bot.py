@@ -3,6 +3,7 @@ import json
 import logging
 import asyncio
 import aiohttp
+import time
 import redis.asyncio as redis
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
@@ -14,7 +15,9 @@ from aiogram.types import (
 logging.basicConfig(level=logging.INFO)
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
-WEB_APP_URL = os.environ.get("WEB_APP_URL", "https://api.4-0.xn--p1ai/")
+_WEB_APP_BASE = os.environ.get("WEB_APP_URL", "https://api.4-0.xn--p1ai/")
+# Cache-busting: append deploy timestamp so Telegram always reloads the WebApp
+WEB_APP_URL = f"{_WEB_APP_BASE}?v={int(time.time())}"
 ADMIN_IDS = [int(x) for x in os.environ.get("ADMIN_IDS", "").split(",") if x.strip()]
 USER_SERVICE = os.environ.get("USER_SERVICE_URL", "http://user-service:8081")
 CATALOG_SERVICE = os.environ.get("CATALOG_SERVICE_URL", "http://catalog-service:8082")
