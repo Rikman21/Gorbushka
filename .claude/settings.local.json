@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:www.apple.com)",
+      "WebFetch(domain:support.apple.com)"
+    ]
+  }
+}

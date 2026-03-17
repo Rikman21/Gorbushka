@@ -443,30 +443,8 @@
 <body>
 <div class="shell" id="shell">
 
-  <!-- Role Selection Overlay -->
-  <div class="role-overlay" id="roleOverlay">
-    <div class="role-logo">
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
-    </div>
-    <div class="role-title">Биржа Apple техники</div>
-    <div class="role-sub">Выберите свою роль, чтобы продолжить</div>
-    <div class="role-cards">
-      <button class="role-card" id="roleBuyer">
-        <div class="role-icon blue">🛒</div>
-        <div>
-          <div class="role-card-title">Покупатель</div>
-          <div class="role-card-desc">Ищите лучшие предложения от поставщиков</div>
-        </div>
-      </button>
-      <button class="role-card" id="roleSupplier">
-        <div class="role-icon green">📦</div>
-        <div>
-          <div class="role-card-title">Поставщик</div>
-          <div class="role-card-desc">Продавайте технику оптом через биржу</div>
-        </div>
-      </button>
-    </div>
-  </div>
+  <!-- Role Overlay (kept for "open via bot" message) -->
+  <div class="role-overlay hidden" id="roleOverlay"></div>
 
   <!-- App Header -->
   <header class="app-header" id="appHeader" style="display:none">
@@ -720,13 +698,8 @@
   <!-- ===== ADMIN SCREEN ===== -->
   <div class="screen" id="screenAdmin">
     <div class="page-title">Администратор</div>
-    <div style="padding: 0 16px 12px; display:flex; gap:8px; align-items:center">
-      <span style="font-size:12px;color:#8E8E93;font-weight:500">Тест режим:</span>
-      <button id="adminViewBuyerBtn" class="btn-sm" onclick="adminSwitchView('buyer')" style="border-radius:10px;font-size:12px;padding:6px 12px">🛒 Покупатель</button>
-      <button id="adminViewSupplierBtn" class="btn-sm" onclick="adminSwitchView('supplier')" style="border-radius:10px;font-size:12px;padding:6px 12px">📦 Поставщик</button>
-    </div>
     <div class="admin-tabs" id="adminTabs">
-      <button class="admin-tab active" data-tab="adminSupplierReqs" onclick="switchAdminTab(this)">Поставщики</button>
+      <button class="admin-tab active" data-tab="adminSupplierReqs" onclick="switchAdminTab(this)">Пользователи (все)</button>
       <button class="admin-tab" data-tab="adminDeals" onclick="switchAdminTab(this)">Сделки</button>
       <button class="admin-tab" data-tab="adminComplaints" onclick="switchAdminTab(this)">Жалобы</button>
       <button class="admin-tab" data-tab="adminReviews" onclick="switchAdminTab(this)">Отзывы</button>
@@ -902,9 +875,14 @@ function showToast(msg, duration = 2500) {
 // ===== Navigation =====
 function buildNav() {
   const nav = document.getElementById('navItems');
-  const tabs = isAdmin
-    ? (isSupplier ? getSupplierTabs() : getBuyerTabs()).concat([{id:'screenAdmin',icon:adminIcon(),label:'Админ'}])
-    : (isSupplier ? getSupplierTabs() : getBuyerTabs());
+  const base = [
+    {id:'screenFeed',         icon: homeIcon(),    label:'Лента'},
+    {id:'screenMyOffers',     icon: offersIcon(),  label:'Офферы'},
+    {id:'screenIncoming',     icon: requestIcon(), label:'Входящие'},
+    {id:'screenBuyerDeals',   icon: dealsIcon(),   label:'Сделки'},
+    {id:'screenMyProfile',    icon: profileIcon(), label:'Профиль'},
+  ];
+  const tabs = isAdmin ? base.concat([{id:'screenAdmin', icon:adminIcon(), label:'Админ'}]) : base;
 
   nav.innerHTML = tabs.map(t => `
     <button class="nav-tab" data-screen="${t.id}" onclick="navTo('${t.id}')">
@@ -913,24 +891,6 @@ function buildNav() {
       <div class="nav-dot"></div>
     </button>
   `).join('');
-}
-
-function getBuyerTabs() {
-  return [
-    {id:'screenFeed', icon: homeIcon(), label:'Лента'},
-    {id:'screenRequests', icon: requestIcon(), label:'Запросы'},
-    {id:'screenBuyerDeals', icon: dealsIcon(), label:'Сделки'},
-    {id:'screenBuyerProfile', icon: profileIcon(), label:'Профиль'},
-  ];
-}
-function getSupplierTabs() {
-  return [
-    {id:'screenFeed', icon: homeIcon(), label:'Лента'},
-    {id:'screenMyOffers', icon: offersIcon(), label:'Офферы'},
-    {id:'screenIncoming', icon: requestIcon(), label:'Входящие'},
-    {id:'screenSupplierDeals', icon: dealsIcon(), label:'Сделки'},
-    {id:'screenMyProfile', icon: profileIcon(), label:'Профиль'},
-  ];
 }
 function homeIcon() { return '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>'; }
 function offersIcon() { return '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>'; }
@@ -952,7 +912,7 @@ function navTo(screenId) {
   else if (screenId === 'screenSupplierDeals') loadSupplierDeals();
   else if (screenId === 'screenMyProfile') loadMyProfile();
   else if (screenId === 'screenBuyerProfile') loadBuyerProfile();
-  else if (screenId === 'screenAdmin') { loadAdminTab('adminSupplierReqs'); updateAdminViewBtns(); }
+  else if (screenId === 'screenAdmin') { loadAdminTab('adminSupplierReqs'); }
 }
 
 function showScreen(id, pushHistory = true) {
@@ -972,7 +932,7 @@ function goBack() {
     showScreen(prev, false);
   } else {
     // go to default
-    navTo(isSupplier ? 'screenMyOffers' : 'screenFeed');
+    navTo('screenFeed');
   }
 }
 
@@ -1528,11 +1488,12 @@ async function loadBuyerDeals() {
     const active = deals.filter(d => ACTIVE_STATUSES.includes(d.status));
     const history = deals.filter(d => HISTORY_STATUSES.includes(d.status))
       .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    const roleFor = d => d.supplier_id === parseInt(userId) ? 'supplier' : 'buyer';
     elActive.innerHTML = active.length
-      ? active.map(d => renderDealCard(d, 'buyer')).join('')
+      ? active.map(d => renderDealCard(d, roleFor(d))).join('')
       : '<div style="color:#8E8E93;font-size:14px;padding:8px 0">Нет активных сделок</div>';
     elHistory.innerHTML = history.length
-      ? history.map(d => renderDealCard(d, 'buyer')).join('')
+      ? history.map(d => renderDealCard(d, roleFor(d))).join('')
       : '<div style="color:#8E8E93;font-size:14px;padding:8px 0">Пока пусто</div>';
   } catch(e) {
     elActive.innerHTML = '<div style="color:#8E8E93;font-size:13px">Ошибка загрузки</div>';
@@ -1570,8 +1531,7 @@ async function updateDealStatus(dealId, status) {
       body: JSON.stringify({user_id: parseInt(userId), status})
     });
     showToast('✅ Статус обновлён');
-    if (isSupplier) { loadIncomingDeals(); loadSupplierDeals(); }
-    else { loadBuyerDeals(); loadPriceRequests(); }
+    loadIncomingDeals(); loadBuyerDeals();
   } catch(e) {
     showToast('Ошибка: ' + e.message);
   }
@@ -1613,8 +1573,7 @@ async function submitReview() {
     closeSheet();
     showToast('✅ Отзыв отправлен!');
     // Reload all deal lists to update reviewed flags
-    if (isSupplier) { loadIncomingDeals(); loadSupplierDeals(); }
-    loadBuyerDeals();
+    loadIncomingDeals(); loadBuyerDeals();
   } catch(e) {
     showToast('Ошибка: ' + e.message);
   }
@@ -1638,8 +1597,7 @@ async function submitReply(reviewId) {
     });
     closeSheet();
     showToast('✅ Ответ отправлен');
-    if (isSupplier) loadMyProfile();
-    else loadBuyerProfile();
+    loadMyProfile();
   } catch(e) {
     showToast('Ошибка: ' + e.message);
   }
@@ -2081,37 +2039,17 @@ async function loadBuyerProfile() {
           ${r.comment ? `<div class="review-text">${esc(r.comment)}</div>` : ''}
           ${r.reply_text ? `<div style="background:#E8F5E9;border-radius:10px;padding:8px 10px;margin-top:6px;font-size:12px"><span style="font-weight:600;color:#2E7D32">Ответ:</span> ${esc(r.reply_text)}</div>` : `<button class="btn-sm btn-secondary" style="margin-top:6px;font-size:11px" onclick="openReplySheet(${r.id})">Ответить</button>`}
         </div>`).join('') : '<div style="color:#8E8E93;font-size:13px">Отзывов пока нет</div>'}
-      <div class="settings-list" style="margin-top:12px">
-        <div class="settings-row" onclick="switchRole()">
-          <div class="settings-icon orange"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div>
-          <div><div class="settings-title">Стать поставщиком</div><div class="settings-sub">Переключите роль</div></div>
-        </div>
-      </div>
     `;
   } catch(e) {
     el.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">${e.message}</div></div>`;
   }
 }
 
-function adminSwitchView(role) {
-  // Быстрое переключение роли для тестирования (только для админа)
-  if (!isAdmin) return;
-  isSupplier = role === 'supplier';
-  if (currentUser) currentUser.is_supplier = isSupplier ? 1 : 0;
-  saveRoleLocally(role);
-  syncRoleToApi(role);
-  buildNav();
-  updateHeaderBadge();
-  updateAdminViewBtns();
-  navTo(isSupplier ? 'screenMyOffers' : 'screenFeed');
-  showToast(`Тест-режим: ${isSupplier ? 'Поставщик' : 'Покупатель'}`);
-}
-
 function updateAdminViewBtns() {
   const buyerBtn = document.getElementById('adminViewBuyerBtn');
   const supplierBtn = document.getElementById('adminViewSupplierBtn');
   if (!buyerBtn || !supplierBtn) return;
-  if (isSupplier) {
+  if (false) {
     buyerBtn.className = 'btn-sm btn-secondary';
     supplierBtn.className = 'btn-sm btn-green';
   } else {
@@ -2120,19 +2058,6 @@ function updateAdminViewBtns() {
   }
 }
 
-function switchRole() {
-  if (!userId) return;
-  const newRole = isSupplier ? 'buyer' : 'supplier';
-  if (!isAdmin && !confirm(`Сменить роль на "${newRole === 'buyer' ? 'Покупатель' : 'Поставщик'}"?`)) return;
-  isSupplier = newRole === 'supplier';
-  if (currentUser) currentUser.is_supplier = isSupplier ? 1 : 0;
-  saveRoleLocally(newRole);
-  syncRoleToApi(newRole);
-  buildNav();
-  updateHeaderBadge();
-  navTo(isSupplier ? 'screenMyOffers' : 'screenFeed');
-  showToast(`✅ Роль: ${isSupplier ? 'Поставщик' : 'Покупатель'}`);
-}
 
 // ===== IMPORT SHEET =====
 function showImportSheet() {
@@ -2244,43 +2169,9 @@ async function loadAdminTab(tabId) {
 }
 
 async function loadAdminSupplierReqs() {
+  // Заявки поставщиков удалены — все пользователи могут и покупать, и продавать.
   const el = document.getElementById('adminSupplierReqs');
-  el.innerHTML = '<div class="spinner"></div>';
-  try {
-    const reqs = await api('/api/admin/supplier_requests?admin_id=' + userId);
-    if (!reqs.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-title">Нет заявок</div></div>'; return; }
-    el.innerHTML = reqs.map(r => `
-      <div class="card" style="margin-bottom:10px">
-        <div class="card-body">
-          <div style="font-size:14px;font-weight:700">${esc(r.company_name)}</div>
-          <div style="font-size:12px;color:#8E8E93">ID: ${r.telegram_id} · @${r.username||''} · ${r.city}</div>
-          <div style="font-size:12px;color:#8E8E93">${r.phone}</div>
-          <div style="display:flex;align-items:center;gap:6px;margin-top:4px">
-            <span class="status-pill ${r.status==='pending'?'status-pending':r.status==='approved'?'status-confirmed':'status-rejected'}">${r.status}</span>
-          </div>
-          ${r.status === 'pending' ? `
-          <div class="deal-actions" style="margin-top:10px">
-            <button class="btn-sm btn-green" onclick="adminApproveSupplier(${r.telegram_id})">Одобрить</button>
-            <button class="btn-sm btn-red" onclick="adminRejectSupplier(${r.telegram_id})">Отклонить</button>
-          </div>` : ''}
-        </div>
-      </div>`).join('');
-  } catch(e) {
-    el.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">${e.message}</div></div>`;
-  }
-}
-
-async function adminApproveSupplier(telegramId) {
-  try {
-    // Use become_supplier flow — approve via bot callback. Here just update role.
-    await api('/api/admin/user/role', {method:'POST', body: JSON.stringify({admin_id: parseInt(userId), telegram_id: telegramId, role: 'supplier'})});
-    showToast('✅ Поставщик одобрен');
-    loadAdminSupplierReqs();
-  } catch(e) { showToast('Ошибка: '+e.message); }
-}
-
-async function adminRejectSupplier(telegramId) {
-  showToast('Заявка будет отклонена через бот-команду');
+  el.innerHTML = '<div class="empty-state"><div class="empty-icon">👥</div><div class="empty-title">Все пользователи</div><div class="empty-sub">Используйте вкладку «Пользователи» для управления</div></div>';
 }
 
 async function loadAdminDeals() {
@@ -2394,31 +2285,16 @@ function updateHeaderBadge() {
   const badge = document.getElementById('headerRoleBadge');
   const sub = document.getElementById('headerSub');
   if (isAdmin) { badge.textContent = 'Админ'; badge.className = 'header-role-badge admin'; }
-  else if (isSupplier) { badge.textContent = 'Поставщик'; badge.className = 'header-role-badge supplier'; }
-  else { badge.textContent = 'Покупатель'; badge.className = 'header-role-badge buyer'; }
-  if (sub) sub.textContent = isSupplier ? 'Панель поставщика' : 'Apple техника';
+  else { badge.textContent = ''; badge.className = 'header-role-badge'; }
+  if (sub) sub.textContent = 'Apple техника';
 }
 
-// ===== Role localStorage helpers =====
-function saveRoleLocally(role) {
-  try { if (userId) localStorage.setItem('role_' + userId, role); } catch(e) {}
-}
-function getLocalRole() {
-  try { return userId ? localStorage.getItem('role_' + userId) : null; } catch(e) { return null; }
-}
-function syncRoleToApi(role) {
-  // Фоновая синхронизация — не блокирует UI, не показывает ошибку
-  if (!userId) return;
-  fetch(API_BASE + '/api/user/role', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({telegram_id: parseInt(userId), role})
-  }).catch(() => {});
-}
+// ===== Role helpers (removed — all users are equal) =====
 
 // ===== INIT =====
 async function init() {
   if (!userId) {
+    document.getElementById('roleOverlay').className = 'role-overlay';
     document.getElementById('roleOverlay').innerHTML = `
       <div class="empty-state" style="padding-top:80px">
         <div class="empty-icon">🤖</div>
@@ -2430,47 +2306,12 @@ async function init() {
 
   isAdmin = ADMIN_IDS.includes(String(userId));
 
-  // Пробуем загрузить пользователя из API (не блокируем на ошибке)
   try {
     currentUser = await api('/api/user?telegram_id=' + userId);
   } catch(e) {
     currentUser = null;
   }
 
-  // Определяем роль: API → localStorage → overlay
-  const localRole = getLocalRole();
-  const apiRoleSelected = currentUser?.role_selected;
-
-  if (apiRoleSelected) {
-    // API знает роль — используем и кэшируем локально
-    isSupplier = currentUser.is_supplier === 1;
-    saveRoleLocally(isSupplier ? 'supplier' : 'buyer');
-    startApp();
-  } else if (localRole) {
-    // Роль есть в localStorage — сразу показываем приложение, синхронизируем в фоне
-    isSupplier = localRole === 'supplier';
-    if (currentUser) currentUser.is_supplier = isSupplier ? 1 : 0;
-    syncRoleToApi(localRole);
-    startApp();
-  } else if (isAdmin) {
-    // Админ без роли — начинаем как покупатель
-    isSupplier = false;
-    startApp();
-  } else {
-    // Первый вход — показываем выбор роли
-    document.getElementById('roleOverlay').classList.remove('hidden');
-    document.getElementById('roleBuyer').onclick = () => setRole('buyer');
-    document.getElementById('roleSupplier').onclick = () => setRole('supplier');
-  }
-}
-
-function setRole(role) {
-  // Сохраняем роль локально сразу — UI не зависит от API
-  isSupplier = role === 'supplier';
-  if (currentUser) currentUser.is_supplier = isSupplier ? 1 : 0;
-  saveRoleLocally(role);
-  syncRoleToApi(role); // фон
-  document.getElementById('roleOverlay').classList.add('hidden');
   startApp();
 }
 
@@ -2481,12 +2322,8 @@ function startApp() {
   updateHeaderBadge();
   buildNav();
 
-  if (isSupplier) {
-    navTo('screenMyOffers');
-    loadCatalogForCreate();
-  } else {
-    navTo('screenFeed');
-  }
+  navTo('screenFeed');
+  loadCatalogForCreate();
 }
 
 init();

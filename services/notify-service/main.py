@@ -16,15 +16,15 @@ USER_SERVICE = os.environ.get("USER_SERVICE_URL", "http://user-service:8081")
 bot = Bot(token=BOT_TOKEN)
 
 
-async def get_suppliers_with_notifications():
-    """Get list of supplier telegram_ids with notifications enabled."""
+async def get_users_with_notifications():
+    """Get list of telegram_ids of users with notifications enabled."""
     async with aiohttp.ClientSession() as session:
         try:
             async with session.get(f"{USER_SERVICE}/internal/suppliers_with_notifications") as resp:
                 if resp.status == 200:
                     return await resp.json()
         except Exception as e:
-            logging.warning("Failed to get suppliers: %s", e)
+            logging.warning("Failed to get users: %s", e)
     return []
 
 
@@ -181,7 +181,7 @@ async def handle_notification(payload):
 
     elif event_type == "buyer_request":
         text = payload.get("text", "")
-        supplier_ids = await get_suppliers_with_notifications()
+        supplier_ids = await get_users_with_notifications()
         for sid in supplier_ids:
             await send_safe(sid, text)
 
@@ -228,14 +228,6 @@ async def handle_notification(payload):
             f"📦 {model} {memory} {color}\n"
             f"💵 Цена была: {price:,} ₽"
         )
-
-    elif event_type == "supplier_approved":
-        candidate_id = payload["candidate_id"]
-        await send_safe(candidate_id, "✅ Поздравляем! Ваша заявка одобрена. Перезагрузите приложение.")
-
-    elif event_type == "supplier_rejected":
-        candidate_id = payload["candidate_id"]
-        await send_safe(candidate_id, "❌ К сожалению, ваша заявка отклонена.")
 
     else:
         logging.warning("Unknown notification type: %s", event_type)

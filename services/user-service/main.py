@@ -59,21 +59,6 @@ async def post_user_api(request):
     return json_response({"ok": True})
 
 
-async def post_user_role_api(request):
-    data = await request.json()
-    telegram_id = data.get("telegram_id")
-    role = data.get("role")
-    if not telegram_id or role not in ("buyer", "supplier"):
-        return json_response({"error": "Required: telegram_id, role (buyer|supplier)"}, status=400)
-    telegram_id = int(telegram_id)
-    if telegram_id not in ADMIN_IDS:
-        user = await database.get_user(telegram_id)
-        if user and user.get("role_selected"):
-            return json_response({"error": "Роль уже выбрана."}, status=403)
-    await database.set_user_role(telegram_id, role)
-    return json_response({"ok": True})
-
-
 async def post_notifications_toggle_api(request):
     data = await request.json()
     telegram_id = data.get("telegram_id")
@@ -84,18 +69,6 @@ async def post_notifications_toggle_api(request):
     return json_response({"ok": True})
 
 
-async def post_become_supplier_api(request):
-    data = await request.json()
-    telegram_id = data.get("telegram_id")
-    company_name = (data.get("company_name") or "").strip()
-    city = (data.get("city") or "").strip()
-    phone = (data.get("phone") or "").strip()
-    if not telegram_id or not company_name or not city or not phone:
-        return json_response({"error": "Required: telegram_id, company_name, city, phone"}, status=400)
-    await database.create_supplier_request(int(telegram_id), company_name, city, phone)
-    return json_response({"ok": True, "message": "Заявка отправлена"})
-
-
 async def get_supplier_profile_api(request):
     supplier_id = request.query.get('supplier_id')
     if not supplier_id:
@@ -103,7 +76,7 @@ async def get_supplier_profile_api(request):
     supplier_id = int(supplier_id)
     user = await database.get_user(supplier_id)
     if not user:
-        return json_response({'error': 'Supplier not found'}, status=404)
+        return json_response({'error': 'User not found'}, status=404)
     reviews = await database.get_supplier_reviews(supplier_id)
     user['reviews'] = reviews
     return json_response(user)
@@ -128,22 +101,6 @@ async def get_admin_users_api(request):
     return json_response(users)
 
 
-async def post_admin_user_role_api(request):
-    data = await request.json()
-    try:
-        admin_id = int(data.get("admin_id", 0))
-    except (TypeError, ValueError):
-        admin_id = 0
-    if admin_id not in ADMIN_IDS:
-        return json_response({"error": "Нет прав"}, status=403)
-    telegram_id = data.get("telegram_id")
-    role = data.get("role")
-    if not telegram_id or role not in ("buyer", "supplier"):
-        return json_response({"error": "Required: telegram_id, role"}, status=400)
-    await database.set_user_role(int(telegram_id), role)
-    return json_response({"ok": True})
-
-
 async def delete_admin_user_api(request):
     user_id = request.match_info.get("id")
     admin_id = request.query.get("admin_id")
@@ -158,35 +115,10 @@ async def delete_admin_user_api(request):
     return json_response({"ok": True})
 
 
-async def get_admin_supplier_requests_api(request):
-    admin_id = request.query.get("admin_id")
-    try:
-        if not admin_id or int(admin_id) not in ADMIN_IDS:
-            return json_response({"error": "Нет прав"}, status=403)
-    except ValueError:
-        return json_response({"error": "Нет прав"}, status=403)
-    rows = await database.get_admin_supplier_requests()
-    return json_response(rows)
-
-
 # Internal API for other services
-async def get_suppliers_with_notifications_api(request):
-    ids = await database.get_suppliers_with_notifications()
+async def get_users_with_notifications_api(request):
+    ids = await database.get_users_with_notifications()
     return json_response(ids)
-
-
-async def internal_approve_supplier(request):
-    data = await request.json()
-    telegram_id = data.get("telegram_id")
-    result = await database.approve_supplier_request(int(telegram_id))
-    return json_response({"ok": result})
-
-
-async def internal_reject_supplier(request):
-    data = await request.json()
-    telegram_id = data.get("telegram_id")
-    result = await database.reject_supplier_request(int(telegram_id))
-    return json_response({"ok": result})
 
 
 # ==================== APP ====================
@@ -225,20 +157,14 @@ def create_app():
     # Public API
     app.router.add_get("/api/user", get_user_api)
     app.router.add_post("/api/user", post_user_api)
-    app.router.add_post("/api/user/role", post_user_role_api)
     app.router.add_post("/api/user/notifications", post_notifications_toggle_api)
-    app.router.add_post("/api/become_supplier", post_become_supplier_api)
     app.router.add_get("/api/supplier", get_supplier_profile_api)
     app.router.add_get("/api/supplier/stats", get_supplier_stats_api)
     # Admin
     app.router.add_get("/api/admin/users", get_admin_users_api)
-    app.router.add_post("/api/admin/user/role", post_admin_user_role_api)
     app.router.add_delete("/api/admin/user/{id}", delete_admin_user_api)
-    app.router.add_get("/api/admin/supplier_requests", get_admin_supplier_requests_api)
     # Internal (service-to-service)
-    app.router.add_get("/internal/suppliers_with_notifications", get_suppliers_with_notifications_api)
-    app.router.add_post("/internal/approve_supplier", internal_approve_supplier)
-    app.router.add_post("/internal/reject_supplier", internal_reject_supplier)
+    app.router.add_get("/internal/suppliers_with_notifications", get_users_with_notifications_api)
 
     return app
 

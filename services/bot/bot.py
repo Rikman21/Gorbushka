@@ -113,45 +113,6 @@ async def admin_stats(callback: types.CallbackQuery):
     await callback.answer()
 
 
-@dp.callback_query(F.data.startswith("approve_supplier_"))
-async def callback_approve_supplier(callback: types.CallbackQuery):
-    if callback.from_user.id not in ADMIN_IDS:
-        await callback.answer("Нет прав", show_alert=True)
-        return
-    try:
-        candidate_id = int(callback.data.replace("approve_supplier_", ""))
-    except ValueError:
-        await callback.answer("Неверные данные", show_alert=True)
-        return
-    await service_call("POST", f"{USER_SERVICE}/internal/approve_supplier", {"telegram_id": candidate_id})
-    await publish_notification("supplier_approved", {"candidate_id": candidate_id})
-
-    admin_name = callback.from_user.full_name or callback.from_user.username or "Админ"
-    new_text = (callback.message.text or "") + f"\n\n✅ Заявка одобрена админом {admin_name}"
-    await callback.message.edit_text(new_text, parse_mode="Markdown", reply_markup=None)
-    await callback.answer("Одобрено")
-
-
-@dp.callback_query(F.data.startswith("reject_supplier_"))
-async def callback_reject_supplier(callback: types.CallbackQuery):
-    if callback.from_user.id not in ADMIN_IDS:
-        await callback.answer("Нет прав", show_alert=True)
-        return
-    try:
-        candidate_id = int(callback.data.replace("reject_supplier_", ""))
-    except ValueError:
-        await callback.answer("Неверные данные", show_alert=True)
-        return
-    await service_call("POST", f"{USER_SERVICE}/internal/reject_supplier", {"telegram_id": candidate_id})
-    await publish_notification("supplier_rejected", {"candidate_id": candidate_id})
-
-    await callback.message.edit_text(
-        (callback.message.text or "") + "\n\n❌ Заявка отклонена",
-        parse_mode="Markdown", reply_markup=None,
-    )
-    await callback.answer("Отклонено")
-
-
 # ==================== WEB APP DATA ====================
 
 @dp.message(F.web_app_data)
@@ -237,20 +198,6 @@ async def handle_webapp(message: types.Message):
             "buyer_id": user_id, "rating": rating, "comment": comment
         })
         await message.answer("✅ Отзыв добавлен. Спасибо!")
-
-    elif data.startswith("REGISTER_SUPPLIER"):
-        parts = data.split("|")
-        await service_call("POST", f"{USER_SERVICE}/api/become_supplier", {
-            "telegram_id": user_id,
-            "company_name": parts[1],
-            "city": parts[2],
-            "phone": parts[3],
-        })
-        await message.answer(
-            "✅ **Заявка отправлена!**\n\nОжидайте одобрения администратором.",
-            parse_mode="Markdown"
-        )
-
 
 async def main():
     logging.info("Bot starting...")
