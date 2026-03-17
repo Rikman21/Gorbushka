@@ -115,6 +115,22 @@ async def delete_admin_user_api(request):
     return json_response({"ok": True})
 
 
+async def post_admin_block_user_api(request):
+    data = await request.json()
+    try:
+        admin_id = int(data.get("admin_id", 0))
+    except (TypeError, ValueError):
+        admin_id = 0
+    if admin_id not in ADMIN_IDS:
+        return json_response({"error": "Нет прав"}, status=403)
+    telegram_id = data.get("telegram_id")
+    blocked = data.get("blocked", True)
+    if not telegram_id:
+        return json_response({"error": "telegram_id required"}, status=400)
+    await database.set_user_blocked(int(telegram_id), bool(blocked))
+    return json_response({"ok": True})
+
+
 # Internal API for other services
 async def get_users_with_notifications_api(request):
     ids = await database.get_users_with_notifications()
@@ -163,6 +179,7 @@ def create_app():
     # Admin
     app.router.add_get("/api/admin/users", get_admin_users_api)
     app.router.add_delete("/api/admin/user/{id}", delete_admin_user_api)
+    app.router.add_post("/api/admin/user/block", post_admin_block_user_api)
     # Internal (service-to-service)
     app.router.add_get("/internal/suppliers_with_notifications", get_users_with_notifications_api)
 

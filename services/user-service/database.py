@@ -26,11 +26,15 @@ async def init_db():
                 company_name TEXT,
                 city TEXT,
                 is_verified INTEGER DEFAULT 0,
+                is_blocked INTEGER DEFAULT 0,
                 rating REAL DEFAULT 0.0,
                 deals_count INTEGER DEFAULT 0,
                 notifications_enabled INTEGER DEFAULT 1,
                 created_at TIMESTAMP DEFAULT NOW()
             )
+        ''')
+        await conn.execute('''
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS is_blocked INTEGER DEFAULT 0
         ''')
 
         # Fix sequences after migration data
@@ -84,11 +88,19 @@ async def get_users_with_notifications():
 async def get_all_users(limit=500):
     async with pool.acquire() as conn:
         rows = await conn.fetch('''
-            SELECT telegram_id, username, full_name, is_verified,
+            SELECT telegram_id, username, full_name, is_verified, is_blocked,
                    rating, deals_count, company_name, city, created_at
             FROM users ORDER BY created_at DESC LIMIT $1
         ''', limit)
         return [dict(r) for r in rows]
+
+
+async def set_user_blocked(telegram_id, blocked):
+    async with pool.acquire() as conn:
+        await conn.execute(
+            'UPDATE users SET is_blocked = $1 WHERE telegram_id = $2',
+            1 if blocked else 0, telegram_id
+        )
 
 
 async def delete_user(telegram_id):

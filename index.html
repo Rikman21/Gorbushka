@@ -699,14 +699,13 @@
   <div class="screen" id="screenAdmin">
     <div class="page-title">Администратор</div>
     <div class="admin-tabs" id="adminTabs">
-      <button class="admin-tab active" data-tab="adminSupplierReqs" onclick="switchAdminTab(this)">Пользователи (все)</button>
+      <button class="admin-tab active" data-tab="adminUsers" onclick="switchAdminTab(this)">Пользователи</button>
       <button class="admin-tab" data-tab="adminDeals" onclick="switchAdminTab(this)">Сделки</button>
       <button class="admin-tab" data-tab="adminComplaints" onclick="switchAdminTab(this)">Жалобы</button>
       <button class="admin-tab" data-tab="adminReviews" onclick="switchAdminTab(this)">Отзывы</button>
-      <button class="admin-tab" data-tab="adminUsers" onclick="switchAdminTab(this)">Пользователи</button>
     </div>
     <div class="section-pad">
-      <div id="adminSupplierReqs"></div>
+      <div id="adminUsers"></div>
       <div id="adminDeals" style="display:none"></div>
       <div id="adminReviews" style="display:none"></div>
       <div id="adminComplaints" style="display:none">
@@ -912,7 +911,7 @@ function navTo(screenId) {
   else if (screenId === 'screenSupplierDeals') loadSupplierDeals();
   else if (screenId === 'screenMyProfile') loadMyProfile();
   else if (screenId === 'screenBuyerProfile') loadBuyerProfile();
-  else if (screenId === 'screenAdmin') { loadAdminTab('adminSupplierReqs'); }
+  else if (screenId === 'screenAdmin') { loadAdminTab('adminUsers'); }
 }
 
 function showScreen(id, pushHistory = true) {
@@ -2150,7 +2149,7 @@ async function buyFromRequest(requestId, offerId, price, quantity) {
 }
 
 // ===== ADMIN =====
-let activeAdminTab = 'adminSupplierReqs';
+let activeAdminTab = 'adminUsers';
 function switchAdminTab(btn) {
   document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
   btn.classList.add('active');
@@ -2162,16 +2161,9 @@ function switchAdminTab(btn) {
 }
 
 async function loadAdminTab(tabId) {
-  if (tabId === 'adminSupplierReqs') await loadAdminSupplierReqs();
+  if (tabId === 'adminUsers') await loadAdminUsers();
   else if (tabId === 'adminDeals') await loadAdminDeals();
   else if (tabId === 'adminReviews') await loadAdminReviews();
-  else if (tabId === 'adminUsers') await loadAdminUsers();
-}
-
-async function loadAdminSupplierReqs() {
-  // Заявки поставщиков удалены — все пользователи могут и покупать, и продавать.
-  const el = document.getElementById('adminSupplierReqs');
-  el.innerHTML = '<div class="empty-state"><div class="empty-icon">👥</div><div class="empty-title">Все пользователи</div><div class="empty-sub">Используйте вкладку «Пользователи» для управления</div></div>';
 }
 
 async function loadAdminDeals() {
@@ -2240,16 +2232,16 @@ async function loadAdminUsers() {
   el.innerHTML = '<div class="spinner"></div>';
   try {
     const users = await api('/api/admin/users?admin_id=' + userId);
+    if (!users.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">👥</div><div class="empty-title">Нет пользователей</div></div>'; return; }
     el.innerHTML = users.map(u => `
-      <div class="card" style="margin-bottom:8px">
+      <div class="card" style="margin-bottom:8px${u.is_blocked ? ';opacity:0.6' : ''}">
         <div class="card-body" style="display:flex;align-items:center;gap:12px">
-          <div>
-            <div style="font-size:14px;font-weight:600">${esc(u.full_name || 'Без имени')}${u.username ? ` · <a href="https://t.me/${u.username}" target="_blank" style="color:#007AFF;text-decoration:none">@${esc(u.username)}</a>` : ''}</div>
-            <div style="font-size:12px;color:#8E8E93">ID: ${u.telegram_id} · ${u.is_supplier?'Поставщик':'Покупатель'}${u.company_name ? ' · '+esc(u.company_name) : ''}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:14px;font-weight:600">${esc(u.full_name || 'Без имени')}${u.username ? ` · <a href="https://t.me/${u.username}" target="_blank" style="color:#007AFF;text-decoration:none">@${esc(u.username)}</a>` : ''}${u.is_blocked ? ' <span style="color:#FF3B30;font-size:11px">заблокирован</span>' : ''}</div>
+            <div style="font-size:12px;color:#8E8E93">ID: ${u.telegram_id}${u.rating ? ' · ★ '+u.rating.toFixed(1) : ''}${u.company_name ? ' · '+esc(u.company_name) : ''}</div>
           </div>
-          <div style="display:flex;gap:6px;margin-left:auto">
-            <button class="btn-sm btn-secondary" onclick="adminChangeRole(${u.telegram_id},'${u.is_supplier?'buyer':'supplier'}')">→ ${u.is_supplier?'Покупатель':'Поставщик'}</button>
-            <button class="btn-sm btn-red" onclick="adminDeleteUser(${u.telegram_id})">✕</button>
+          <div style="display:flex;gap:6px;flex-shrink:0">
+            <button class="btn-sm ${u.is_blocked ? 'btn-green' : 'btn-secondary'}" onclick="adminToggleBlock(${u.telegram_id}, ${u.is_blocked ? 0 : 1})">${u.is_blocked ? 'Разблок.' : 'Блок.'}</button>
           </div>
         </div>
       </div>`).join('');
@@ -2258,21 +2250,12 @@ async function loadAdminUsers() {
   }
 }
 
-async function adminChangeRole(telegramId, role) {
+async function adminToggleBlock(telegramId, blocked) {
   try {
-    await api('/api/admin/user/role', {method:'POST', body: JSON.stringify({admin_id: parseInt(userId), telegram_id: telegramId, role})});
-    showToast('✅ Роль изменена');
+    await api('/api/admin/user/block', {method:'POST', body: JSON.stringify({admin_id: parseInt(userId), telegram_id: telegramId, blocked: !!blocked})});
+    showToast(blocked ? '🚫 Пользователь заблокирован' : '✅ Пользователь разблокирован');
     loadAdminUsers();
   } catch(e) { showToast('Ошибка: '+e.message); }
-}
-
-async function adminDeleteUser(telegramId) {
-  if (!confirm('Удалить пользователя?')) return;
-  try {
-    await fetch(API_BASE + `/api/admin/user/${telegramId}?admin_id=${userId}`, {method:'DELETE'});
-    showToast('✅ Пользователь удалён');
-    loadAdminUsers();
-  } catch(e) { showToast('Ошибка'); }
 }
 
 
@@ -2310,6 +2293,17 @@ async function init() {
     currentUser = await api('/api/user?telegram_id=' + userId);
   } catch(e) {
     currentUser = null;
+  }
+
+  if (currentUser?.is_blocked && !isAdmin) {
+    document.getElementById('roleOverlay').className = 'role-overlay';
+    document.getElementById('roleOverlay').innerHTML = `
+      <div class="empty-state" style="padding-top:80px">
+        <div class="empty-icon">🚫</div>
+        <div class="empty-title">Доступ заблокирован</div>
+        <div class="empty-sub">Ваш аккаунт заблокирован администратором</div>
+      </div>`;
+    return;
   }
 
   startApp();
