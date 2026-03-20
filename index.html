@@ -622,7 +622,8 @@
       </div>
       <div class="form-group" id="createOfferColorGroup" style="display:none">
         <label class="form-label">Цвет</label>
-        <select class="form-select" id="createOfferColor" onchange="onCatalogColorChange()"><option value="">-- Выберите --</option></select>
+        <input class="form-input" id="createOfferColor" list="createOfferColorList" placeholder="Выберите или введите цвет" oninput="onCatalogColorChange()" style="height:40px">
+        <datalist id="createOfferColorList"></datalist>
       </div>
       <input type="hidden" id="createOfferCatalogId" value="">
       <div class="form-row">
@@ -1845,20 +1846,21 @@ function onCatalogMemoryChange() {
 }
 
 function _showColorSelectorFromCache(cat, model, memory) {
-  const colSel = document.getElementById('createOfferColor');
+  const colInput = document.getElementById('createOfferColor');
+  const colList = document.getElementById('createOfferColorList');
   const colGroup = document.getElementById('createOfferColorGroup');
   document.getElementById('createOfferCatalogId').value = '';
   const items = catalogItemsCache.filter(i => i.category === cat && i.model === model && (i.memory || '') === memory);
   const colors = [...new Set(items.map(i => i.color).filter(Boolean))];
   if (!colors.length) {
+    // нет вариантов цвета — скрываем поле, берём первый подходящий item
     colGroup.style.display = 'none';
-    // нет цвета — берём первый подходящий item
     const found = items[0];
     if (found) document.getElementById('createOfferCatalogId').value = String(found.id);
     return;
   }
-  colSel.innerHTML = '<option value="">-- Выберите --</option>' +
-    colors.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+  colList.innerHTML = colors.map(c => `<option value="${esc(c)}">`).join('');
+  colInput.value = '';
   colGroup.style.display = '';
 }
 
@@ -1867,9 +1869,10 @@ function onCatalogColorChange() {
   const model = document.getElementById('createOfferModel').value;
   const memGroup = document.getElementById('createOfferMemoryGroup');
   const memory = memGroup.style.display === 'none' ? '' : document.getElementById('createOfferMemory').value;
-  const color = document.getElementById('createOfferColor').value;
+  const color = document.getElementById('createOfferColor').value.trim();
   if (!color) { document.getElementById('createOfferCatalogId').value = ''; return; }
-  const found = catalogItemsCache.find(i => i.category === cat && i.model === model && (i.memory||'') === memory && (i.color||'') === color);
+  const found = catalogItemsCache.find(i => i.category === cat && i.model === model && (i.memory||'') === memory && (i.color||'').toLowerCase() === color.toLowerCase());
+  // если нашли — ставим ID; если нет — оставляем пустым (бэкенд создаст запись)
   document.getElementById('createOfferCatalogId').value = found ? String(found.id) : '';
 }
 
@@ -1881,13 +1884,24 @@ async function submitCreateOffer() {
   const condition = document.getElementById('createOfferCondition')?.value || 'new';
   const priceHidden = document.getElementById('createOfferHidePrice')?.checked ? 1 : 0;
   const comment = document.getElementById('createOfferComment')?.value || '';
-  if (!catalogRaw || !price) { showToast('Выберите товар и укажите цену'); return; }
+  const cat = document.getElementById('createOfferCategory').value;
+  const model = document.getElementById('createOfferModel').value;
+  const memGroup = document.getElementById('createOfferMemoryGroup');
+  const memory = memGroup.style.display === 'none' ? '' : (document.getElementById('createOfferMemory').value || '');
+  const color = (document.getElementById('createOfferColor')?.value || '').trim();
+  if (!model || !price) { showToast('Выберите товар и укажите цену'); return; }
   const productId = parseInt(catalogRaw);
-  if (!productId) { showToast('Выберите все поля товара'); return; }
+  let offerBody;
+  if (productId) {
+    offerBody = {telegram_id: parseInt(userId), product_id: productId, price, quantity: qty, condition, comment};
+  } else {
+    if (!color) { showToast('Укажите цвет'); return; }
+    offerBody = {telegram_id: parseInt(userId), category: cat, model, memory, color, price, quantity: qty, condition, comment};
+  }
   try {
     await api('/api/supplier/offers', {
       method: 'POST',
-      body: JSON.stringify({telegram_id: parseInt(userId), product_id: productId, price, quantity: qty, comment})
+      body: JSON.stringify(offerBody)
     });
     if (priceHidden) {
       // get last offer and toggle

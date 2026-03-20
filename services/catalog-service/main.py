@@ -144,6 +144,7 @@ async def post_supplier_offers_api(request):
         except (TypeError, ValueError):
             return json_response({"ok": False, "error": "product_id must be a number"}, status=400)
     else:
+        category = (data.get("category") or "").strip()
         model = (data.get("model") or "").strip()
         memory = (data.get("memory") or "").strip()
         color = (data.get("color") or "").strip()
@@ -151,8 +152,9 @@ async def post_supplier_offers_api(request):
             return json_response({"ok": False, "error": "Required: product_id or model"}, status=400)
         catalog_id = await database.find_catalog_by_brand_model_memory_color("Apple", model, memory, color)
         if not catalog_id:
+            auto_category = category or ("iPhone" if "iPhone" in model else ("iPad" if "iPad" in model else "Apple"))
             ok, msg = await database.add_catalog_item(
-                "iPhone" if "iPhone" in model else "Apple", "Apple", model, memory, color,
+                auto_category, "Apple", model, memory, color,
                 f"{model}-{memory}-{color}".upper().replace(" ", "-")[:80]
             )
             if ok:
