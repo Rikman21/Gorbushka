@@ -89,7 +89,7 @@ async def get_catalog(filters=None):
         return [dict(r) for r in rows]
 
 
-async def get_catalog_with_offers(filters=None):
+async def get_catalog_with_offers(filters=None, viewer_id=None):
     async with pool.acquire() as conn:
         query = '''
             SELECT
@@ -99,6 +99,7 @@ async def get_catalog_with_offers(filters=None):
                 COUNT(o.id) AS offers_count
             FROM catalog c
             INNER JOIN offers o ON o.catalog_id = c.id AND o.is_visible = 1 AND o.is_available = 1
+            INNER JOIN users u ON o.supplier_id = u.telegram_id AND u.sales_paused = 0
             WHERE c.is_active = 1
         '''
         params = []
@@ -116,7 +117,15 @@ async def get_catalog_with_offers(filters=None):
                 query += f' AND c.memory = ${idx}'
                 params.append(filters['memory'])
                 idx += 1
-        query += ' GROUP BY c.id, c.category, c.brand, c.model, c.memory, c.color, c.sku, c.is_active, c.created_at HAVING COUNT(o.id) > 0 ORDER BY c.brand, c.model'
+        if viewer_id:
+            query += f''' AND o.supplier_id NOT IN (
+                SELECT blocked_id FROM user_blocks WHERE blocker_id = ${idx}
+                UNION
+                SELECT blocker_id FROM user_blocks WHERE blocked_id = ${idx}
+            )'''
+            params.append(viewer_id)
+            idx += 1
+        query += ' GROUP BY c.id, c.category, c.brand, c.model, c.memory, c.color, c.sku, c.is_active, c.created_at HAVING COUNT(o.id) > 0 ORDER BY c.category, c.brand, c.model'
         rows = await conn.fetch(query, *params)
         return [dict(r) for r in rows]
 
@@ -198,7 +207,7 @@ async def get_offer_by_id(offer_id):
 async def get_supplier_offers(supplier_id):
     async with pool.acquire() as conn:
         rows = await conn.fetch('''
-            SELECT o.*, c.brand, c.model, c.memory, c.color
+            SELECT o.*, c.brand, c.model, c.memory, c.color, c.category
             FROM offers o
             JOIN catalog c ON o.catalog_id = c.id
             WHERE o.supplier_id = $1
@@ -275,6 +284,36 @@ async def get_catalog_all_for_template():
             'SELECT brand, model, memory, color FROM catalog WHERE is_active = 1 ORDER BY brand, model, memory, color'
         )
         return [dict(r) for r in rows]
+
+
+async def get_all_catalog_items():
+    async with pool.acquire() as conn:
+        rows = await conn.fetch('''
+            SELECT c.*, COUNT(o.id) AS offers_count
+            FROM catalog c
+            LEFT JOIN offers o ON o.catalog_id = c.id AND o.is_available = 1
+            GROUP BY c.id
+            ORDER BY c.category, c.brand, c.model, c.memory, c.color
+        ''')
+        return [dict(r) for r in rows]
+
+
+async def toggle_catalog_item(item_id):
+    async with pool.acquire() as conn:
+        await conn.execute(
+            'UPDATE catalog SET is_active = 1 - is_active WHERE id = $1', item_id
+        )
+
+
+async def delete_catalog_item(item_id):
+    async with pool.acquire() as conn:
+        offers_count = await conn.fetchval(
+            'SELECT COUNT(*) FROM offers WHERE catalog_id = $1', item_id
+        )
+        if offers_count > 0:
+            return False, f"Нельзя удалить — есть {offers_count} офферов"
+        await conn.execute('DELETE FROM catalog WHERE id = $1', item_id)
+        return True, "Удалено"
 
 
 async def import_offers_batch(telegram_id, rows_data):

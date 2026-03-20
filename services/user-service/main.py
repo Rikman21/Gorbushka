@@ -115,6 +115,44 @@ async def delete_admin_user_api(request):
     return json_response({"ok": True})
 
 
+async def post_sales_pause_api(request):
+    data = await request.json()
+    telegram_id = data.get("telegram_id")
+    paused = data.get("paused")
+    if telegram_id is None or paused is None:
+        return json_response({"error": "Required: telegram_id, paused"}, status=400)
+    await database.set_sales_paused(int(telegram_id), bool(paused))
+    return json_response({"ok": True})
+
+
+async def post_user_block_api(request):
+    data = await request.json()
+    blocker_id = data.get("blocker_id")
+    blocked_id = data.get("blocked_id")
+    if not blocker_id or not blocked_id:
+        return json_response({"error": "Required: blocker_id, blocked_id"}, status=400)
+    await database.block_user_peer(int(blocker_id), int(blocked_id))
+    return json_response({"ok": True})
+
+
+async def post_user_unblock_api(request):
+    data = await request.json()
+    blocker_id = data.get("blocker_id")
+    blocked_id = data.get("blocked_id")
+    if not blocker_id or not blocked_id:
+        return json_response({"error": "Required: blocker_id, blocked_id"}, status=400)
+    await database.unblock_user_peer(int(blocker_id), int(blocked_id))
+    return json_response({"ok": True})
+
+
+async def get_user_blocks_api(request):
+    telegram_id = request.query.get("telegram_id")
+    if not telegram_id:
+        return json_response({"error": "telegram_id required"}, status=400)
+    ids = await database.get_blocked_ids(int(telegram_id))
+    return json_response(ids)
+
+
 async def post_admin_block_user_api(request):
     data = await request.json()
     try:
@@ -174,6 +212,10 @@ def create_app():
     app.router.add_get("/api/user", get_user_api)
     app.router.add_post("/api/user", post_user_api)
     app.router.add_post("/api/user/notifications", post_notifications_toggle_api)
+    app.router.add_post("/api/user/sales_pause", post_sales_pause_api)
+    app.router.add_post("/api/user/block", post_user_block_api)
+    app.router.add_post("/api/user/unblock", post_user_unblock_api)
+    app.router.add_get("/api/user/blocks", get_user_blocks_api)
     app.router.add_get("/api/supplier", get_supplier_profile_api)
     app.router.add_get("/api/supplier/stats", get_supplier_stats_api)
     # Admin

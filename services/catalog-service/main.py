@@ -43,6 +43,12 @@ async def get_catalog_api(request):
         filters['model'] = request.query.get('model')
     if request.query.get('memory'):
         filters['memory'] = request.query.get('memory')
+    viewer_id = None
+    try:
+        if request.query.get('viewer_id'):
+            viewer_id = int(request.query.get('viewer_id'))
+    except ValueError:
+        pass
     if request.query.get('all') == '1':
         catalog = await database.get_catalog(filters)
         for item in catalog:
@@ -50,7 +56,7 @@ async def get_catalog_api(request):
             item.setdefault('max_price', None)
             item.setdefault('offers_count', 0)
     else:
-        catalog = await database.get_catalog_with_offers(filters)
+        catalog = await database.get_catalog_with_offers(filters, viewer_id=viewer_id)
     return json_response(catalog)
 
 
@@ -236,6 +242,71 @@ async def post_toggle_price_api(request):
     return json_response({"ok": True, "price_hidden": new_hidden})
 
 
+ADMIN_IDS = [int(x) for x in os.environ.get("ADMIN_IDS", "").split(",") if x.strip()]
+
+
+async def get_admin_catalog_api(request):
+    admin_id = request.query.get("admin_id")
+    try:
+        if not admin_id or int(admin_id) not in ADMIN_IDS:
+            return json_response({"error": "Нет прав"}, status=403)
+    except ValueError:
+        return json_response({"error": "Нет прав"}, status=403)
+    items = await database.get_all_catalog_items()
+    return json_response(items)
+
+
+async def post_admin_catalog_api(request):
+    data = await request.json()
+    admin_id = data.get("admin_id")
+    try:
+        if not admin_id or int(admin_id) not in ADMIN_IDS:
+            return json_response({"error": "Нет прав"}, status=403)
+    except (TypeError, ValueError):
+        return json_response({"error": "Нет прав"}, status=403)
+    category = (data.get("category") or "").strip()
+    brand = (data.get("brand") or "Apple").strip()
+    model = (data.get("model") or "").strip()
+    memory = (data.get("memory") or "").strip()
+    color = (data.get("color") or "").strip()
+    if not category or not model:
+        return json_response({"error": "Required: category, model"}, status=400)
+    sku = f"{model}-{memory}-{color}".upper().replace(" ", "-")[:80]
+    ok, msg = await database.add_catalog_item(category, brand, model, memory, color, sku)
+    if not ok:
+        return json_response({"error": msg}, status=409)
+    return json_response({"ok": True, "message": msg})
+
+
+async def delete_admin_catalog_api(request):
+    item_id = request.match_info.get("id")
+    admin_id = request.query.get("admin_id")
+    try:
+        if not admin_id or int(admin_id) not in ADMIN_IDS:
+            return json_response({"error": "Нет прав"}, status=403)
+        item_id = int(item_id)
+    except (TypeError, ValueError):
+        return json_response({"error": "Нет прав"}, status=403)
+    ok, msg = await database.delete_catalog_item(item_id)
+    if not ok:
+        return json_response({"error": msg}, status=400)
+    return json_response({"ok": True})
+
+
+async def patch_admin_catalog_toggle_api(request):
+    item_id = request.match_info.get("id")
+    data = await request.json()
+    admin_id = data.get("admin_id")
+    try:
+        if not admin_id or int(admin_id) not in ADMIN_IDS:
+            return json_response({"error": "Нет прав"}, status=403)
+        item_id = int(item_id)
+    except (TypeError, ValueError):
+        return json_response({"error": "Нет прав"}, status=403)
+    await database.toggle_catalog_item(item_id)
+    return json_response({"ok": True})
+
+
 async def get_supplier_template_api(request):
     rows = await database.get_catalog_all_for_template()
     data = []
@@ -375,6 +446,10 @@ def create_app():
     app.router.add_delete("/api/supplier/offers/{id}", delete_supplier_offer_api)
     app.router.add_patch("/api/supplier/offers/{id}", patch_supplier_offer_api)
     app.router.add_post("/api/supplier/offers/{id}/toggle_price", post_toggle_price_api)
+    app.router.add_get("/api/admin/catalog", get_admin_catalog_api)
+    app.router.add_post("/api/admin/catalog", post_admin_catalog_api)
+    app.router.add_delete("/api/admin/catalog/{id}", delete_admin_catalog_api)
+    app.router.add_patch("/api/admin/catalog/{id}/toggle", patch_admin_catalog_toggle_api)
     app.router.add_get("/api/supplier/template", get_supplier_template_api)
     app.router.add_post("/api/supplier/import", post_supplier_import_api)
 

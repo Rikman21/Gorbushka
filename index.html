@@ -209,6 +209,19 @@
     .group-item-price { font-size: 14px; font-weight: 700; color: #1C1C1E; text-align: right; }
     .group-item-count { font-size: 11px; color: #8E8E93; text-align: right; margin-top: 2px; }
 
+    /* Category accordion sections */
+    .cat-section { margin-bottom: 4px; }
+    .cat-header {
+      display: flex; align-items: center; gap: 8px;
+      padding: 12px 0 8px; cursor: pointer; user-select: none;
+    }
+    .cat-header-emoji { font-size: 18px; }
+    .cat-header-title { font-size: 15px; font-weight: 700; flex: 1; color: #1C1C1E; }
+    .cat-header-count { font-size: 12px; color: #8E8E93; }
+    .cat-chevron { transition: transform 0.2s; color: #C7C7CC; }
+    .cat-section.collapsed .cat-chevron { transform: rotate(-90deg); }
+    .cat-section.collapsed .cat-items { display: none; }
+
     /* Filter chips */
     .filter-bar { padding: 8px 16px; display: flex; gap: 8px; overflow-x: auto; }
     .filter-bar::-webkit-scrollbar { display: none; }
@@ -701,17 +714,14 @@
     <div class="admin-tabs" id="adminTabs">
       <button class="admin-tab active" data-tab="adminUsers" onclick="switchAdminTab(this)">Пользователи</button>
       <button class="admin-tab" data-tab="adminDeals" onclick="switchAdminTab(this)">Сделки</button>
-      <button class="admin-tab" data-tab="adminComplaints" onclick="switchAdminTab(this)">Жалобы</button>
+      <button class="admin-tab" data-tab="adminCatalog" onclick="switchAdminTab(this)">Каталог</button>
       <button class="admin-tab" data-tab="adminReviews" onclick="switchAdminTab(this)">Отзывы</button>
     </div>
     <div class="section-pad">
       <div id="adminUsers"></div>
       <div id="adminDeals" style="display:none"></div>
+      <div id="adminCatalog" style="display:none"></div>
       <div id="adminReviews" style="display:none"></div>
-      <div id="adminComplaints" style="display:none">
-        <div class="empty-state"><div class="empty-icon">🚩</div><div class="empty-title">Жалоб нет</div><div class="empty-sub">Раздел в разработке</div></div>
-      </div>
-      <div id="adminUsers" style="display:none"></div>
     </div>
   </div>
 
@@ -995,6 +1005,7 @@ function catEmoji(cat) {
 // ===== FEED =====
 let feedData = [];
 let feedFilter = {category: '', search: ''};
+let myBlockedIds = [];
 
 async function loadFeed() {
   const el = document.getElementById('feedList');
@@ -1003,11 +1014,75 @@ async function loadFeed() {
     const params = new URLSearchParams();
     if (feedFilter.category) params.set('category', feedFilter.category);
     if (feedFilter.search) params.set('model', feedFilter.search);
+    if (userId) params.set('viewer_id', userId);
     feedData = await api('/api/catalog?' + params.toString());
     renderFeed();
   } catch(e) {
     el.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Ошибка загрузки</div><div class="empty-sub">${e.message}</div></div>`;
   }
+}
+
+function renderFeedModelGroup(key, g, idx) {
+  if (g.items.length === 1) {
+    const item = g.items[0];
+    return `
+      <div class="product-card" onclick="openCatalogItem(${item.id}, '${esc(item.model)} ${esc(item.memory || '')}')">
+        <div class="product-card-inner">
+          <div class="product-img">${catEmoji(item.category)}</div>
+          <div class="product-info">
+            <div class="product-name">${esc(key)}</div>
+            <div class="product-meta">${esc(item.memory || '')} ${esc(item.color || '')}</div>
+            <div class="product-price-row">
+              <div>
+                ${item.min_price ? `<div class="product-price">от ${item.min_price.toLocaleString('ru')} ₽</div>` : '<div class="product-price hidden">Запросить цену</div>'}
+              </div>
+              <div class="product-rating">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="#FF9500" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                ${item.offers_count || 0} поставщ.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+  }
+  const priceText = g.globalMin && g.globalMax
+    ? (g.globalMin === g.globalMax
+      ? `${g.globalMin.toLocaleString('ru')} ₽`
+      : `${g.globalMin.toLocaleString('ru')} – ${g.globalMax.toLocaleString('ru')} ₽`)
+    : 'Запросить цену';
+  const variants = g.items.map(item => {
+    const varLabel = [item.memory, item.color].filter(Boolean).join(' · ') || 'Стандарт';
+    const varPrice = item.min_price ? `от ${item.min_price.toLocaleString('ru')} ₽` : 'Запросить';
+    return `
+      <div class="group-item" onclick="event.stopPropagation();openCatalogItem(${item.id}, '${esc(item.model)} ${esc(item.memory || '')}')">
+        <div>
+          <div class="group-item-name">${esc(varLabel)}</div>
+          <div class="group-item-sub">${item.offers_count || 0} поставщ.</div>
+        </div>
+        <div>
+          <div class="group-item-price">${varPrice}</div>
+        </div>
+      </div>`;
+  }).join('');
+  return `
+    <div class="group-card" id="group_${idx}">
+      <div class="group-header" onclick="toggleGroup('group_${idx}')">
+        <div class="product-img">${catEmoji(g.items[0]?.category)}</div>
+        <div class="group-info">
+          <div class="group-model">${esc(key)}</div>
+          <div class="group-meta">${g.items.length} вариант${g.items.length > 4 ? 'ов' : g.items.length > 1 ? 'а' : ''}</div>
+          <div class="group-price">${priceText}</div>
+          <div class="group-stats">
+            <div class="group-badge">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="#FF9500" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              ${g.totalOffers} поставщ.
+            </div>
+          </div>
+        </div>
+        <svg class="group-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+      <div class="group-items">${variants}</div>
+    </div>`;
 }
 
 function renderFeed() {
@@ -1016,89 +1091,49 @@ function renderFeed() {
     el.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-title">Нет предложений</div><div class="empty-sub">Попробуйте изменить фильтр</div></div>';
     return;
   }
-  // Group by base model name (e.g. "iPhone 16 Pro Max")
-  const groups = {};
+
+  // Group by category first, then by model
+  const byCategory = {};
   feedData.forEach(item => {
-    const key = (item.brand || '') + ' ' + (item.model || '');
-    if (!groups[key]) {
-      groups[key] = { brand: item.brand, model: item.model, items: [], totalOffers: 0, globalMin: null, globalMax: null };
-    }
-    const g = groups[key];
-    g.items.push(item);
-    g.totalOffers += (item.offers_count || 0);
-    if (item.min_price) {
-      if (g.globalMin === null || item.min_price < g.globalMin) g.globalMin = item.min_price;
-    }
-    if (item.max_price) {
-      if (g.globalMax === null || item.max_price > g.globalMax) g.globalMax = item.max_price;
-    }
+    const cat = item.category || 'Другое';
+    if (!byCategory[cat]) byCategory[cat] = [];
+    byCategory[cat].push(item);
   });
 
-  el.innerHTML = Object.entries(groups).map(([key, g], idx) => {
-    // If only 1 variant — show simple card, click goes directly to offers
-    if (g.items.length === 1) {
-      const item = g.items[0];
-      return `
-        <div class="product-card" onclick="openCatalogItem(${item.id}, '${esc(item.model)} ${esc(item.memory || '')}')">
-          <div class="product-card-inner">
-            <div class="product-img">${catEmoji(item.category)}</div>
-            <div class="product-info">
-              <div class="product-name">${esc(key)}</div>
-              <div class="product-meta">${esc(item.memory || '')} ${esc(item.color || '')}</div>
-              <div class="product-price-row">
-                <div>
-                  ${item.min_price ? `<div class="product-price">от ${item.min_price.toLocaleString('ru')} ₽</div>` : '<div class="product-price hidden">Запросить цену</div>'}
-                </div>
-                <div class="product-rating">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="#FF9500" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                  ${item.offers_count || 0} поставщ.
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>`;
-    }
-    // Multiple variants — grouped card
-    const priceText = g.globalMin && g.globalMax
-      ? (g.globalMin === g.globalMax
-        ? `${g.globalMin.toLocaleString('ru')} ₽`
-        : `${g.globalMin.toLocaleString('ru')} – ${g.globalMax.toLocaleString('ru')} ₽`)
-      : 'Запросить цену';
-    const variants = g.items.map(item => {
-      const varLabel = [item.memory, item.color].filter(Boolean).join(' · ') || 'Стандарт';
-      const varPrice = item.min_price ? `от ${item.min_price.toLocaleString('ru')} ₽` : 'Запросить';
-      return `
-        <div class="group-item" onclick="event.stopPropagation();openCatalogItem(${item.id}, '${esc(item.model)} ${esc(item.memory || '')}')">
-          <div>
-            <div class="group-item-name">${esc(varLabel)}</div>
-            <div class="group-item-sub">${item.offers_count || 0} поставщ.</div>
-          </div>
-          <div>
-            <div class="group-item-price">${varPrice}</div>
-          </div>
-        </div>`;
-    }).join('');
+  let groupIdx = 0;
+  el.innerHTML = Object.entries(byCategory).map(([cat, items], catIdx) => {
+    // Group items within category by model
+    const modelGroups = {};
+    items.forEach(item => {
+      const key = (item.brand || '') + ' ' + (item.model || '');
+      if (!modelGroups[key]) {
+        modelGroups[key] = { brand: item.brand, model: item.model, items: [], totalOffers: 0, globalMin: null, globalMax: null };
+      }
+      const g = modelGroups[key];
+      g.items.push(item);
+      g.totalOffers += (item.offers_count || 0);
+      if (item.min_price && (g.globalMin === null || item.min_price < g.globalMin)) g.globalMin = item.min_price;
+      if (item.max_price && (g.globalMax === null || item.max_price > g.globalMax)) g.globalMax = item.max_price;
+    });
+
+    const totalOffers = items.reduce((s, i) => s + (i.offers_count || 0), 0);
+    const modelsHtml = Object.entries(modelGroups).map(([key, g]) => renderFeedModelGroup(key, g, groupIdx++)).join('');
 
     return `
-      <div class="group-card" id="group_${idx}">
-        <div class="group-header" onclick="toggleGroup('group_${idx}')">
-          <div class="product-img">${catEmoji(g.items[0]?.category)}</div>
-          <div class="group-info">
-            <div class="group-model">${esc(key)}</div>
-            <div class="group-meta">${g.items.length} вариант${g.items.length > 4 ? 'ов' : g.items.length > 1 ? 'а' : ''}</div>
-            <div class="group-price">${priceText}</div>
-            <div class="group-stats">
-              <div class="group-badge">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="#FF9500" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                ${g.totalOffers} поставщ.
-              </div>
-            </div>
-          </div>
-          <svg class="group-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+      <div class="cat-section" id="catSection_${catIdx}">
+        <div class="cat-header" onclick="toggleCatSection('catSection_${catIdx}')">
+          <span class="cat-header-emoji">${catEmoji(cat)}</span>
+          <span class="cat-header-title">${esc(cat)}</span>
+          <span class="cat-header-count">${totalOffers} поставщ.</span>
+          <svg class="cat-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
-        <div class="group-items">${variants}</div>
+        <div class="cat-items">${modelsHtml}</div>
       </div>`;
   }).join('');
+}
+
+function toggleCatSection(id) {
+  document.getElementById(id)?.classList.toggle('collapsed');
 }
 
 function toggleGroup(id) {
@@ -1121,13 +1156,17 @@ async function loadOfferList(catalogId) {
       el.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-title">Нет предложений</div></div>';
       return;
     }
-    el.innerHTML = offers.map(o => `
+    el.innerHTML = offers.map(o => {
+      const isOwnOffer = o.supplier_id === parseInt(userId);
+      const isBlocked = myBlockedIds.includes(o.supplier_id);
+      return `
       <div class="offer-row">
         <div class="offer-supplier-info">
           <div class="offer-company">${esc(o.company_name || o.full_name || 'Поставщик')}</div>
           <div class="offer-city">${esc(o.city || '')}</div>
           <div class="offer-rating">${starsHtml(o.rating)} &nbsp;·&nbsp; ${o.deals_count || 0} сделок</div>
           <div class="product-badges" style="margin-top:6px">${getSupplierBadges(o)}</div>
+          ${!isOwnOffer ? `<button class="btn-sm btn-secondary" style="margin-top:8px;font-size:11px;color:${isBlocked?'#34C759':'#FF3B30'}" onclick="toggleBlockUser(${o.supplier_id})">${isBlocked ? '✓ Разблокировать' : '⛔ Заблок. продавца'}</button>` : ''}
         </div>
         <div class="offer-price-col">
           ${o.price_hidden ? `
@@ -1136,11 +1175,11 @@ async function loadOfferList(catalogId) {
           ` : `
             <div class="offer-price">${(o.price||0).toLocaleString('ru')} ₽</div>
             <div style="font-size:11px;color:#8E8E93;margin:3px 0">${o.quantity || 0} шт</div>
-            <button class="btn-sm btn-primary" onclick="openBuySheet(${JSON.stringify(o).replace(/"/g,'&quot;')})">Купить</button>
+            ${!isOwnOffer ? `<button class="btn-sm btn-primary" onclick="openBuySheet(${JSON.stringify(o).replace(/"/g,'&quot;')})">Купить</button>` : '<div style="font-size:11px;color:#8E8E93">Ваш оффер</div>'}
           `}
         </div>
-      </div>
-    `).join('');
+      </div>`;
+    }).join('');
   } catch(e) {
     el.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">${e.message}</div></div>`;
   }
@@ -1612,23 +1651,45 @@ async function loadMyOffers() {
       el.innerHTML = '<div class="empty-state"><div class="empty-icon">📦</div><div class="empty-title">Нет офферов</div><div class="empty-sub">Создайте первый оффер</div></div>';
       return;
     }
-    el.innerHTML = offers.map(o => `
-      <div class="my-offer-card">
-        <div class="my-offer-header">
-          <div>
-            <div class="my-offer-name">${esc(o.brand||'')} ${esc(o.model||'')} ${esc(o.memory||'')} ${esc(o.color||'')}</div>
-            <div class="my-offer-meta">${o.quantity||0} шт · ${o.condition||''}</div>
+
+    // Group by category (catalog items have brand field; use catEmoji for icon)
+    const byCategory = {};
+    offers.forEach(o => {
+      const cat = o.category || 'Другое';
+      if (!byCategory[cat]) byCategory[cat] = [];
+      byCategory[cat].push(o);
+    });
+
+    function renderMyOffer(o) {
+      return `
+        <div class="my-offer-card">
+          <div class="my-offer-header">
+            <div>
+              <div class="my-offer-name">${esc(o.brand||'')} ${esc(o.model||'')} ${esc(o.memory||'')} ${esc(o.color||'')}</div>
+              <div class="my-offer-meta">${o.quantity||0} шт · ${o.condition||''}</div>
+            </div>
+            <div class="my-offer-price ${o.price_hidden?'hidden-price':''}">${(o.price||0).toLocaleString('ru')} ₽</div>
           </div>
-          <div class="my-offer-price ${o.price_hidden?'hidden-price':''}">${(o.price||0).toLocaleString('ru')} ₽</div>
+          ${o.price_hidden ? '<div style="font-size:11px;color:#FF9500;margin-top:4px;font-weight:600">🔒 Цена скрыта</div>' : ''}
+          <div class="my-offer-actions">
+            <button class="btn-sm btn-secondary" onclick="openEditOffer(${o.id}, ${o.price||0}, ${o.quantity||0})">✏️ Цена</button>
+            <button class="btn-sm btn-secondary" onclick="togglePrice(${o.id})">
+              ${o.price_hidden ? '👁 Показать' : '🔒 Скрыть'}
+            </button>
+            <button class="btn-sm btn-red" onclick="deleteOffer(${o.id})">Удалить</button>
+          </div>
+        </div>`;
+    }
+
+    el.innerHTML = Object.entries(byCategory).map(([cat, catOffers], catIdx) => `
+      <div class="cat-section" id="myOfferCat_${catIdx}">
+        <div class="cat-header" onclick="toggleCatSection('myOfferCat_${catIdx}')">
+          <span class="cat-header-emoji">${catEmoji(cat)}</span>
+          <span class="cat-header-title">${esc(cat)}</span>
+          <span class="cat-header-count">${catOffers.length} поз.</span>
+          <svg class="cat-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
-        ${o.price_hidden ? '<div style="font-size:11px;color:#FF9500;margin-top:4px;font-weight:600">🔒 Цена скрыта</div>' : ''}
-        <div class="my-offer-actions">
-          <button class="btn-sm btn-secondary" onclick="openEditOffer(${o.id}, ${o.price||0}, ${o.quantity||0})">✏️ Цена</button>
-          <button class="btn-sm btn-secondary" onclick="togglePrice(${o.id})">
-            ${o.price_hidden ? '👁 Показать' : '🔒 Скрыть'}
-          </button>
-          <button class="btn-sm btn-red" onclick="deleteOffer(${o.id})">Удалить</button>
-        </div>
+        <div class="cat-items">${catOffers.map(renderMyOffer).join('')}</div>
       </div>
     `).join('');
   } catch(e) {
@@ -1940,6 +2001,15 @@ async function loadMyProfile() {
           ${user.notifications_enabled!==0?'Вкл':'Выкл'}
         </button>
       </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-top:1px solid #F2F2F7;margin-bottom:8px">
+        <div>
+          <span style="font-size:15px;font-weight:500">${user.sales_paused ? '⏸ Продажи на паузе' : '▶ Продажи активны'}</span>
+          ${user.sales_paused ? '<div style="font-size:12px;color:#FF9500;margin-top:2px">Ваши офферы скрыты из ленты</div>' : ''}
+        </div>
+        <button onclick="toggleSalesPause(${user.sales_paused ? 0 : 1})" style="padding:6px 16px;border-radius:20px;font-size:13px;font-weight:600;border:none;cursor:pointer;background:${user.sales_paused?'#FF9500':'#E5E5EA'};color:${user.sales_paused?'#fff':'#8E8E93'}">
+          ${user.sales_paused ? 'Возобновить' : 'Стоп'}
+        </button>
+      </div>
       <div class="section-title">Отзывы</div>
       ${reviews.length ? reviews.map(r => `
         <div class="review-item">
@@ -2164,6 +2234,7 @@ async function loadAdminTab(tabId) {
   if (tabId === 'adminUsers') await loadAdminUsers();
   else if (tabId === 'adminDeals') await loadAdminDeals();
   else if (tabId === 'adminReviews') await loadAdminReviews();
+  else if (tabId === 'adminCatalog') await loadAdminCatalog();
 }
 
 async function loadAdminDeals() {
@@ -2258,6 +2329,116 @@ async function adminToggleBlock(telegramId, blocked) {
   } catch(e) { showToast('Ошибка: '+e.message); }
 }
 
+async function loadAdminCatalog() {
+  const el = document.getElementById('adminCatalog');
+  el.innerHTML = '<div class="spinner"></div>';
+  try {
+    const items = await api('/api/admin/catalog?admin_id=' + userId);
+    const byCategory = {};
+    items.forEach(it => {
+      const cat = it.category || 'Другое';
+      if (!byCategory[cat]) byCategory[cat] = [];
+      byCategory[cat].push(it);
+    });
+    const cats = [...new Set(Object.values(CATALOG_MODELS).map(v => v.cat))];
+    el.innerHTML = `
+      <div style="margin-bottom:16px">
+        <div class="section-title" style="margin-bottom:8px">Добавить позицию</div>
+        <div style="display:grid;gap:8px">
+          <select class="form-input" id="adminCatCat" style="height:40px">
+            <option value="">Категория</option>
+            ${cats.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('')}
+          </select>
+          <input class="form-input" id="adminCatModel" placeholder="Модель (напр. iPhone 16 Pro)" style="height:40px">
+          <input class="form-input" id="adminCatMemory" placeholder="Память / конфиг (напр. 256GB)" style="height:40px">
+          <input class="form-input" id="adminCatColor" placeholder="Цвет (напр. Black Titanium)" style="height:40px">
+          <button class="btn-full btn-primary" onclick="adminAddCatalogItem()" style="height:40px;border-radius:12px">Добавить</button>
+        </div>
+      </div>
+      <div class="section-title" style="margin-bottom:8px">Каталог (${items.length} позиций)</div>
+      ${Object.entries(byCategory).map(([cat, citems], ci) => `
+        <div class="cat-section" id="admCat_${ci}">
+          <div class="cat-header" onclick="toggleCatSection('admCat_${ci}')">
+            <span class="cat-header-emoji">${catEmoji(cat)}</span>
+            <span class="cat-header-title">${esc(cat)}</span>
+            <span class="cat-header-count">${citems.length} поз.</span>
+            <svg class="cat-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="cat-items">
+            ${citems.map(it => `
+              <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #F2F2F7;${it.is_active?'':'opacity:0.5'}">
+                <div style="flex:1;min-width:0">
+                  <div style="font-size:13px;font-weight:600;color:#1C1C1E">${esc(it.model||'')} ${esc(it.memory||'')} ${esc(it.color||'')}</div>
+                  <div style="font-size:11px;color:#8E8E93">SKU: ${esc(it.sku||'')} · ${it.offers_count||0} офф. ${it.is_active?'':'· неактивен'}</div>
+                </div>
+                <button class="btn-sm btn-secondary" style="flex-shrink:0" onclick="adminToggleCatalogItem(${it.id})">${it.is_active?'👁 Скрыть':'👁 Показать'}</button>
+                <button class="btn-sm btn-red" style="flex-shrink:0" onclick="adminDeleteCatalogItem(${it.id},${it.offers_count||0})"
+                  ${(it.offers_count||0)>0?'disabled title="Есть офферы"':''}
+                >Удалить</button>
+              </div>`).join('')}
+          </div>
+        </div>`).join('')}`;
+  } catch(e) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">${e.message}</div></div>`;
+  }
+}
+
+async function adminAddCatalogItem() {
+  const category = document.getElementById('adminCatCat')?.value;
+  const model = document.getElementById('adminCatModel')?.value?.trim();
+  const memory = document.getElementById('adminCatMemory')?.value?.trim();
+  const color = document.getElementById('adminCatColor')?.value?.trim();
+  if (!category || !model) { showToast('Укажите категорию и модель'); return; }
+  try {
+    await api('/api/admin/catalog', {method:'POST', body: JSON.stringify({admin_id: parseInt(userId), category, model, memory, color})});
+    showToast('✅ Позиция добавлена');
+    loadAdminCatalog();
+  } catch(e) { showToast('Ошибка: '+e.message); }
+}
+
+async function adminToggleCatalogItem(itemId) {
+  try {
+    await api(`/api/admin/catalog/${itemId}/toggle`, {method:'PATCH', body: JSON.stringify({admin_id: parseInt(userId)})});
+    loadAdminCatalog();
+  } catch(e) { showToast('Ошибка: '+e.message); }
+}
+
+async function adminDeleteCatalogItem(itemId, offersCount) {
+  if (offersCount > 0) { showToast('Нельзя удалить — есть офферы'); return; }
+  if (!confirm('Удалить позицию из каталога?')) return;
+  try {
+    await api(`/api/admin/catalog/${itemId}?admin_id=${userId}`, {method:'DELETE'});
+    showToast('✅ Удалено');
+    loadAdminCatalog();
+  } catch(e) { showToast('Ошибка: '+e.message); }
+}
+
+async function toggleSalesPause(paused) {
+  try {
+    await api('/api/user/sales_pause', {method:'POST', body: JSON.stringify({telegram_id: parseInt(userId), paused: !!paused})});
+    showToast(paused ? '⏸ Продажи приостановлены' : '▶ Продажи возобновлены');
+    loadMyProfile();
+  } catch(e) { showToast('Ошибка: '+e.message); }
+}
+
+async function toggleBlockUser(targetId) {
+  const isBlocked = myBlockedIds.includes(targetId);
+  try {
+    if (isBlocked) {
+      await api('/api/user/unblock', {method:'POST', body: JSON.stringify({blocker_id: parseInt(userId), blocked_id: targetId})});
+      myBlockedIds = myBlockedIds.filter(id => id !== targetId);
+      showToast('✅ Пользователь разблокирован');
+    } else {
+      await api('/api/user/block', {method:'POST', body: JSON.stringify({blocker_id: parseInt(userId), blocked_id: targetId})});
+      myBlockedIds.push(targetId);
+      showToast('⛔ Продавец заблокирован — его офферы скрыты');
+    }
+    // Reload current offer list to update buttons
+    if (activeCatalogItem) loadOfferList(activeCatalogItem.id);
+    loadFeed();
+  } catch(e) { showToast('Ошибка: '+e.message); }
+}
+
 
 // ===== Utils =====
 function esc(s) {
@@ -2290,7 +2471,10 @@ async function init() {
   isAdmin = ADMIN_IDS.includes(String(userId));
 
   try {
-    currentUser = await api('/api/user?telegram_id=' + userId);
+    [currentUser, myBlockedIds] = await Promise.all([
+      api('/api/user?telegram_id=' + userId),
+      api('/api/user/blocks?telegram_id=' + userId).catch(() => [])
+    ]);
   } catch(e) {
     currentUser = null;
   }

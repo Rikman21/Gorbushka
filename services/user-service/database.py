@@ -36,6 +36,18 @@ async def init_db():
         await conn.execute('''
             ALTER TABLE users ADD COLUMN IF NOT EXISTS is_blocked INTEGER DEFAULT 0
         ''')
+        await conn.execute('''
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS sales_paused INTEGER DEFAULT 0
+        ''')
+        await conn.execute('''
+            CREATE TABLE IF NOT EXISTS user_blocks (
+                id SERIAL PRIMARY KEY,
+                blocker_id BIGINT NOT NULL,
+                blocked_id BIGINT NOT NULL,
+                created_at TIMESTAMP DEFAULT NOW(),
+                UNIQUE(blocker_id, blocked_id)
+            )
+        ''')
 
         # Fix sequences after migration data
         for table, seq in [
@@ -93,6 +105,40 @@ async def get_all_users(limit=500):
             FROM users ORDER BY created_at DESC LIMIT $1
         ''', limit)
         return [dict(r) for r in rows]
+
+
+async def set_sales_paused(telegram_id, paused):
+    async with pool.acquire() as conn:
+        await conn.execute(
+            'UPDATE users SET sales_paused = $1 WHERE telegram_id = $2',
+            1 if paused else 0, telegram_id
+        )
+
+
+async def block_user_peer(blocker_id, blocked_id):
+    async with pool.acquire() as conn:
+        await conn.execute('''
+            INSERT INTO user_blocks (blocker_id, blocked_id)
+            VALUES ($1, $2) ON CONFLICT DO NOTHING
+        ''', blocker_id, blocked_id)
+
+
+async def unblock_user_peer(blocker_id, blocked_id):
+    async with pool.acquire() as conn:
+        await conn.execute(
+            'DELETE FROM user_blocks WHERE blocker_id = $1 AND blocked_id = $2',
+            blocker_id, blocked_id
+        )
+
+
+async def get_blocked_ids(telegram_id):
+    async with pool.acquire() as conn:
+        rows = await conn.fetch('''
+            SELECT blocked_id AS other_id FROM user_blocks WHERE blocker_id = $1
+            UNION
+            SELECT blocker_id AS other_id FROM user_blocks WHERE blocked_id = $1
+        ''', telegram_id)
+        return [r['other_id'] for r in rows]
 
 
 async def set_user_blocked(telegram_id, blocked):
