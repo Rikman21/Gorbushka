@@ -1120,7 +1120,7 @@ function renderFeed() {
     const modelsHtml = Object.entries(modelGroups).map(([key, g]) => renderFeedModelGroup(key, g, groupIdx++)).join('');
 
     return `
-      <div class="cat-section" id="catSection_${catIdx}">
+      <div class="cat-section collapsed" id="catSection_${catIdx}">
         <div class="cat-header" onclick="toggleCatSection('catSection_${catIdx}')">
           <span class="cat-header-emoji">${catEmoji(cat)}</span>
           <span class="cat-header-title">${esc(cat)}</span>
@@ -1708,7 +1708,7 @@ async function loadMyOffers() {
     }
 
     el.innerHTML = Object.entries(byCategory).map(([cat, catOffers], catIdx) => `
-      <div class="cat-section" id="myOfferCat_${catIdx}">
+      <div class="cat-section collapsed" id="myOfferCat_${catIdx}">
         <div class="cat-header" onclick="toggleCatSection('myOfferCat_${catIdx}')">
           <span class="cat-header-emoji">${catEmoji(cat)}</span>
           <span class="cat-header-title">${esc(cat)}</span>
