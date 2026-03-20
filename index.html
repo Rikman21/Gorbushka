@@ -2345,10 +2345,8 @@ async function loadAdminCatalog() {
       <div style="margin-bottom:16px">
         <div class="section-title" style="margin-bottom:8px">Добавить позицию</div>
         <div style="display:grid;gap:8px">
-          <select class="form-input" id="adminCatCat" style="height:40px">
-            <option value="">Категория</option>
-            ${cats.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('')}
-          </select>
+          <input class="form-input" id="adminCatCat" list="adminCatList" placeholder="Категория (выберите или введите новую)" style="height:40px">
+          <datalist id="adminCatList">${cats.map(c => `<option value="${esc(c)}">`).join('')}</datalist>
           <input class="form-input" id="adminCatModel" placeholder="Модель (напр. iPhone 16 Pro)" style="height:40px">
           <input class="form-input" id="adminCatMemory" placeholder="Память / конфиг (напр. 256GB)" style="height:40px">
           <input class="form-input" id="adminCatColor" placeholder="Цвет (напр. Black Titanium)" style="height:40px">
