@@ -1780,16 +1780,22 @@ async function deleteOffer(offerId) {
 }
 
 // ===== CREATE OFFER =====
-function loadCatalogForCreate() {
+let catalogItemsCache = [];
+
+async function loadCatalogForCreate() {
   const catSel = document.getElementById('createOfferCategory');
   if (!catSel) return;
   document.getElementById('createOfferModelGroup').style.display = 'none';
   document.getElementById('createOfferMemoryGroup').style.display = 'none';
   document.getElementById('createOfferColorGroup').style.display = 'none';
   document.getElementById('createOfferCatalogId').value = '';
-  // Собираем уникальные категории с иконками
-  const cats = [...new Set(Object.values(CATALOG_MODELS).map(v => v.cat))];
   catSel.value = '';
+  try {
+    catalogItemsCache = await api('/api/catalog?all=1');
+  } catch(e) {
+    catalogItemsCache = [];
+  }
+  const cats = [...new Set(catalogItemsCache.map(i => i.category).filter(Boolean))];
   catSel.innerHTML = '<option value="">-- Выберите категорию --</option>' +
     cats.map(c => `<option value="${esc(c)}">${catEmoji(c)} ${esc(c)}</option>`).join('');
 }
@@ -1802,25 +1808,26 @@ function onCatalogCategoryChange() {
   document.getElementById('createOfferColorGroup').style.display = 'none';
   document.getElementById('createOfferCatalogId').value = '';
   if (!cat) { modelGroup.style.display = 'none'; return; }
-  const models = Object.keys(CATALOG_MODELS).filter(m => CATALOG_MODELS[m].cat === cat);
+  const models = [...new Set(catalogItemsCache.filter(i => i.category === cat).map(i => i.model).filter(Boolean))];
   modelSel.innerHTML = '<option value="">-- Выберите модель --</option>' +
     models.map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join('');
   modelGroup.style.display = '';
 }
 
 function onCatalogModelChange() {
+  const cat = document.getElementById('createOfferCategory').value;
   const model = document.getElementById('createOfferModel').value;
   const memSel = document.getElementById('createOfferMemory');
   const memGroup = document.getElementById('createOfferMemoryGroup');
   const colGroup = document.getElementById('createOfferColorGroup');
   document.getElementById('createOfferCatalogId').value = '';
   colGroup.style.display = 'none';
-  if (!model || !CATALOG_MODELS[model]) { memGroup.style.display = 'none'; return; }
-  const memories = CATALOG_MODELS[model].mem.filter(m => m);
+  if (!model) { memGroup.style.display = 'none'; return; }
+  const items = catalogItemsCache.filter(i => i.category === cat && i.model === model);
+  const memories = [...new Set(items.map(i => i.memory).filter(Boolean))];
   if (!memories.length) {
     memGroup.style.display = 'none';
-    // нет памяти — сразу показываем цвета
-    _showColorSelector(model, '');
+    _showColorSelectorFromCache(cat, model, '');
     return;
   }
   memSel.innerHTML = '<option value="">-- Выберите --</option>' +
@@ -1829,23 +1836,25 @@ function onCatalogModelChange() {
 }
 
 function onCatalogMemoryChange() {
+  const cat = document.getElementById('createOfferCategory').value;
   const model = document.getElementById('createOfferModel').value;
   const memory = document.getElementById('createOfferMemory').value;
   document.getElementById('createOfferCatalogId').value = '';
   if (!model) return;
-  _showColorSelector(model, memory);
+  _showColorSelectorFromCache(cat, model, memory);
 }
 
-function _showColorSelector(model, memory) {
+function _showColorSelectorFromCache(cat, model, memory) {
   const colSel = document.getElementById('createOfferColor');
   const colGroup = document.getElementById('createOfferColorGroup');
   document.getElementById('createOfferCatalogId').value = '';
-  if (!CATALOG_MODELS[model]) { colGroup.style.display = 'none'; return; }
-  const colors = CATALOG_MODELS[model].col.filter(c => c);
+  const items = catalogItemsCache.filter(i => i.category === cat && i.model === model && (i.memory || '') === memory);
+  const colors = [...new Set(items.map(i => i.color).filter(Boolean))];
   if (!colors.length) {
     colGroup.style.display = 'none';
-    // нет цвета — запись полная
-    document.getElementById('createOfferCatalogId').value = JSON.stringify({model, memory, color:''});
+    // нет цвета — берём первый подходящий item
+    const found = items[0];
+    if (found) document.getElementById('createOfferCatalogId').value = String(found.id);
     return;
   }
   colSel.innerHTML = '<option value="">-- Выберите --</option>' +
@@ -1854,16 +1863,14 @@ function _showColorSelector(model, memory) {
 }
 
 function onCatalogColorChange() {
+  const cat = document.getElementById('createOfferCategory').value;
   const model = document.getElementById('createOfferModel').value;
-  // Если поле памяти скрыто — не используем его значение (может быть стale от предыдущей модели)
   const memGroup = document.getElementById('createOfferMemoryGroup');
   const memory = memGroup.style.display === 'none' ? '' : document.getElementById('createOfferMemory').value;
   const color = document.getElementById('createOfferColor').value;
-  if (model && color) {
-    document.getElementById('createOfferCatalogId').value = JSON.stringify({model, memory, color});
-  } else {
-    document.getElementById('createOfferCatalogId').value = '';
-  }
+  if (!color) { document.getElementById('createOfferCatalogId').value = ''; return; }
+  const found = catalogItemsCache.find(i => i.category === cat && i.model === model && (i.memory||'') === memory && (i.color||'') === color);
+  document.getElementById('createOfferCatalogId').value = found ? String(found.id) : '';
 }
 
 async function submitCreateOffer() {
@@ -1875,12 +1882,12 @@ async function submitCreateOffer() {
   const priceHidden = document.getElementById('createOfferHidePrice')?.checked ? 1 : 0;
   const comment = document.getElementById('createOfferComment')?.value || '';
   if (!catalogRaw || !price) { showToast('Выберите товар и укажите цену'); return; }
-  let catalogSel;
-  try { catalogSel = JSON.parse(catalogRaw); } catch(e) { showToast('Выберите товар'); return; }
+  const productId = parseInt(catalogRaw);
+  if (!productId) { showToast('Выберите все поля товара'); return; }
   try {
     await api('/api/supplier/offers', {
       method: 'POST',
-      body: JSON.stringify({telegram_id: parseInt(userId), model: catalogSel.model, memory: catalogSel.memory||'', color: catalogSel.color||'', price, quantity: qty, comment})
+      body: JSON.stringify({telegram_id: parseInt(userId), product_id: productId, price, quantity: qty, comment})
     });
     if (priceHidden) {
       // get last offer and toggle
