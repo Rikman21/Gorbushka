@@ -1410,13 +1410,17 @@ async function loadPublicBuyerRequests() {
   const el = document.getElementById('publicBuyerRequestsList');
   if (!el) return;
   try {
+    const dismissed = getDismissedRequests();
     const list = await api('/api/buyer_requests');
-    if (!list.length) {
+    const visible = list.filter(r => !dismissed.includes(r.id) && !myBlockedIds.includes(r.buyer_id));
+    if (!visible.length) {
       el.innerHTML = '<div style="color:#8E8E93;font-size:14px;padding:12px 0">Нет активных запросов от покупателей</div>';
       return;
     }
-    el.innerHTML = list.map(r => `
-      <div class="request-card">
+    el.innerHTML = visible.map(r => {
+      const isBlocked = myBlockedIds.includes(r.buyer_id);
+      return `
+      <div class="request-card" id="brCard_${r.id}">
         <div style="font-size:14px;font-weight:700;color:#1C1C1E">${esc(r.model)} ${esc(r.memory||'')} ${esc(r.color||'')}</div>
         <div style="font-size:12px;color:#8E8E93;margin-top:3px">Кол-во: ${r.quantity} шт${r.max_price ? ' · до ' + r.max_price.toLocaleString('ru') + ' ₽' : ''}</div>
         ${r.comment ? `<div style="font-size:12px;color:#8E8E93;margin-top:2px">${esc(r.comment)}</div>` : ''}
@@ -1424,10 +1428,32 @@ async function loadPublicBuyerRequests() {
         <div class="deal-actions" style="margin-top:10px">
           <input class="form-input" type="number" id="brResp_${r.id}" placeholder="Цена ₽" style="height:38px;font-size:14px;width:130px">
           <button class="btn-sm btn-green" onclick="respondToBuyerRequest(${r.id})">Ответить</button>
+          <button class="btn-sm btn-secondary" onclick="dismissBuyerRequest(${r.id})" title="Скрыть заявку">✕</button>
         </div>
-      </div>`).join('');
+        <div style="margin-top:8px">
+          <button class="btn-sm btn-secondary" style="font-size:11px;color:${isBlocked?'#34C759':'#FF3B30'}" onclick="toggleBlockUser(${r.buyer_id})">
+            ${isBlocked ? '✓ Разблокировать покупателя' : '⛔ Заблок. покупателя'}
+          </button>
+        </div>
+      </div>`;
+    }).join('');
   } catch(e) {
     el.innerHTML = '<div style="color:#8E8E93;font-size:13px">Ошибка загрузки</div>';
+  }
+}
+
+function getDismissedRequests() {
+  try { return JSON.parse(localStorage.getItem('dismissedBR_' + userId) || '[]'); } catch { return []; }
+}
+
+function dismissBuyerRequest(requestId) {
+  const dismissed = getDismissedRequests();
+  if (!dismissed.includes(requestId)) dismissed.push(requestId);
+  localStorage.setItem('dismissedBR_' + userId, JSON.stringify(dismissed));
+  document.getElementById('brCard_' + requestId)?.remove();
+  const el = document.getElementById('publicBuyerRequestsList');
+  if (el && !el.querySelector('.request-card')) {
+    el.innerHTML = '<div style="color:#8E8E93;font-size:14px;padding:12px 0">Нет активных запросов от покупателей</div>';
   }
 }
 
