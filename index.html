@@ -2373,7 +2373,7 @@ async function loadAdminCatalog() {
       if (!byCategory[cat]) byCategory[cat] = [];
       byCategory[cat].push(it);
     });
-    const cats = [...new Set(Object.values(CATALOG_MODELS).map(v => v.cat))];
+    const cats = [...new Set(items.map(i => i.category).filter(Boolean))];
     el.innerHTML = `
       <div style="margin-bottom:16px">
         <div class="section-title" style="margin-bottom:8px">Добавить позицию</div>
