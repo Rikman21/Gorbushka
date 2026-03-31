@@ -157,11 +157,15 @@ async def post_user_role_api(request):
     data = await request.json()
     telegram_id = data.get("telegram_id")
     role = data.get("role")
+    force = data.get("force", False)
     if not telegram_id or role not in ("buyer", "supplier"):
         return json_response({"error": "Required: telegram_id, role (buyer|supplier)"}, status=400)
-    ok = await database.set_user_role(int(telegram_id), role)
-    if not ok:
-        return json_response({"error": "Role already set"}, status=409)
+    if force:
+        await database.force_set_user_role(int(telegram_id), role)
+    else:
+        ok = await database.set_user_role(int(telegram_id), role)
+        if not ok:
+            return json_response({"error": "Role already set"}, status=409)
     return json_response({"ok": True})
 
 

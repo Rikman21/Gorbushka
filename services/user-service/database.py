@@ -153,6 +153,14 @@ async def set_user_role(telegram_id, role):
         return 'UPDATE 1' in result
 
 
+async def force_set_user_role(telegram_id, role):
+    async with pool.acquire() as conn:
+        await conn.execute(
+            'UPDATE users SET role = $1 WHERE telegram_id = $2',
+            role, telegram_id
+        )
+
+
 async def get_users_bulk(telegram_ids):
     async with pool.acquire() as conn:
         rows = await conn.fetch(
