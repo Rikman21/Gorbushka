@@ -216,6 +216,26 @@ async def handle_notification(payload):
             f"Свяжитесь для завершения сделки"
         )
 
+    elif event_type == "buyer_response_accepted_buyer":
+        buyer_id = payload["buyer_id"]
+        supplier_id = payload["supplier_id"]
+        supplier_username = payload.get("supplier_username", "")
+        supplier_name = payload.get("supplier_name", "")
+        supplier_company = payload.get("supplier_company", "")
+        model = payload.get("model", "")
+        memory = payload.get("memory", "")
+        color = payload.get("color", "")
+        price = payload.get("price", 0)
+        contact = f"@{supplier_username}" if supplier_username else supplier_company or supplier_name or str(supplier_id)
+        await send_safe(
+            buyer_id,
+            f"✅ Вы приняли предложение поставщика!\n\n"
+            f"📦 {model} {memory} {color}\n"
+            f"💵 Цена: {price:,} ₽\n\n"
+            f"👤 Контакт поставщика: {contact}\n"
+            f"Свяжитесь для завершения сделки"
+        )
+
     elif event_type == "buyer_response_rejected":
         supplier_id = payload["supplier_id"]
         model = payload.get("model", "")

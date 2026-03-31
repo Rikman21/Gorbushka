@@ -522,10 +522,13 @@ async def get_buyer_request_response_by_id(response_id):
     async with pool.acquire() as conn:
         row = await conn.fetchrow('''
             SELECT brr.*, br.buyer_id, br.model, br.memory, br.color,
-                u.username as buyer_username, u.full_name as buyer_name
+                u.username as buyer_username, u.full_name as buyer_name,
+                us.username as supplier_username, us.full_name as supplier_name,
+                us.company_name as supplier_company
             FROM buyer_request_responses brr
             JOIN buyer_requests br ON brr.request_id = br.id
             JOIN users u ON br.buyer_id = u.telegram_id
+            JOIN users us ON brr.supplier_id = us.telegram_id
             WHERE brr.id = $1
         ''', response_id)
         return dict(row) if row else None

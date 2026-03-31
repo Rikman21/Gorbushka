@@ -40,6 +40,9 @@ async def init_db():
             ALTER TABLE users ADD COLUMN IF NOT EXISTS sales_paused INTEGER DEFAULT 0
         ''')
         await conn.execute('''
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT DEFAULT NULL
+        ''')
+        await conn.execute('''
             CREATE TABLE IF NOT EXISTS user_blocks (
                 id SERIAL PRIMARY KEY,
                 blocker_id BIGINT NOT NULL,
@@ -92,7 +95,7 @@ async def set_notifications_enabled(telegram_id, enabled):
 async def get_users_with_notifications():
     async with pool.acquire() as conn:
         rows = await conn.fetch(
-            'SELECT telegram_id FROM users WHERE notifications_enabled = 1'
+            "SELECT telegram_id FROM users WHERE notifications_enabled = 1 AND role = 'supplier'"
         )
         return [r['telegram_id'] for r in rows]
 
@@ -139,6 +142,24 @@ async def get_blocked_ids(telegram_id):
             SELECT blocker_id AS other_id FROM user_blocks WHERE blocked_id = $1
         ''', telegram_id)
         return [r['other_id'] for r in rows]
+
+
+async def set_user_role(telegram_id, role):
+    async with pool.acquire() as conn:
+        result = await conn.execute(
+            'UPDATE users SET role = $1 WHERE telegram_id = $2 AND role IS NULL',
+            role, telegram_id
+        )
+        return 'UPDATE 1' in result
+
+
+async def get_users_bulk(telegram_ids):
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            'SELECT telegram_id, username, full_name, company_name FROM users WHERE telegram_id = ANY($1::bigint[])',
+            telegram_ids
+        )
+        return [dict(r) for r in rows]
 
 
 async def set_user_blocked(telegram_id, blocked):

@@ -439,8 +439,6 @@ async def post_buyer_request_api(request):
     try:
         item = f"{model}{(' ' + memory) if memory else ''}{(' ' + color) if color else ''}"
         text = f"🛒 Новый запрос от покупателя\n\n📱 {item}\nКол-во: {quantity} шт"
-        if max_price:
-            text += f"\nМакс. цена: {max_price:,} ₽".replace(',', ' ')
         if comment:
             text += f"\n💬 {comment}"
         await publish_notification("buyer_request", {"text": text})
@@ -533,6 +531,17 @@ async def post_accept_buyer_response_api(request):
             "buyer_id": resp['buyer_id'],
             "buyer_username": resp.get('buyer_username', ''),
             "buyer_name": resp.get('buyer_name', ''),
+            "model": resp.get('model', ''),
+            "memory": resp.get('memory', ''),
+            "color": resp.get('color', ''),
+            "price": resp['price'],
+        })
+        await publish_notification("buyer_response_accepted_buyer", {
+            "buyer_id": resp['buyer_id'],
+            "supplier_id": resp['supplier_id'],
+            "supplier_username": resp.get('supplier_username', ''),
+            "supplier_name": resp.get('supplier_name', ''),
+            "supplier_company": resp.get('supplier_company', ''),
             "model": resp.get('model', ''),
             "memory": resp.get('memory', ''),
             "color": resp.get('color', ''),

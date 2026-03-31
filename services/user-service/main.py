@@ -153,6 +153,30 @@ async def get_user_blocks_api(request):
     return json_response(ids)
 
 
+async def post_user_role_api(request):
+    data = await request.json()
+    telegram_id = data.get("telegram_id")
+    role = data.get("role")
+    if not telegram_id or role not in ("buyer", "supplier"):
+        return json_response({"error": "Required: telegram_id, role (buyer|supplier)"}, status=400)
+    ok = await database.set_user_role(int(telegram_id), role)
+    if not ok:
+        return json_response({"error": "Role already set"}, status=409)
+    return json_response({"ok": True})
+
+
+async def get_users_bulk_api(request):
+    ids_raw = request.query.get("ids", "")
+    if not ids_raw:
+        return json_response([])
+    try:
+        ids = [int(x) for x in ids_raw.split(",") if x.strip()]
+    except ValueError:
+        return json_response({"error": "Invalid ids"}, status=400)
+    users = await database.get_users_bulk(ids)
+    return json_response(users)
+
+
 async def post_admin_block_user_api(request):
     data = await request.json()
     try:
@@ -213,9 +237,11 @@ def create_app():
     app.router.add_post("/api/user", post_user_api)
     app.router.add_post("/api/user/notifications", post_notifications_toggle_api)
     app.router.add_post("/api/user/sales_pause", post_sales_pause_api)
+    app.router.add_post("/api/user/role", post_user_role_api)
     app.router.add_post("/api/user/block", post_user_block_api)
     app.router.add_post("/api/user/unblock", post_user_unblock_api)
     app.router.add_get("/api/user/blocks", get_user_blocks_api)
+    app.router.add_get("/api/users/bulk", get_users_bulk_api)
     app.router.add_get("/api/supplier", get_supplier_profile_api)
     app.router.add_get("/api/supplier/stats", get_supplier_stats_api)
     # Admin

@@ -560,15 +560,9 @@
         <label class="form-label">Цвет</label>
         <select class="form-select" id="brColor"><option value="">-- Выберите --</option></select>
       </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">Кол-во (шт)</label>
-          <input class="form-input" type="number" id="brQuantity" placeholder="1" value="1">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Макс. цена (₽)</label>
-          <input class="form-input" type="number" id="brMaxPrice" placeholder="Не указана">
-        </div>
+      <div class="form-group">
+        <label class="form-label">Кол-во (шт)</label>
+        <input class="form-input" type="number" id="brQuantity" placeholder="1" value="1">
       </div>
       <div class="form-group">
         <label class="form-label">Комментарий (необязательно)</label>
@@ -626,33 +620,15 @@
         <datalist id="createOfferColorList"></datalist>
       </div>
       <input type="hidden" id="createOfferCatalogId" value="">
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">Цена (₽)</label>
-          <input class="form-input" type="number" id="createOfferPrice" placeholder="0">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Кол-во (шт)</label>
-          <input class="form-input" type="number" id="createOfferQty" placeholder="0">
-        </div>
-      </div>
       <div class="form-group">
-        <label class="form-label">Состояние</label>
-        <select class="form-select" id="createOfferCondition">
-          <option value="new">Новый</option>
-          <option value="refurbished">Восстановленный</option>
-          <option value="used">Б/У</option>
-        </select>
+        <label class="form-label">Цена (₽)</label>
+        <input class="form-input" type="number" id="createOfferPrice" placeholder="0">
       </div>
       <div class="form-group">
         <label class="form-label" style="display:flex;align-items:center;gap:8px">
           <input type="checkbox" id="createOfferHidePrice" style="width:16px;height:16px">
           Скрыть цену (покупатели будут запрашивать цену)
         </label>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Комментарий (необязательно)</label>
-        <textarea class="form-textarea" id="createOfferComment" rows="3" placeholder="Доп. информация..."></textarea>
       </div>
       <button class="btn-full btn-primary" onclick="submitCreateOffer()" style="margin-top:8px">
         Опубликовать оффер
@@ -885,13 +861,24 @@ function showToast(msg, duration = 2500) {
 // ===== Navigation =====
 function buildNav() {
   const nav = document.getElementById('navItems');
-  const base = [
-    {id:'screenFeed',         icon: homeIcon(),    label:'Лента'},
-    {id:'screenMyOffers',     icon: offersIcon(),  label:'Офферы'},
-    {id:'screenIncoming',     icon: requestIcon(), label:'Входящие'},
-    {id:'screenBuyerDeals',   icon: dealsIcon(),   label:'Сделки'},
-    {id:'screenMyProfile',    icon: profileIcon(), label:'Профиль'},
-  ];
+  const role = currentUser?.role;
+  let base;
+  if (role === 'buyer') {
+    base = [
+      {id:'screenFeed',          icon: homeIcon(),    label:'Лента'},
+      {id:'screenRequests',      icon: requestIcon(), label:'Запросы'},
+      {id:'screenBuyerDeals',    icon: dealsIcon(),   label:'Сделки'},
+      {id:'screenBuyerProfile',  icon: profileIcon(), label:'Профиль'},
+    ];
+  } else {
+    base = [
+      {id:'screenFeed',         icon: homeIcon(),    label:'Лента'},
+      {id:'screenMyOffers',     icon: offersIcon(),  label:'Офферы'},
+      {id:'screenIncoming',     icon: requestIcon(), label:'Входящие'},
+      {id:'screenBuyerDeals',   icon: dealsIcon(),   label:'Сделки'},
+      {id:'screenMyProfile',    icon: profileIcon(), label:'Профиль'},
+    ];
+  }
   const tabs = isAdmin ? base.concat([{id:'screenAdmin', icon:adminIcon(), label:'Админ'}]) : base;
 
   nav.innerHTML = tabs.map(t => `
@@ -1318,11 +1305,10 @@ async function submitBuyerRequest() {
   const memory = document.getElementById('brMemoryGroup').style.display === 'none' ? '' : document.getElementById('brMemory').value;
   const color = document.getElementById('brColorGroup').style.display === 'none' ? '' : document.getElementById('brColor').value;
   const quantity = parseInt(document.getElementById('brQuantity').value) || 1;
-  const maxPrice = parseInt(document.getElementById('brMaxPrice').value) || null;
   const comment = document.getElementById('brComment').value.trim();
   if (!model) { showToast('Выберите модель'); return; }
   try {
-    await api('/api/buyer_requests', {method:'POST', body: JSON.stringify({buyer_id: parseInt(userId), model, memory, color, quantity, max_price: maxPrice, comment})});
+    await api('/api/buyer_requests', {method:'POST', body: JSON.stringify({buyer_id: parseInt(userId), model, memory, color, quantity, comment})});
     showToast('✅ Запрос опубликован!');
     goBack();
     loadMyBuyerRequests();
@@ -1343,7 +1329,7 @@ async function loadMyBuyerRequests() {
     el.innerHTML = list.map(r => `
       <div class="request-card">
         <div style="font-size:14px;font-weight:700;color:#1C1C1E">${esc(r.model)} ${esc(r.memory||'')} ${esc(r.color||'')}</div>
-        <div style="font-size:12px;color:#8E8E93;margin-top:3px">Кол-во: ${r.quantity} шт${r.max_price ? ' · до ' + r.max_price.toLocaleString('ru') + ' ₽' : ''}</div>
+        <div style="font-size:12px;color:#8E8E93;margin-top:3px">Кол-во: ${r.quantity} шт</div>
         ${r.comment ? `<div style="font-size:12px;color:#8E8E93;margin-top:2px">${esc(r.comment)}</div>` : ''}
         <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px">
           <span style="font-size:12px;color:${r.status==='open'?'#34C759':'#8E8E93'};font-weight:600">${r.status==='open'?'🟢 Открыт':'⚪ Закрыт'} · ${r.response_count} ответ${r.response_count===1?'':'ов'}</span>
@@ -1373,7 +1359,7 @@ async function viewRequestResponses(requestId, modelName) {
     const statusLabel = r.status === 'accepted' ? '<div style="color:#34C759;font-weight:600;margin-top:6px">✅ Принято — контакт отправлен</div>'
       : r.status === 'rejected' ? '<div style="color:#8E8E93;margin-top:6px">❌ Отклонено</div>'
       : `<div class="deal-actions" style="margin-top:8px">
-          <button class="btn-sm btn-green" onclick="acceptBuyerResponse(${r.id})">Принять ${r.price.toLocaleString('ru')} ₽</button>
+          <button class="btn-sm btn-green" onclick="acceptBuyerResponse(${r.id})">Купить ${r.price.toLocaleString('ru')} ₽</button>
           <button class="btn-sm btn-secondary" onclick="rejectBuyerResponse(${r.id})">Отклонить</button>
         </div>`;
     return `<div class="request-card">
@@ -1423,7 +1409,7 @@ async function loadPublicBuyerRequests() {
       return `
       <div class="request-card" id="brCard_${r.id}">
         <div style="font-size:14px;font-weight:700;color:#1C1C1E">${esc(r.model)} ${esc(r.memory||'')} ${esc(r.color||'')}</div>
-        <div style="font-size:12px;color:#8E8E93;margin-top:3px">Кол-во: ${r.quantity} шт${r.max_price ? ' · до ' + r.max_price.toLocaleString('ru') + ' ₽' : ''}</div>
+        <div style="font-size:12px;color:#8E8E93;margin-top:3px">Кол-во: ${r.quantity} шт</div>
         ${r.comment ? `<div style="font-size:12px;color:#8E8E93;margin-top:2px">${esc(r.comment)}</div>` : ''}
         <div style="font-size:12px;color:#8E8E93;margin-top:4px">Покупатель: ${esc(r.company_name||r.username||'—')} · ${r.response_count} ответ${r.response_count===1?'':'ов'}</div>
         <div class="deal-actions" style="margin-top:10px">
@@ -1880,10 +1866,7 @@ async function submitCreateOffer() {
   if (!userId) return;
   const catalogRaw = document.getElementById('createOfferCatalogId')?.value;
   const price = parseInt(document.getElementById('createOfferPrice')?.value) || 0;
-  const qty = parseInt(document.getElementById('createOfferQty')?.value) || 0;
-  const condition = document.getElementById('createOfferCondition')?.value || 'new';
   const priceHidden = document.getElementById('createOfferHidePrice')?.checked ? 1 : 0;
-  const comment = document.getElementById('createOfferComment')?.value || '';
   const cat = document.getElementById('createOfferCategory').value;
   const model = document.getElementById('createOfferModel').value;
   const memGroup = document.getElementById('createOfferMemoryGroup');
@@ -1893,10 +1876,10 @@ async function submitCreateOffer() {
   const productId = parseInt(catalogRaw);
   let offerBody;
   if (productId) {
-    offerBody = {telegram_id: parseInt(userId), product_id: productId, price, quantity: qty, condition, comment};
+    offerBody = {telegram_id: parseInt(userId), product_id: productId, price, quantity: 0, condition: 'new', comment: ''};
   } else {
     if (!color) { showToast('Укажите цвет'); return; }
-    offerBody = {telegram_id: parseInt(userId), category: cat, model, memory, color, price, quantity: qty, condition, comment};
+    offerBody = {telegram_id: parseInt(userId), category: cat, model, memory, color, price, quantity: 0, condition: 'new', comment: ''};
   }
   try {
     await api('/api/supplier/offers', {
@@ -2012,6 +1995,33 @@ async function loadSupplierDeals() {
 }
 
 // ===== PROFILES =====
+async function renderBlockedUsersSection() {
+  if (!myBlockedIds || !myBlockedIds.length) return '';
+  try {
+    const users = await api('/api/users/bulk?ids=' + myBlockedIds.join(','));
+    const items = users.map(u => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #F2F2F7">
+        <span style="font-size:14px;color:#1C1C1E">${esc(u.company_name || u.full_name || u.username || String(u.telegram_id))}</span>
+        <button class="btn-sm btn-secondary" onclick="unblockUser(${u.telegram_id})" style="font-size:12px">Разблокировать</button>
+      </div>`).join('');
+    return `
+      <details style="margin-top:16px">
+        <summary class="section-title" style="cursor:pointer;user-select:none">Заблокированные пользователи (${users.length})</summary>
+        <div style="margin-top:8px">${items}</div>
+      </details>`;
+  } catch(e) { return ''; }
+}
+
+async function unblockUser(blockedId) {
+  try {
+    await api('/api/user/unblock', {method:'POST', body: JSON.stringify({blocker_id: parseInt(userId), blocked_id: blockedId})});
+    myBlockedIds = myBlockedIds.filter(id => id !== blockedId);
+    showToast('Пользователь разблокирован');
+    if (currentScreen === 'screenMyProfile') loadMyProfile();
+    else if (currentScreen === 'screenBuyerProfile') loadBuyerProfile();
+  } catch(e) { showToast('Ошибка: ' + e.message); }
+}
+
 async function loadMyProfile() {
   const el = document.getElementById('myProfileContent');
   if (!userId) return;
@@ -2038,10 +2048,6 @@ async function loadMyProfile() {
           <div class="stat-box"><div class="stat-val">${stats.cancel_rate||0}%</div><div class="stat-lbl">Отменено</div></div>
         </div>
       </div>
-      ${!user.is_verified ? `
-        <button class="btn-full btn-secondary" onclick="showVerificationSheet()" style="margin-bottom:12px">
-          🏆 Подать заявку на верификацию
-        </button>` : '<div style="color:#34C759;font-weight:600;font-size:14px;padding:8px 0 12px">✓ Аккаунт верифицирован</div>'}
       <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-top:1px solid #F2F2F7;margin-bottom:8px">
         <span style="font-size:15px;font-weight:500">🔔 Уведомления о запросах</span>
         <button id="notifyToggleBtn" onclick="toggleNotifications()" style="padding:6px 16px;border-radius:20px;font-size:13px;font-weight:600;border:none;cursor:pointer;background:${user.notifications_enabled!==0?'#34C759':'#E5E5EA'};color:${user.notifications_enabled!==0?'#fff':'#8E8E93'}">
@@ -2067,6 +2073,7 @@ async function loadMyProfile() {
           ${r.comment ? `<div class="review-text">${esc(r.comment)}</div>` : ''}
           ${r.reply_text ? `<div style="background:#E8F5E9;border-radius:10px;padding:8px 10px;margin-top:6px;font-size:12px"><span style="font-weight:600;color:#2E7D32">Ответ:</span> ${esc(r.reply_text)}</div>` : `<button class="btn-sm btn-secondary" style="margin-top:6px;font-size:11px" onclick="openReplySheet(${r.id})">Ответить</button>`}
         </div>`).join('') : '<div style="color:#8E8E93;font-size:13px">Отзывов пока нет</div>'}
+      ${await renderBlockedUsersSection()}
     `;
   } catch(e) {
     el.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">${e.message}</div></div>`;
@@ -2092,34 +2099,6 @@ async function toggleNotifications() {
   }
 }
 
-function showVerificationSheet() {
-  openSheet('Заявка на верификацию', `
-    <div style="font-size:14px;color:#8E8E93;margin-bottom:16px;line-height:1.5">
-      Заполните данные. Администратор рассмотрит заявку и свяжется с вами.
-    </div>
-    <div class="form-group"><label class="form-label">Название компании</label><input class="form-input" id="vCompany" placeholder="ООО Ромашка"></div>
-    <div class="form-group"><label class="form-label">Город</label><input class="form-input" id="vCity" placeholder="Москва"></div>
-    <div class="form-group"><label class="form-label">Телефон</label><input class="form-input" id="vPhone" placeholder="+7 999 000-00-00"></div>
-    <button class="btn-full btn-primary" onclick="submitVerification()">Отправить заявку</button>
-  `);
-}
-
-async function submitVerification() {
-  const company = document.getElementById('vCompany')?.value?.trim();
-  const city = document.getElementById('vCity')?.value?.trim();
-  const phone = document.getElementById('vPhone')?.value?.trim();
-  if (!company || !city || !phone) { showToast('Заполните все поля'); return; }
-  try {
-    await api('/api/become_supplier', {
-      method: 'POST',
-      body: JSON.stringify({telegram_id: parseInt(userId), company_name: company, city, phone})
-    });
-    closeSheet();
-    showToast('✅ Заявка отправлена! Ожидайте ответа.');
-  } catch(e) {
-    showToast('Ошибка: ' + e.message);
-  }
-}
 
 async function loadBuyerProfile() {
   const el = document.getElementById('buyerProfileContent');
@@ -2155,6 +2134,7 @@ async function loadBuyerProfile() {
           ${r.comment ? `<div class="review-text">${esc(r.comment)}</div>` : ''}
           ${r.reply_text ? `<div style="background:#E8F5E9;border-radius:10px;padding:8px 10px;margin-top:6px;font-size:12px"><span style="font-weight:600;color:#2E7D32">Ответ:</span> ${esc(r.reply_text)}</div>` : `<button class="btn-sm btn-secondary" style="margin-top:6px;font-size:11px" onclick="openReplySheet(${r.id})">Ответить</button>`}
         </div>`).join('') : '<div style="color:#8E8E93;font-size:13px">Отзывов пока нет</div>'}
+      ${await renderBlockedUsersSection()}
     `;
   } catch(e) {
     el.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">${e.message}</div></div>`;
@@ -2500,6 +2480,37 @@ function updateHeaderBadge() {
 
 // ===== Role helpers (removed — all users are equal) =====
 
+// ===== ROLE SELECTION =====
+function showRoleSelection() {
+  const overlay = document.getElementById('roleOverlay');
+  overlay.className = 'role-overlay';
+  overlay.innerHTML = `
+    <div class="role-logo">G</div>
+    <div class="role-title">Выберите кем вы являетесь</div>
+    <div class="role-sub">Выбор нельзя изменить</div>
+    <div class="role-cards">
+      <div class="role-card" onclick="selectRole('buyer')">
+        <div class="role-icon blue">🛒</div>
+        <div><div class="role-card-title">Покупатель</div><div class="role-card-desc">Покупайте технику по лучшим ценам</div></div>
+      </div>
+      <div class="role-card" onclick="selectRole('supplier')">
+        <div class="role-icon green">📦</div>
+        <div><div class="role-card-title">Поставщик</div><div class="role-card-desc">Продавайте через удобную панель</div></div>
+      </div>
+    </div>
+  `;
+}
+
+async function selectRole(role) {
+  try {
+    await api('/api/user/role', {method:'POST', body: JSON.stringify({telegram_id: parseInt(userId), role})});
+    currentUser.role = role;
+    startApp();
+  } catch(e) {
+    showToast('Ошибка: ' + e.message);
+  }
+}
+
 // ===== INIT =====
 async function init() {
   if (!userId) {
@@ -2532,6 +2543,11 @@ async function init() {
         <div class="empty-title">Доступ заблокирован</div>
         <div class="empty-sub">Ваш аккаунт заблокирован администратором</div>
       </div>`;
+    return;
+  }
+
+  if (!currentUser?.role && !isAdmin) {
+    showRoleSelection();
     return;
   }
 
