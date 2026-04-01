@@ -136,7 +136,7 @@ async def get_catalog_offers(catalog_id):
             SELECT
                 o.id, o.price, o.quantity, o.moq, o.condition, o.delivery_days, o.warranty_months,
                 o.price_hidden,
-                u.telegram_id AS supplier_id, u.company_name, u.full_name, u.rating, u.deals_count, u.city
+                u.telegram_id AS supplier_id, u.username, u.company_name, u.full_name, u.rating, u.deals_count, u.city
             FROM offers o
             JOIN users u ON o.supplier_id = u.telegram_id
             WHERE o.catalog_id = $1 AND o.is_visible = 1 AND o.is_available = 1

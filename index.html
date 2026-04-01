@@ -1176,47 +1176,41 @@ async function loadOfferList(catalogId) {
 // ===== Buy Sheet =====
 function openBuySheet(offer) {
   activeOffer = offer;
+  const itemName = activeCatalogItem?.name || '';
+  const hasUsername = !!offer.username;
   openSheet('Оформить покупку', `
     <div style="margin-bottom:16px">
-      <div style="font-size:16px;font-weight:700;color:#1C1C1E">${esc(offer.model||'')} ${esc(offer.memory||'')} ${esc(offer.color||'')}</div>
+      <div style="font-size:16px;font-weight:700;color:#1C1C1E">${esc(itemName)}</div>
       <div style="font-size:13px;color:#8E8E93;margin-top:4px">${esc(offer.company_name||'Поставщик')}</div>
     </div>
     <div style="background:#F8F9FA;border-radius:14px;padding:14px;margin-bottom:20px">
-      <div style="font-size:24px;font-weight:800;color:#1C1C1E">${(offer.price||0).toLocaleString('ru')} ₽ <span style="font-size:14px;font-weight:500;color:#8E8E93">за шт</span></div>
-      <div style="font-size:13px;color:#8E8E93;margin-top:4px">В наличии: ${offer.quantity || 0} шт</div>
+      <div style="font-size:24px;font-weight:800;color:#1C1C1E">${(offer.price||0).toLocaleString('ru')} ₽</div>
     </div>
-    <div class="form-group">
-      <label class="form-label">Количество</label>
-      <div style="display:flex;align-items:center;gap:16px">
-        <button onclick="changeQty(-1)" style="width:40px;height:40px;border-radius:12px;background:#E8EBF0;font-size:20px;display:flex;align-items:center;justify-content:center">-</button>
-        <span id="buyQty" style="font-size:20px;font-weight:700;min-width:40px;text-align:center">1</span>
-        <button onclick="changeQty(1)" style="width:40px;height:40px;border-radius:12px;background:#E8EBF0;font-size:20px;display:flex;align-items:center;justify-content:center">+</button>
-      </div>
-    </div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-      <span style="font-size:14px;color:#8E8E93">Итого:</span>
-      <span id="buyTotal" style="font-size:18px;font-weight:800;color:#1C1C1E">${(offer.price||0).toLocaleString('ru')} ₽</span>
-    </div>
-    <button class="btn-full btn-primary" onclick="submitBuy()">Купить</button>
+    ${hasUsername
+      ? `<button class="btn-full btn-primary" onclick="goToSellerChat('${esc(offer.username)}', '${esc(itemName)}')">Перейти в чат с продавцом</button>`
+      : `<button class="btn-full btn-primary" onclick="submitBuy()">Купить</button>
+         <div style="font-size:12px;color:#8E8E93;margin-top:8px;text-align:center">Контакт будет отправлен через бота</div>`
+    }
   `);
 }
 
-let buyQty = 1;
-function changeQty(delta) {
-  buyQty = Math.max(1, buyQty + delta);
-  const el = document.getElementById('buyQty');
-  if (el) el.textContent = buyQty;
-  const tot = document.getElementById('buyTotal');
-  if (tot && activeOffer) tot.textContent = ((activeOffer.price||0) * buyQty).toLocaleString('ru') + ' ₽';
+function goToSellerChat(username, itemText) {
+  const msg = encodeURIComponent('Здравствуйте! Интересует ' + itemText);
+  const url = 'https://t.me/' + username + '?text=' + msg;
+  if (window.Telegram?.WebApp?.openTelegramLink) {
+    Telegram.WebApp.openTelegramLink(url);
+  } else {
+    window.open(url, '_blank');
+  }
+  closeSheet();
 }
 
 async function submitBuy() {
   if (!userId || !activeOffer) { showToast('Ошибка: нет userId'); return; }
   try {
-    // Create deal via API → then notify via bot sendData
-    const r = await api('/api/deals', {
+    await api('/api/deals', {
       method: 'POST',
-      body: JSON.stringify({buyer_id: parseInt(userId), offer_id: activeOffer.id, quantity: buyQty})
+      body: JSON.stringify({buyer_id: parseInt(userId), offer_id: activeOffer.id, quantity: 1})
     });
     closeSheet();
     showToast('✅ Заявка отправлена поставщику!');
@@ -1356,16 +1350,30 @@ async function viewRequestResponses(requestId, modelName) {
   const responses = await api(`/api/buyer_requests/${requestId}/responses`);
   if (!responses.length) { showToast('Ответов пока нет'); return; }
   const html = responses.map(r => {
-    const statusLabel = r.status === 'accepted' ? '<div style="color:#34C759;font-weight:600;margin-top:6px">✅ Принято — контакт отправлен</div>'
-      : r.status === 'rejected' ? '<div style="color:#8E8E93;margin-top:6px">❌ Отклонено</div>'
-      : `<div class="deal-actions" style="margin-top:8px">
-          <button class="btn-sm btn-green" onclick="acceptBuyerResponse(${r.id})">Купить ${r.price.toLocaleString('ru')} ₽</button>
+    let actionHtml;
+    if (r.status === 'accepted') {
+      actionHtml = '<div style="color:#34C759;font-weight:600;margin-top:6px">✅ Принято</div>';
+    } else if (r.status === 'rejected') {
+      actionHtml = '<div style="color:#8E8E93;margin-top:6px">❌ Отклонено</div>';
+    } else if (r.username) {
+      actionHtml = `<div class="deal-actions" style="margin-top:8px">
+          <button class="btn-sm btn-green" onclick="goToSellerChat('${esc(r.username)}', '${esc(modelName)}')">Перейти в чат · ${r.price.toLocaleString('ru')} ₽</button>
           <button class="btn-sm btn-secondary" onclick="rejectBuyerResponse(${r.id})">Отклонить</button>
         </div>`;
+    } else {
+      actionHtml = `<div class="deal-actions" style="margin-top:8px">
+          <button class="btn-sm btn-green" onclick="acceptBuyerResponse(${r.id})">Купить ${r.price.toLocaleString('ru')} ₽</button>
+          <button class="btn-sm btn-secondary" onclick="rejectBuyerResponse(${r.id})">Отклонить</button>
+        </div>
+        <div style="font-size:11px;color:#8E8E93;margin-top:4px">Контакт через бота</div>`;
+    }
     return `<div class="request-card">
-      <div style="font-size:15px;font-weight:700;color:#1C1C1E">${r.price.toLocaleString('ru')} ₽</div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="font-size:15px;font-weight:700;color:#1C1C1E">${r.price.toLocaleString('ru')} ₽</div>
+        <div style="font-size:12px;color:#8E8E93">${esc(r.company_name || '')}</div>
+      </div>
       ${r.comment ? `<div style="font-size:13px;color:#8E8E93;margin-top:4px">${esc(r.comment)}</div>` : ''}
-      ${statusLabel}
+      ${actionHtml}
     </div>`;
   }).join('');
   openSheet(`Ответы: ${esc(modelName)}`, html);
@@ -1490,10 +1498,13 @@ async function loadPriceRequests() {
           ${timerHtml}
           ${r.status === 'responded' ? `
             <div class="deal-actions" style="margin-top:10px">
-              <button class="btn-sm btn-green" onclick="acceptPriceRequest(${r.id})">Принять ${(r.buyer_price||0).toLocaleString('ru')} ₽</button>
+              ${r.supplier_username
+                ? `<button class="btn-sm btn-green" onclick="goToSellerChat('${r.supplier_username}', '${esc((r.model||'')+' '+(r.memory||'')+' '+(r.color||''))}')">Перейти в чат · ${(r.buyer_price||0).toLocaleString('ru')} ₽</button>`
+                : `<button class="btn-sm btn-green" onclick="acceptPriceRequest(${r.id})">Принять ${(r.buyer_price||0).toLocaleString('ru')} ₽</button>`
+              }
               <button class="btn-sm btn-secondary" onclick="rejectPriceRequest(${r.id})">Отклонить</button>
             </div>` : ''}
-          ${r.status === 'accepted' ? `<div style="margin-top:8px;font-size:13px;color:#34C759;font-weight:600">✅ Принято — контакт отправлен поставщику</div>` : ''}
+          ${r.status === 'accepted' ? `<div style="margin-top:8px;font-size:13px;color:#34C759;font-weight:600">✅ Принято</div>` : ''}
           ${r.status === 'rejected' ? `<div style="margin-top:8px;font-size:13px;color:#8E8E93">❌ Отклонено</div>` : ''}
         </div>`;
     }).join('');
