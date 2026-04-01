@@ -653,7 +653,9 @@
   <div class="screen" id="screenSupplierDeals">
     <div class="page-title">Мои сделки</div>
     <div class="section-pad">
-      <div class="section-title">Активные</div>
+      <div class="section-title">Мои ответы на запросы</div>
+      <div id="supplierResponsesList"><div class="spinner"></div></div>
+      <div class="section-title" style="margin-top:16px">Активные сделки</div>
       <div id="supplierDealsActive"><div class="spinner"></div></div>
       <details class="history-spoiler" style="margin-top:16px">
         <summary class="section-title" style="cursor:pointer;user-select:none">История сделок</summary>
@@ -1458,7 +1460,7 @@ async function respondToBuyerRequest(requestId) {
   try {
     await api(`/api/buyer_requests/${requestId}/respond`, {method:'POST', body: JSON.stringify({supplier_id: parseInt(userId), price})});
     showToast('✅ Ответ отправлен!');
-    loadPublicBuyerRequests();
+    dismissBuyerRequest(requestId);
   } catch(e) {
     showToast('Ошибка: ' + e.message);
   }
@@ -1987,9 +1989,35 @@ async function loadIncomingDeals() {
 async function loadSupplierDeals() {
   const elActive = document.getElementById('supplierDealsActive');
   const elHistory = document.getElementById('supplierDealsHistory');
+  const elResponses = document.getElementById('supplierResponsesList');
   if (!userId) return;
   try {
-    const deals = await api('/api/deals?telegram_id=' + userId);
+    const [deals, responses] = await Promise.all([
+      api('/api/deals?telegram_id=' + userId),
+      api('/api/supplier/responses?supplier_id=' + userId).catch(() => [])
+    ]);
+    // Supplier responses to buyer requests
+    if (elResponses) {
+      if (!responses.length) {
+        elResponses.innerHTML = '<div style="color:#8E8E93;font-size:14px;padding:8px 0">Нет ответов</div>';
+      } else {
+        const statusMap = {pending:'⏳ Ожидание', accepted:'✅ Принято', rejected:'❌ Отклонено'};
+        elResponses.innerHTML = responses.map(r => {
+          const item = `${esc(r.model||'')} ${esc(r.memory||'')} ${esc(r.color||'')}`.trim();
+          const buyer = esc(r.buyer_company || r.buyer_name || r.buyer_username || '');
+          const statusColor = r.status === 'accepted' ? '#34C759' : r.status === 'rejected' ? '#FF3B30' : '#FF9500';
+          return `<div class="request-card">
+            <div style="font-size:14px;font-weight:700;color:#1C1C1E">${item}</div>
+            <div style="font-size:13px;color:#8E8E93;margin-top:3px">Покупатель: ${buyer}</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
+              <span style="font-size:14px;font-weight:700">${(r.price||0).toLocaleString('ru')} ₽</span>
+              <span style="font-size:12px;font-weight:600;color:${statusColor}">${statusMap[r.status]||r.status}</span>
+            </div>
+          </div>`;
+        }).join('');
+      }
+    }
+    // Regular deals
     const myDeals = deals.filter(d => d.supplier_id === parseInt(userId));
     const active = myDeals.filter(d => ACTIVE_STATUSES.includes(d.status));
     const history = myDeals.filter(d => HISTORY_STATUSES.includes(d.status))

@@ -494,6 +494,20 @@ async def get_buyer_request_responses(request_id):
         return [dict(r) for r in rows]
 
 
+async def get_supplier_responses(supplier_id):
+    async with pool.acquire() as conn:
+        rows = await conn.fetch('''
+            SELECT brr.*, br.model, br.memory, br.color, br.quantity,
+                u.username as buyer_username, u.full_name as buyer_name, u.company_name as buyer_company
+            FROM buyer_request_responses brr
+            JOIN buyer_requests br ON brr.request_id = br.id
+            JOIN users u ON br.buyer_id = u.telegram_id
+            WHERE brr.supplier_id = $1
+            ORDER BY brr.created_at DESC
+        ''', supplier_id)
+        return [dict(r) for r in rows]
+
+
 async def create_buyer_request_response(request_id, supplier_id, price, comment):
     async with pool.acquire() as conn:
         await conn.execute('''

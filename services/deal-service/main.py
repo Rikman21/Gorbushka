@@ -403,6 +403,14 @@ async def get_user_reviews_api(request):
 
 # ==================== BUYER REQUESTS ====================
 
+async def get_supplier_responses_api(request):
+    supplier_id = request.query.get("supplier_id")
+    if not supplier_id:
+        return json_response({"error": "supplier_id required"}, status=400)
+    items = await database.get_supplier_responses(int(supplier_id))
+    return json_response(items)
+
+
 async def get_buyer_requests_api(request):
     items = await database.get_open_buyer_requests()
     return json_response(items)
@@ -658,6 +666,7 @@ def create_app():
     app.router.add_post("/api/buyer_requests/{id}/close", post_buyer_request_close_api)
     app.router.add_post("/api/buyer_requests/response/{resp_id}/accept", post_accept_buyer_response_api)
     app.router.add_post("/api/buyer_requests/response/{resp_id}/reject", post_reject_buyer_response_api)
+    app.router.add_get("/api/supplier/responses", get_supplier_responses_api)
 
     return app
 
