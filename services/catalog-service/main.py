@@ -406,6 +406,16 @@ async def post_supplier_import_api(request):
                           "message": f"Импортировано: {success}, ошибок: {errors}"})
 
 
+async def get_suppliers_by_model_api(request):
+    model = request.query.get("model", "")
+    if not model:
+        return json_response([])
+    memory = request.query.get("memory", "") or None
+    color = request.query.get("color", "") or None
+    ids = await database.get_suppliers_by_model(model, memory, color)
+    return json_response(ids)
+
+
 # ==================== APP ====================
 
 async def on_startup(app):
@@ -454,6 +464,8 @@ def create_app():
     app.router.add_patch("/api/admin/catalog/{id}/toggle", patch_admin_catalog_toggle_api)
     app.router.add_get("/api/supplier/template", get_supplier_template_api)
     app.router.add_post("/api/supplier/import", post_supplier_import_api)
+    # Internal
+    app.router.add_get("/internal/suppliers_by_model", get_suppliers_by_model_api)
 
     return app
 

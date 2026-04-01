@@ -278,6 +278,31 @@ async def add_catalog_item(category, brand, model, memory, color, sku):
             return False, "Товар с таким SKU уже существует"
 
 
+async def get_suppliers_by_model(model, memory=None, color=None):
+    async with pool.acquire() as conn:
+        query = '''
+            SELECT DISTINCT o.supplier_id
+            FROM offers o
+            JOIN catalog c ON o.catalog_id = c.id
+            JOIN users u ON o.supplier_id = u.telegram_id
+            WHERE o.is_visible = 1 AND o.is_available = 1
+              AND c.model = $1
+              AND u.notifications_enabled = 1
+        '''
+        params = [model]
+        idx = 2
+        if memory:
+            query += f' AND c.memory = ${idx}'
+            params.append(memory)
+            idx += 1
+        if color:
+            query += f' AND c.color = ${idx}'
+            params.append(color)
+            idx += 1
+        rows = await conn.fetch(query, *params)
+        return [r['supplier_id'] for r in rows]
+
+
 async def get_catalog_all_for_template():
     async with pool.acquire() as conn:
         rows = await conn.fetch(

@@ -181,7 +181,9 @@ async def handle_notification(payload):
 
     elif event_type == "buyer_request":
         text = payload.get("text", "")
-        supplier_ids = await get_users_with_notifications()
+        supplier_ids = payload.get("supplier_ids")
+        if not supplier_ids:
+            supplier_ids = await get_users_with_notifications()
         for sid in supplier_ids:
             await send_safe(sid, text)
 

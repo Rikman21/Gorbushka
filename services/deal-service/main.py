@@ -435,13 +435,22 @@ async def post_buyer_request_api(request):
 
     req_id = await database.create_buyer_request(buyer_id, model, memory, color, quantity, max_price, comment)
 
-    # Notify all suppliers via Redis
+    # Notify suppliers who have this product in stock
     try:
         item = f"{model}{(' ' + memory) if memory else ''}{(' ' + color) if color else ''}"
         text = f"🛒 Новый запрос от покупателя\n\n📱 {item}\nКол-во: {quantity} шт"
         if comment:
             text += f"\n💬 {comment}"
-        await publish_notification("buyer_request", {"text": text})
+        # Get suppliers with matching offers
+        params = f"model={model}"
+        if memory:
+            params += f"&memory={memory}"
+        if color:
+            params += f"&color={color}"
+        async with aiohttp.ClientSession() as session:
+            async with session.get(f"{CATALOG_SERVICE}/internal/suppliers_by_model?{params}") as resp:
+                supplier_ids = await resp.json() if resp.status == 200 else []
+        await publish_notification("buyer_request", {"text": text, "supplier_ids": supplier_ids})
     except Exception as e:
         logging.warning("Failed to publish buyer_request notification: %s", e)
     return json_response({"ok": True, "id": req_id})
