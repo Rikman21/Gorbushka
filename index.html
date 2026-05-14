@@ -829,6 +829,7 @@ let currentScreen = null;
 let screenHistory = [];
 let activeOffer = null; // selected offer for buy/request flow
 let activeCatalogItem = null; // selected catalog item for offer list
+let profileTab = 'main';
 
 // ===== Toast =====
 function showToast(msg, duration = 2500) {
@@ -1111,25 +1112,24 @@ async function loadOfferList(catalogId) {
   const el = document.getElementById('offerListContent');
   el.innerHTML = '<div class="spinner"></div>';
   try {
-    const offers = await api('/api/catalog/' + catalogId + '/offers');
+    const offers = await api('/api/catalog/' + catalogId + '/offers' + (userId ? '?viewer_id=' + userId : ''));
     if (!offers.length) {
       el.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-title">Нет предложений</div></div>';
       return;
     }
     el.innerHTML = offers.map(o => {
       const isOwnOffer = o.supplier_id === parseInt(userId);
-      const isBlocked = myBlockedIds.includes(o.supplier_id);
       return `
       <div class="offer-row">
         <div class="offer-supplier-info">
           <div class="offer-company">${esc(o.model || activeCatalogItem?.name || '')} ${esc(o.memory || '')} ${esc(o.color || '')}</div>
           <div class="offer-city">${o.quantity || 0} шт</div>
           <div class="product-badges" style="margin-top:6px">${getSupplierBadges(o)}</div>
-          ${!isOwnOffer ? `<button class="btn-sm btn-secondary" style="margin-top:8px;font-size:11px;color:${isBlocked?'#34C759':'#FF3B30'}" onclick="toggleBlockUser(${o.supplier_id})">${isBlocked ? 'Разблокировать' : 'Заблок. продавца'}</button>` : ''}
         </div>
         <div class="offer-price-col">
           <div class="offer-price">${(o.price||0).toLocaleString('ru')} ₽</div>
           ${!isOwnOffer ? `<button class="btn-sm btn-primary" style="margin-top:6px" onclick="buyToSellerChat(${JSON.stringify(o).replace(/"/g,'&quot;')})">Купить</button>` : '<div style="font-size:11px;color:#8E8E93">Ваша позиция</div>'}
+          ${isAdmin && !isOwnOffer ? `<button class="btn-sm btn-red" style="margin-top:6px" onclick="adminDeleteOffer(${o.id})">Удалить</button>` : ''}
         </div>
       </div>`;
     }).join('');
@@ -1386,9 +1386,7 @@ async function loadPublicBuyerRequests() {
       el.innerHTML = '<div style="color:#8E8E93;font-size:14px;padding:12px 0">Нет активных запросов от покупателей</div>';
       return;
     }
-    el.innerHTML = visible.map(r => {
-      const isBlocked = myBlockedIds.includes(r.buyer_id);
-      return `
+    el.innerHTML = visible.map(r => `
       <div class="request-card" id="brCard_${r.id}">
         <div style="font-size:14px;font-weight:700;color:#1C1C1E">${esc(r.model)} ${esc(r.memory||'')} ${esc(r.color||'')}</div>
         <div style="font-size:12px;color:#8E8E93;margin-top:3px">Кол-во: ${r.quantity} шт</div>
@@ -1399,13 +1397,7 @@ async function loadPublicBuyerRequests() {
           <button class="btn-sm btn-green" onclick="respondToBuyerRequest(${r.id})">Ответить</button>
           <button class="btn-sm btn-secondary" onclick="dismissBuyerRequest(${r.id})" title="Скрыть заявку">✕</button>
         </div>
-        <div style="margin-top:8px">
-          <button class="btn-sm btn-secondary" style="font-size:11px;color:${isBlocked?'#34C759':'#FF3B30'}" onclick="toggleBlockUser(${r.buyer_id})">
-            ${isBlocked ? '✓ Разблокировать покупателя' : '⛔ Заблок. покупателя'}
-          </button>
-        </div>
-      </div>`;
-    }).join('');
+      </div>`).join('');
   } catch(e) {
     el.innerHTML = '<div style="color:#8E8E93;font-size:13px">Ошибка загрузки</div>';
   }
@@ -1998,20 +1990,63 @@ async function loadSupplierDeals() {
 
 // ===== PROFILES =====
 async function renderBlockedUsersSection() {
-  if (!myBlockedIds || !myBlockedIds.length) return '';
+  const inputHtml = `
+    <div class="form-group" style="margin-top:12px">
+      <label class="form-label">Имя профиля</label>
+      <div style="display:flex;gap:8px">
+        <input class="form-input" id="blockUsernameInput" placeholder="@username" style="height:40px">
+        <button class="btn-sm btn-primary" onclick="blockUserByUsername()" style="height:40px;flex-shrink:0">Блок</button>
+      </div>
+    </div>`;
+  if (!myBlockedIds || !myBlockedIds.length) {
+    return `${inputHtml}<div style="color:#8E8E93;font-size:13px;padding:8px 0">Список заблокированных пуст</div>`;
+  }
   try {
     const users = await api('/api/users/bulk?ids=' + myBlockedIds.join(','));
     const items = users.map(u => `
       <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #F2F2F7">
-        <span style="font-size:14px;color:#1C1C1E">${esc(u.company_name || u.full_name || u.username || String(u.telegram_id))}</span>
+        <span style="font-size:14px;color:#1C1C1E">${esc(u.company_name || u.full_name || (u.username ? '@' + u.username : '') || String(u.telegram_id))}</span>
         <button class="btn-sm btn-secondary" onclick="unblockUser(${u.telegram_id})" style="font-size:12px">Разблокировать</button>
       </div>`).join('');
-    return `
-      <details style="margin-top:16px">
-        <summary class="section-title" style="cursor:pointer;user-select:none">Заблокированные пользователи (${users.length})</summary>
-        <div style="margin-top:8px">${items}</div>
-      </details>`;
+    return `${inputHtml}<div class="section-title" style="margin-top:16px">Заблокированные (${users.length})</div><div>${items}</div>`;
   } catch(e) { return ''; }
+}
+
+function renderProfileTabs() {
+  return `
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <button class="chip ${profileTab === 'main' ? 'active' : ''}" onclick="setProfileTab('main')">Профиль</button>
+      <button class="chip ${profileTab === 'blocked' ? 'active' : ''}" onclick="setProfileTab('blocked')">Блокировки</button>
+    </div>`;
+}
+
+function setProfileTab(tab) {
+  profileTab = tab;
+  if (currentScreen === 'screenMyProfile') loadMyProfile();
+  else loadBuyerProfile();
+}
+
+async function blockUserByUsername() {
+  const input = document.getElementById('blockUsernameInput');
+  const username = (input?.value || '').trim();
+  if (!username || !username.startsWith('@')) {
+    showToast('Введите username через @');
+    return;
+  }
+  try {
+    const r = await api('/api/user/block_username', {
+      method: 'POST',
+      body: JSON.stringify({blocker_id: parseInt(userId), username})
+    });
+    const blockedId = Number(r.user?.telegram_id);
+    if (blockedId && !myBlockedIds.includes(blockedId)) myBlockedIds.push(blockedId);
+    showToast('Пользователь заблокирован');
+    loadFeed();
+    if (activeCatalogItem) loadOfferList(activeCatalogItem.id);
+    setProfileTab('blocked');
+  } catch(e) {
+    showToast('Ошибка: ' + e.message);
+  }
 }
 
 async function unblockUser(blockedId) {
@@ -2030,7 +2065,7 @@ async function loadMyProfile() {
   try {
     const user = await api('/api/user?telegram_id=' + userId);
     notificationsEnabled = user.notifications_enabled !== 0;
-    el.innerHTML = `
+    const mainHtml = `
       <div class="profile-hero">
         <div style="display:flex;align-items:center;gap:14px">
           <div class="profile-avatar">${(user.full_name||'?')[0]}</div>
@@ -2049,8 +2084,10 @@ async function loadMyProfile() {
         <button onclick="toggleSalesPause(${user.sales_paused ? 0 : 1})" style="padding:6px 16px;border-radius:20px;font-size:13px;font-weight:600;border:none;cursor:pointer;background:${user.sales_paused?'#FF9500':'#E5E5EA'};color:${user.sales_paused?'#fff':'#8E8E93'}">
           ${user.sales_paused ? 'Возобновить' : 'Стоп'}
         </button>
-      </div>
-      ${await renderBlockedUsersSection()}
+      </div>`;
+    el.innerHTML = `
+      ${renderProfileTabs()}
+      ${profileTab === 'blocked' ? await renderBlockedUsersSection() : mainHtml}
     `;
   } catch(e) {
     el.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">${e.message}</div></div>`;
@@ -2083,7 +2120,7 @@ async function loadBuyerProfile() {
   try {
     const user = await api('/api/user?telegram_id=' + userId);
     notificationsEnabled = user.notifications_enabled !== 0;
-    el.innerHTML = `
+    const mainHtml = `
       <div class="profile-hero">
         <div style="display:flex;align-items:center;gap:14px">
           <div class="profile-avatar">${(user.full_name||'?')[0]}</div>
@@ -2093,8 +2130,10 @@ async function loadBuyerProfile() {
           </div>
         </div>
       </div>
-      ${isAdmin ? '<button class="btn-full btn-secondary" onclick="switchRole()" style="margin-bottom:12px">🔄 Сменить роль</button>' : ''}
-      ${await renderBlockedUsersSection()}
+      ${isAdmin ? '<button class="btn-full btn-secondary" onclick="switchRole()" style="margin-bottom:12px">🔄 Сменить роль</button>' : ''}`;
+    el.innerHTML = `
+      ${renderProfileTabs()}
+      ${profileTab === 'blocked' ? await renderBlockedUsersSection() : mainHtml}
     `;
   } catch(e) {
     el.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">${e.message}</div></div>`;
@@ -2398,6 +2437,16 @@ async function adminDeleteCatalogItem(itemId, offersCount) {
   } catch(e) { showToast('Ошибка: '+e.message); }
 }
 
+async function adminDeleteOffer(offerId) {
+  if (!confirm('Удалить объявление пользователя?')) return;
+  try {
+    await api(`/api/admin/offers/${offerId}?admin_id=${userId}`, {method:'DELETE'});
+    showToast('Объявление удалено');
+    if (activeCatalogItem) loadOfferList(activeCatalogItem.id);
+    loadFeed();
+  } catch(e) { showToast('Ошибка: '+e.message); }
+}
+
 async function toggleSalesPause(paused) {
   try {
     await api('/api/user/sales_pause', {method:'POST', body: JSON.stringify({telegram_id: parseInt(userId), paused: !!paused})});
@@ -2405,25 +2454,6 @@ async function toggleSalesPause(paused) {
     loadMyProfile();
   } catch(e) { showToast('Ошибка: '+e.message); }
 }
-
-async function toggleBlockUser(targetId) {
-  const isBlocked = myBlockedIds.includes(targetId);
-  try {
-    if (isBlocked) {
-      await api('/api/user/unblock', {method:'POST', body: JSON.stringify({blocker_id: parseInt(userId), blocked_id: targetId})});
-      myBlockedIds = myBlockedIds.filter(id => id !== targetId);
-      showToast('✅ Пользователь разблокирован');
-    } else {
-      await api('/api/user/block', {method:'POST', body: JSON.stringify({blocker_id: parseInt(userId), blocked_id: targetId})});
-      myBlockedIds.push(targetId);
-      showToast('Продавец заблокирован — его позиции скрыты');
-    }
-    // Reload current offer list to update buttons
-    if (activeCatalogItem) loadOfferList(activeCatalogItem.id);
-    loadFeed();
-  } catch(e) { showToast('Ошибка: '+e.message); }
-}
-
 
 // ===== Utils =====
 function esc(s) {

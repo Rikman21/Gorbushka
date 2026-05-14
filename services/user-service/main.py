@@ -135,6 +135,22 @@ async def post_user_block_api(request):
     return json_response({"ok": True})
 
 
+async def post_user_block_username_api(request):
+    data = await request.json()
+    blocker_id = data.get("blocker_id")
+    username = (data.get("username") or "").strip()
+    if not blocker_id or not username:
+        return json_response({"error": "Required: blocker_id, username"}, status=400)
+    user = await database.get_user_by_username(username)
+    if not user:
+        return json_response({"error": "Пользователь не найден"}, status=404)
+    blocked_id = int(user["telegram_id"])
+    if blocked_id == int(blocker_id):
+        return json_response({"error": "Нельзя заблокировать себя"}, status=400)
+    await database.block_user_peer(int(blocker_id), blocked_id)
+    return json_response({"ok": True, "user": user})
+
+
 async def post_user_unblock_api(request):
     data = await request.json()
     blocker_id = data.get("blocker_id")
@@ -243,6 +259,7 @@ def create_app():
     app.router.add_post("/api/user/sales_pause", post_sales_pause_api)
     app.router.add_post("/api/user/role", post_user_role_api)
     app.router.add_post("/api/user/block", post_user_block_api)
+    app.router.add_post("/api/user/block_username", post_user_block_username_api)
     app.router.add_post("/api/user/unblock", post_user_unblock_api)
     app.router.add_get("/api/user/blocks", get_user_blocks_api)
     app.router.add_get("/api/users/bulk", get_users_bulk_api)

@@ -138,10 +138,19 @@ async def get_blocked_ids(telegram_id):
     async with pool.acquire() as conn:
         rows = await conn.fetch('''
             SELECT blocked_id AS other_id FROM user_blocks WHERE blocker_id = $1
-            UNION
-            SELECT blocker_id AS other_id FROM user_blocks WHERE blocked_id = $1
         ''', telegram_id)
         return [r['other_id'] for r in rows]
+
+
+async def get_user_by_username(username):
+    username = username.lstrip('@').strip()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow('''
+            SELECT telegram_id, username, full_name, company_name
+            FROM users
+            WHERE LOWER(username) = LOWER($1)
+        ''', username)
+        return dict(row) if row else None
 
 
 async def set_user_role(telegram_id, role):

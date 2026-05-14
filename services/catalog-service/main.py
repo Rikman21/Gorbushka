@@ -66,9 +66,10 @@ async def get_catalog_offers_api(request):
         return json_response({"error": "id required"}, status=400)
     try:
         catalog_id = int(catalog_id)
+        viewer_id = int(request.query.get("viewer_id")) if request.query.get("viewer_id") else None
     except ValueError:
         return json_response({"error": "Invalid id"}, status=400)
-    offers = await database.get_catalog_offers(catalog_id)
+    offers = await database.get_catalog_offers(catalog_id, viewer_id=viewer_id)
     return json_response(offers)
 
 
@@ -295,6 +296,20 @@ async def delete_admin_catalog_api(request):
     return json_response({"ok": True})
 
 
+async def delete_admin_offer_api(request):
+    offer_id = request.match_info.get("id")
+    admin_id = request.query.get("admin_id")
+    try:
+        if not admin_id or int(admin_id) not in ADMIN_IDS:
+            return json_response({"error": "Нет прав"}, status=403)
+        offer_id = int(offer_id)
+    except (TypeError, ValueError):
+        return json_response({"error": "Нет прав"}, status=403)
+    if not await database.delete_offer_any(offer_id):
+        return json_response({"error": "Позиция не найдена"}, status=404)
+    return json_response({"ok": True})
+
+
 async def patch_admin_catalog_toggle_api(request):
     item_id = request.match_info.get("id")
     data = await request.json()
@@ -462,6 +477,7 @@ def create_app():
     app.router.add_post("/api/admin/catalog", post_admin_catalog_api)
     app.router.add_delete("/api/admin/catalog/{id}", delete_admin_catalog_api)
     app.router.add_patch("/api/admin/catalog/{id}/toggle", patch_admin_catalog_toggle_api)
+    app.router.add_delete("/api/admin/offers/{id}", delete_admin_offer_api)
     app.router.add_get("/api/supplier/template", get_supplier_template_api)
     app.router.add_post("/api/supplier/import", post_supplier_import_api)
     # Internal

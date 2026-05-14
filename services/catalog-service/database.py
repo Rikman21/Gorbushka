@@ -120,8 +120,6 @@ async def get_catalog_with_offers(filters=None, viewer_id=None):
         if viewer_id:
             query += f''' AND o.supplier_id NOT IN (
                 SELECT blocked_id FROM user_blocks WHERE blocker_id = ${idx}
-                UNION
-                SELECT blocker_id FROM user_blocks WHERE blocked_id = ${idx}
             )'''
             params.append(viewer_id)
             idx += 1
@@ -130,9 +128,9 @@ async def get_catalog_with_offers(filters=None, viewer_id=None):
         return [dict(r) for r in rows]
 
 
-async def get_catalog_offers(catalog_id):
+async def get_catalog_offers(catalog_id, viewer_id=None):
     async with pool.acquire() as conn:
-        rows = await conn.fetch('''
+        query = '''
             SELECT
                 o.id, o.price, o.quantity, o.moq, o.condition, o.delivery_days, o.warranty_months,
                 o.price_hidden,
@@ -140,8 +138,15 @@ async def get_catalog_offers(catalog_id):
             FROM offers o
             JOIN users u ON o.supplier_id = u.telegram_id
             WHERE o.catalog_id = $1 AND o.is_visible = 1 AND o.is_available = 1
-            ORDER BY o.price ASC
-        ''', catalog_id)
+        '''
+        params = [catalog_id]
+        if viewer_id:
+            query += ''' AND o.supplier_id NOT IN (
+                SELECT blocked_id FROM user_blocks WHERE blocker_id = $2
+            )'''
+            params.append(viewer_id)
+        query += ' ORDER BY o.price ASC'
+        rows = await conn.fetch(query, *params)
         return [dict(r) for r in rows]
 
 
@@ -249,6 +254,12 @@ async def delete_offer(offer_id, supplier_id):
         result = await conn.execute(
             'DELETE FROM offers WHERE id = $1 AND supplier_id = $2', offer_id, supplier_id
         )
+        return result == 'DELETE 1'
+
+
+async def delete_offer_any(offer_id):
+    async with pool.acquire() as conn:
+        result = await conn.execute('DELETE FROM offers WHERE id = $1', offer_id)
         return result == 'DELETE 1'
 
 
