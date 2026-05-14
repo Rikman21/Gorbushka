@@ -315,13 +315,6 @@
     }
     .profile-name { font-size: 18px; font-weight: 700; color: #1C1C1E; margin-top: 12px; }
     .profile-meta { font-size: 13px; color: #8E8E93; margin-top: 3px; }
-    .stats-row { display: flex; gap: 8px; margin-top: 16px; }
-    .stat-box {
-      flex: 1; background: #F8F9FA; border-radius: 12px; padding: 12px;
-      display: flex; flex-direction: column; align-items: center; gap: 4px;
-    }
-    .stat-val { font-size: 18px; font-weight: 800; color: #1C1C1E; }
-    .stat-lbl { font-size: 10px; color: #8E8E93; font-weight: 500; text-align: center; }
     .review-item {
       background: #F8F9FA; border-radius: 12px; padding: 12px; margin-bottom: 8px;
     }
@@ -2035,10 +2028,7 @@ async function loadMyProfile() {
   const el = document.getElementById('myProfileContent');
   if (!userId) return;
   try {
-    const [user, stats] = await Promise.all([
-      api('/api/user?telegram_id=' + userId),
-      api('/api/supplier/stats?telegram_id=' + userId)
-    ]);
+    const user = await api('/api/user?telegram_id=' + userId);
     notificationsEnabled = user.notifications_enabled !== 0;
     el.innerHTML = `
       <div class="profile-hero">
@@ -2048,11 +2038,6 @@ async function loadMyProfile() {
             <div class="profile-name">${esc(user.company_name || user.full_name || 'Поставщик')}</div>
             <div class="profile-meta">${esc(user.city||'')} ${user.username ? '· @'+user.username : ''}</div>
           </div>
-        </div>
-        <div class="stats-row">
-          <div class="stat-box"><div class="stat-val">${stats.total||0}</div><div class="stat-lbl">Сделок</div></div>
-          <div class="stat-box"><div class="stat-val">${stats.confirmed_rate||0}%</div><div class="stat-lbl">Завершено</div></div>
-          <div class="stat-box"><div class="stat-val">${stats.cancel_rate||0}%</div><div class="stat-lbl">Отменено</div></div>
         </div>
       </div>
       ${isAdmin ? '<button class="btn-full btn-secondary" onclick="switchRole()" style="margin-bottom:12px">🔄 Сменить роль</button>' : ''}
